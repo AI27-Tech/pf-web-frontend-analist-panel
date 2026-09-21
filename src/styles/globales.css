@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens de Nocturne Operations Interface, la misma paleta que usan pf-app-custodio,
+ * el panel interno y el portal del cliente. Fuente: pf-library-frontend-components/
+ * src/styles/tokens.css. Este panel no inventa colores: los consume.
+ *
+ * El sistema es dark-first. El tema claro es la variante derivada para uso diurno.
+ */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  /* Geometría: 4px de base. Los documentos de diseño prohíben las píldoras en
+     botones y tarjetas; los círculos quedan sólo para avatares y contadores. */
+  --radius-sm: 0.125rem;
+  --radius-DEFAULT: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  /* Superficies del tema oscuro, por nivel de elevación */
+  --color-lienzo: #0e1117;
+  --color-superficie-baja: #161b24;
+  --color-superficie: #1c222e;
+  --color-superficie-alta: #242b3a;
+  --color-superficie-maxima: #2e3748;
+
+  /* Trazos */
+  --color-borde: #2d3748;
+  --color-borde-fuerte: #374151;
+
+  /* Texto */
+  --color-texto: #e2e8f0;
+  --color-texto-tenue: #94a3b8;
+  --color-texto-placeholder: #64748b;
+
+  /* Acento y estados */
+  --color-acento: #7c9df0;
+  --color-exito: #6ee7b7;
+  --color-alerta: #fcd34d;
+  --color-peligro: #fca5a5;
+}
+
+/*
+ * Variante clara, para uso diurno. Se activa quitando la clase `dark` del <html>.
+ */
+:root:not(.dark) {
+  --color-lienzo: #eef1f7;
+  --color-superficie-baja: #f4f6fb;
+  --color-superficie: #ffffff;
+  --color-superficie-alta: #ffffff;
+  --color-superficie-maxima: #dbe1ee;
+
+  --color-borde: #ccd3e2;
+  --color-borde-fuerte: #b3bccf;
+
+  --color-texto: #1a2130;
+  --color-texto-tenue: #56607a;
+  --color-texto-placeholder: #8a93a8;
+
+  --color-acento: #4f6fc4;
+  --color-exito: #0f9d63;
+  --color-alerta: #b7791f;
+  --color-peligro: #c0392f;
+}
+
+body {
+  background-color: var(--color-lienzo);
+  color: var(--color-texto);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cifras tabulares donde hay números que cambian: contadores, métricas, timers.
+   Sin esto el texto se mueve al cambiar de dígito. */
+.cifras-tabulares {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Vista de impresión del reporte (docs/PLAN.md §8). El PDF lo genera el navegador:
+ * no hay librería de generación, así que el reporte *es* el PDF y no hay dos
+ * formatos que mantener sincronizados.
+ */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+    color: #1a2130;
+  }
+}

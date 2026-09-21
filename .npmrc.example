@@ -1,0 +1,15 @@
+# Acceso a @ai27-tech/ui, la librería de componentes con los tokens de Nocturne.
+#
+# NO vive en el registro público de npm: se publica en GitHub Packages, así que hace
+# falta un token con permiso `read:packages` sobre la organización AI27-Tech.
+#
+# Para habilitarla:
+#   1. cp .npmrc.example .npmrc      (.npmrc está en .gitignore; el token nunca se versiona)
+#   2. pon tu token en la línea de abajo
+#   3. agrega la dependencia:  pnpm add @ai27-tech/ui@0.2.0-beta.1
+#
+# Mientras no esté configurada, el panel usa los tokens de Nocturne directamente desde
+# src/styles/globales.css, así que la paleta es la correcta aunque no haya componentes
+# prefabricados. Ver docs/PLAN.md §3.
+@ai27-tech:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=TU_TOKEN_DE_GITHUB

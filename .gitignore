@@ -1,0 +1,47 @@
+# --- Mockups de diseño (fuente en Stitch, no se versionan: ~5.6MB de PNG/HTML) ---
+# Material de referencia para implementar, no código. Mismo criterio que
+# mock-app-design-language en pf-app-custodio.
+docs/mock-web-analist/
+
+# --- Dependencias y build ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# --- TanStack Router (árbol de rutas generado) ---
+.tanstack/
+src/routeTree.gen.ts
+
+# --- Entorno: la configuración de Firebase del cliente va por .env ---
+# La apiKey del SDK web NO es un secreto (identifica el proyecto, no autoriza),
+# pero el .env es por máquina. Lo que NUNCA se versiona es la cuenta de servicio
+# del script de provisión del rol del analista, ni el token de GitHub Packages.
+.env
+.env.*
+!.env.example
+.npmrc
+*service-account*.json
+serviceAccountKey.json
+*.pem
+*.key
+
+# --- Caché de herramientas ---
+.eslintcache
+.vite/
+coverage/
+*.tsbuildinfo
+
+# --- Logs ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# --- Editores ---
+.vscode/
+.idea/
+*.swp
+
+# --- macOS ---
+.DS_Store
+._*

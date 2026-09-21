@@ -1,0 +1,9 @@
+# pnpm bloquea por defecto los scripts de instalación de las dependencias, que es un
+# buen default: un postinstall es ejecución de código arbitrario de un tercero.
+#
+# Estos dos se aprueban a conciencia porque el SDK de Firebase no funciona sin ellos:
+#   - protobufjs: genera código en postinstall; Firestore lo usa para su protocolo.
+#   - @firebase/util: script de instalación propio del SDK.
+allowBuilds:
+  protobufjs: true
+  '@firebase/util': true
