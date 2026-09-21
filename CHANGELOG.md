@@ -2,6 +2,44 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:22 00:20
+
+**Resumen:** Los tokens de la capa de estilos del panel pasan a nombres en inglés, alineados con el vocabulario de `@ai27-tech/ui`. Los sustantivos de dominio siguen en español; los nombres de tokens de UI no son dominio, así que van en inglés según la convención del workspace.
+
+**Cambios:**
+
+- Se renombraron los alias de color y radio de `src/styles/globales.css` a inglés espejeando la librería: `lienzo→canvas`, `superficie→surface` (con `-low`, `-high`, `-highest`), `borde→border` (`-strong`), `texto→text` (`-muted`, `-placeholder`), `acento→accent`, `exito→success`, `alerta→warning`, `peligro→danger`. Siguen siendo `var(--ui-*)`: la librería continúa siendo la única fuente de verdad.
+- Se agregó el token `--color-on-accent: var(--ui-color-on-primary)` y se usó en el botón del login (`text-on-accent`), eliminando el hex `#0e1117` que estaba hardcodeado.
+- Se actualizaron las clases Tailwind en los tres archivos que las usaban: `src/routes/_privado.tsx`, `src/routes/login.tsx` y `src/components/EncabezadoPagina.tsx`.
+- Los comentarios de `globales.css` permanecen en español (prosa, no identificadores), según la convención del repo.
+- Verificado: `pnpm typecheck`, `pnpm lint` y `pnpm build` pasan.
+
+**Archivos modificados:**
+
+- `src/styles/globales.css`
+- `src/routes/_privado.tsx`
+- `src/routes/login.tsx`
+- `src/components/EncabezadoPagina.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:22 00:00
+
+**Resumen:** `@ai27-tech/ui` pasa a ser la única fuente de verdad de la paleta. El panel deja de duplicar los valores de Nocturne y ahora los consume de la librería.
+
+**Cambios:**
+
+- Se importa `@ai27-tech/ui/styles.css` en `src/main.tsx`, antes de `globales.css`: trae los tokens `--ui-*`, los estilos base y el CSS de los componentes de la librería.
+- Se reescribió `src/styles/globales.css`: ya no define ningún color ni valor de geometría propio. Los nombres en español que usan las pantallas (`--color-lienzo`, `--color-superficie`, `--color-texto`, `--color-acento`, los radios…) ahora se mapean a los tokens `--ui-*` de la librería con `var()`. Si la librería cambia un valor, el panel lo hereda. Se conservó la hoja de impresión `@media print`, que es propia del panel.
+- Se migró el control de tema de la clase `.dark` a `data-theme="dark"` en `index.html`, que es el mecanismo que entiende la librería. Nocturne sigue siendo dark-first.
+- Verificado: `pnpm typecheck`, `pnpm lint` y `pnpm build` pasan. La paleta no cambia visualmente porque los valores hex de la librería y los que el panel duplicaba eran los mismos.
+
+**Archivos modificados:**
+
+- `src/main.tsx`
+- `src/styles/globales.css`
+- `index.html`
+- `CHANGELOG.md`
+
 ## 2026:09:21 23:25
 
 **Resumen:** Arranque del repositorio: plan de construcción, rama con la convención de nombres del proyecto y scaffold verificado de la aplicación web.

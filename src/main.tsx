@@ -1,5 +1,9 @@
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
+// La librería es la única fuente de verdad de la paleta: sus tokens `--ui-*` y sus
+// estilos base se importan primero, y `globales.css` sólo los re-expone con los
+// nombres en español que usa el panel. Ver docs/PLAN.md §3 y §7.
+import '@ai27-tech/ui/styles.css';
 import './styles/globales.css';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
