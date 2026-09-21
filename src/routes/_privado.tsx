@@ -33,15 +33,15 @@ function Privado() {
   return (
     <div className="flex min-h-screen">
       {/* En tablet la barra se colapsa a iconos sin etiqueta (prompt 24 del diseño). */}
-      <nav className="bg-superficie border-borde no-imprimir flex w-16 shrink-0 flex-col border-r py-6 lg:w-56">
-        <p className="text-texto mb-8 px-4 text-lg font-semibold tracking-tight lg:px-6">AI27</p>
+      <nav className="bg-surface border-border no-imprimir flex w-16 shrink-0 flex-col border-r py-6 lg:w-56">
+        <p className="text-text mb-8 px-4 text-lg font-semibold tracking-tight lg:px-6">AI27</p>
         <ul className="flex flex-col gap-1 px-2 lg:px-3">
           {destinos.map(({ a, etiqueta, Icono }) => (
             <li key={a}>
               <Link
                 to={a}
-                className="text-texto-tenue flex items-center gap-3 rounded px-3 py-3 text-sm"
-                activeProps={{ className: 'bg-superficie-alta text-acento' }}
+                className="text-text-muted flex items-center gap-3 rounded px-3 py-3 text-sm"
+                activeProps={{ className: 'bg-surface-high text-accent' }}
               >
                 <Icono size={18} strokeWidth={1.75} />
                 <span className="hidden lg:inline">{etiqueta}</span>

@@ -8,8 +8,8 @@ export function EncabezadoPagina({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="border-borde flex items-center justify-between border-b px-8 py-6">
-      <h1 className="text-texto text-xl font-semibold tracking-tight">{titulo}</h1>
+    <header className="border-border flex items-center justify-between border-b px-8 py-6">
+      <h1 className="text-text text-xl font-semibold tracking-tight">{titulo}</h1>
       {children && <div className="flex items-center gap-2">{children}</div>}
     </header>
   );
@@ -20,8 +20,8 @@ export function EncabezadoPagina({
 export function PorConstruir({ fase, descripcion }: { fase: string; descripcion: string }) {
   return (
     <div className="px-8 py-10">
-      <p className="text-acento font-mono text-xs tracking-widest uppercase">{fase}</p>
-      <p className="text-texto-tenue mt-2 max-w-prose text-sm">{descripcion}</p>
+      <p className="text-accent font-mono text-xs tracking-widest uppercase">{fase}</p>
+      <p className="text-text-muted mt-2 max-w-prose text-sm">{descripcion}</p>
     </div>
   );
 }

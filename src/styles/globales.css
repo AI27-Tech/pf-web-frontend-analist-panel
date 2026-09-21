@@ -1,74 +1,50 @@
 @import 'tailwindcss';
 
 /*
- * Tokens de Nocturne Operations Interface, la misma paleta que usan pf-app-custodio,
- * el panel interno y el portal del cliente. Fuente: pf-library-frontend-components/
- * src/styles/tokens.css. Este panel no inventa colores: los consume.
+ * La única fuente de verdad de la paleta es @ai27-tech/ui. Sus tokens `--ui-*` y sus
+ * estilos base se cargan en `src/main.tsx` (import '@ai27-tech/ui/styles.css') ANTES
+ * que este archivo.
  *
- * El sistema es dark-first. El tema claro es la variante derivada para uso diurno.
+ * Aquí no se define ni un color: sólo se re-exponen los tokens de la librería con los
+ * nombres en español que usan las pantallas del panel, para que Tailwind los conozca.
+ * Si la librería cambia un valor, el panel lo hereda sin tocar este archivo. Cambiar
+ * la paleta a mano aquí rompería esa única fuente de verdad. Ver docs/PLAN.md §3 y §7.
+ *
+ * El tema (claro/oscuro) lo controla `data-theme` en el <html>, no una clase: es el
+ * mecanismo que entiende la librería. Nocturne es dark-first.
  */
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 
-  /* Geometría: 4px de base. Los documentos de diseño prohíben las píldoras en
-     botones y tarjetas; los círculos quedan sólo para avatares y contadores. */
-  --radius-sm: 0.125rem;
-  --radius-DEFAULT: 0.25rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  /* Geometría: 4px de base, tomada de los tokens de la librería. */
+  --radius-sm: var(--ui-radius-sm);
+  --radius-DEFAULT: var(--ui-radius);
+  --radius-lg: var(--ui-radius-lg);
+  --radius-xl: var(--ui-radius-xl);
 
-  /* Superficies del tema oscuro, por nivel de elevación */
-  --color-lienzo: #0e1117;
-  --color-superficie-baja: #161b24;
-  --color-superficie: #1c222e;
-  --color-superficie-alta: #242b3a;
-  --color-superficie-maxima: #2e3748;
+  /* Superficies por nivel de elevación → tokens de la librería. */
+  --color-canvas: var(--ui-color-surface-muted);
+  --color-surface-low: var(--ui-color-surface-container-low);
+  --color-surface: var(--ui-color-surface);
+  --color-surface-high: var(--ui-color-surface-container-high);
+  --color-surface-highest: var(--ui-color-surface-container-highest);
 
   /* Trazos */
-  --color-borde: #2d3748;
-  --color-borde-fuerte: #374151;
+  --color-border: var(--ui-color-border);
+  --color-border-strong: var(--ui-color-border-strong);
 
   /* Texto */
-  --color-texto: #e2e8f0;
-  --color-texto-tenue: #94a3b8;
-  --color-texto-placeholder: #64748b;
+  --color-text: var(--ui-color-text);
+  --color-text-muted: var(--ui-color-text-muted);
+  --color-text-placeholder: var(--ui-color-text-placeholder);
 
   /* Acento y estados */
-  --color-acento: #7c9df0;
-  --color-exito: #6ee7b7;
-  --color-alerta: #fcd34d;
-  --color-peligro: #fca5a5;
-}
-
-/*
- * Variante clara, para uso diurno. Se activa quitando la clase `dark` del <html>.
- */
-:root:not(.dark) {
-  --color-lienzo: #eef1f7;
-  --color-superficie-baja: #f4f6fb;
-  --color-superficie: #ffffff;
-  --color-superficie-alta: #ffffff;
-  --color-superficie-maxima: #dbe1ee;
-
-  --color-borde: #ccd3e2;
-  --color-borde-fuerte: #b3bccf;
-
-  --color-texto: #1a2130;
-  --color-texto-tenue: #56607a;
-  --color-texto-placeholder: #8a93a8;
-
-  --color-acento: #4f6fc4;
-  --color-exito: #0f9d63;
-  --color-alerta: #b7791f;
-  --color-peligro: #c0392f;
-}
-
-body {
-  background-color: var(--color-lienzo);
-  color: var(--color-texto);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+  --color-accent: var(--ui-color-primary);
+  --color-on-accent: var(--ui-color-on-primary);
+  --color-success: var(--ui-color-success);
+  --color-warning: var(--ui-color-warning);
+  --color-danger: var(--ui-color-danger);
 }
 
 /* Cifras tabulares donde hay números que cambian: contadores, métricas, timers.
@@ -80,7 +56,8 @@ body {
 /*
  * Vista de impresión del reporte (docs/PLAN.md §8). El PDF lo genera el navegador:
  * no hay librería de generación, así que el reporte *es* el PDF y no hay dos
- * formatos que mantener sincronizados.
+ * formatos que mantener sincronizados. Esto es propio del panel: no lo aporta la
+ * librería de componentes.
  */
 @media print {
   @page {

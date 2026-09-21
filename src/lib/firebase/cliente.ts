@@ -41,9 +41,24 @@ if (import.meta.env.VITE_USAR_EMULADORES === 'true') {
  */
 export function esperarSesionFirebase(): Promise<User | null> {
   return new Promise((resolver) => {
-    const baja = auth.onAuthStateChanged((usuario) => {
-      baja();
-      resolver(usuario);
-    });
+    // Si Firebase no puede restaurar la sesión —config de desarrollo ficticia, o el
+    // emulador no está corriendo— se resuelve como "sin sesión" en lugar de propagar
+    // el error. Así el guard manda al login y la UI se puede ver, en vez de dejar la
+    // pantalla en blanco. En un entorno bien configurado esta rama no se ejecuta.
+    let baja: (() => void) | undefined;
+    try {
+      baja = auth.onAuthStateChanged(
+        (usuario) => {
+          baja?.();
+          resolver(usuario);
+        },
+        () => {
+          baja?.();
+          resolver(null);
+        },
+      );
+    } catch {
+      resolver(null);
+    }
   });
 }
