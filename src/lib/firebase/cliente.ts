@@ -1,5 +1,10 @@
 import { getApps, initializeApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth, type User } from 'firebase/auth';
+import {
+  connectAuthEmulator,
+  getAuth,
+  type Unsubscribe,
+  type User,
+} from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
@@ -61,4 +66,22 @@ export function esperarSesionFirebase(): Promise<User | null> {
       resolver(null);
     }
   });
+}
+
+/**
+ * Observa la sesión en vivo: invoca `escucha` con el usuario actual y otra vez cada vez
+ * que Firebase Auth lo cambie (login, logout, refresco de token). Devuelve la función
+ * para darse de baja.
+ *
+ * A diferencia de `esperarSesionFirebase`, que resuelve el primer evento y se da de
+ * baja, ésta se mantiene suscrita: la usa la UI que muestra el usuario actual.
+ */
+export function observarSesionFirebase(escucha: (usuario: User | null) => void): Unsubscribe {
+  try {
+    return auth.onAuthStateChanged(escucha, () => escucha(null));
+  } catch {
+    // Config ficticia o emulador caído: reporta "sin sesión" y entrega una baja inerte.
+    escucha(null);
+    return () => {};
+  }
 }
