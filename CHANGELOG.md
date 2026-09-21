@@ -2,6 +2,26 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:22 01:10
+
+**Resumen:** Se implementó el visor —zoom, desplazamiento, rotación, ajustar a pantalla y navegación por teclado— y se normalizaron los identificadores técnicos a inglés según `.kiro/steering/naming-conventions.md`. Los sustantivos de dominio (`Visor`, `Medio`, `medios`) y la prosa/UI se mantienen en español.
+
+**Cambios:**
+
+- Se construyó el visor (`src/features/visor/Visor.tsx`): superposición a pantalla completa con zoom (rueda y botones), desplazamiento arrastrando, rotación de 90°, ajustar a pantalla y atajos de teclado (← → navegan, +/− zoom, r rota, 0 reinicia, Esc cierra). Los controles usan el `Button` de `@ai27-tech/ui` y los tokens de la librería.
+- La barra de controles flotante sigue el patrón del mockup: alejar / porcentaje / acercar · rotar izquierda / derecha · ajustar a pantalla.
+- Se normalizaron los identificadores técnicos a inglés: en `Visor.tsx` (`Transform`, `INITIAL_TRANSFORM`, `zoom`/`offsetX`/`offsetY`/`rotation`, `changeZoom`, `rotate`, `reset`, `previous`/`next`, `resolveUrl`, `dragging`, `canvasRef`, `onKeyDown`, `onWheel`, `onMouseDown/Move`, `endDrag`, las props `initialIndex`/`onClose`/`resolveUrl`); en la ruta de dev (`VisorTestbed`, `open`/`setOpen`); y en el degradado de sesión de `lib/firebase/cliente.ts` (`resolve`, `unsubscribe`, `user`).
+- Se renombró `src/features/visor/datosDePrueba.ts` a `sampleData.ts`, con export `sampleMedios` y helper `svgImage`. El sustantivo de dominio `medios` se conserva; el resto va en inglés. Los textos de los datos (rótulos, folios) y los comentarios se mantienen en español.
+- Verificado: `pnpm typecheck`, `pnpm lint` y `pnpm build` pasan.
+
+**Archivos modificados:**
+
+- `src/features/visor/Visor.tsx`
+- `src/features/visor/sampleData.ts` (renombrado desde `datosDePrueba.ts`)
+- `src/routes/_dev/visor.tsx`
+- `src/lib/firebase/cliente.ts`
+- `CHANGELOG.md`
+
 ## 2026:09:22 00:20
 
 **Resumen:** Los tokens de la capa de estilos del panel pasan a nombres en inglés, alineados con el vocabulario de `@ai27-tech/ui`. Los sustantivos de dominio siguen en español; los nombres de tokens de UI no son dominio, así que van en inglés según la convención del workspace.
