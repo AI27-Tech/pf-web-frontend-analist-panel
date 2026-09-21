@@ -1,23 +1,23 @@
-import { Badge, Button, Input, Navbar, Sidebar, SidebarItem } from '@ai27-tech/ui';
+import { Button, Input, Navbar, Sidebar, SidebarItem } from '@ai27-tech/ui';
 import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
 import {
-  FileStack,
   Images,
-  BarChart3,
   Bell,
   Search,
-  Settings,
   User as UserIcon,
+  Route,
+  SquareText,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { observarSesion, type UsuarioSesion } from '@/lib/datos/sesion';
 
 const nav = [
-  { to: '/viajes', label: 'Viajes', Icon: FileStack },
+  { to: '/viajes', label: 'Viajes', Icon: Route  },
   { to: '/galeria', label: 'Galería', Icon: Images },
-  { to: '/reporte', label: 'Reporte', Icon: BarChart3 },
-  { to: '/ajustes', label: 'Ajustes', Icon: Settings },
+  { to: '/reporte', label: 'Reporte', Icon: SquareText },
+  { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal },
 ] as const;
 
 /**
