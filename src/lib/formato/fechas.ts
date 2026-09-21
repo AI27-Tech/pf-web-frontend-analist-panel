@@ -60,3 +60,66 @@ export function rangoDeAtajo(atajo: Atajo, ahora: Date = new Date()): RangoFecha
       return { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy };
   }
 }
+
+/**
+ * Selección de periodo del analista.
+ */
+export type SeleccionPeriodo = { atajo: Atajo } | { atajo: 'rango'; desde: string; hasta: string };
+
+/**
+ * Resuelve una selección de periodo a un rango concreto
+ */
+export function resolverPeriodo(seleccion: SeleccionPeriodo, ahora: Date = new Date()): RangoFechas {
+  if (seleccion.atajo === 'rango') {
+    return { desde: seleccion.desde, hasta: seleccion.hasta };
+  }
+  return rangoDeAtajo(seleccion.atajo, ahora);
+}
+
+/**
+ * Un rango es válido cuando `desde` no es posterior a `hasta`.
+ */
+export function esRangoValido(desde: string, hasta: string): boolean {
+  return desde <= hasta;
+}
+
+const MESES_ABREVIADOS = [
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+];
+
+export function fechaHoraDeViaje(instante: Date): string {
+  const partes = new Intl.DateTimeFormat('es-MX', {
+    timeZone: ZONA,
+    day: '2-digit',
+    month: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(instante);
+
+  const obtener = (tipo: Intl.DateTimeFormatPartTypes): string =>
+    partes.find((parte) => parte.type === tipo)?.value ?? '';
+
+  const dia = obtener('day');
+  const mesIndice = Number(obtener('month')) - 1;
+  const mes = MESES_ABREVIADOS[mesIndice] ?? obtener('month');
+  const anio = obtener('year');
+  // `hour12: false` puede devolver `24` para la medianoche en algunos motores de ICU;
+  // se normaliza a `00` para no romper el patrón `HH` de dos dígitos.
+  const hora = obtener('hour') === '24' ? '00' : obtener('hour');
+  const minuto = obtener('minute');
+
+  return `${dia} ${mes} ${anio}, ${hora}:${minuto} hrs`;
+}
