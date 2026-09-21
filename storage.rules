@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// SOLO PARA EL EMULADOR / DESARROLLO LOCAL.
+// Permisivas a propósito para no bloquear el trabajo de interfaces. NO son el perímetro
+// real; las reglas de producción se definen aparte. Nunca desplegar esto a un proyecto real.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
