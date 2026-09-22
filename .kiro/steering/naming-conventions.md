@@ -29,7 +29,7 @@ Por eso el nombre del servicio `operacion`, la ruta `/api/v1/viajes`, el evento 
 
 Forma canónica en español (lista de los README, ampliable con el vocabulario ubicuo de `docs/arquitectura/` y `contracts/`):
 
-`viaje`, `bitacora`, `asignacion`, `bandeja`, `conversacion`, `catalogos`, `reportes`, `Audiencia`, `Fresco`, `Sobre`.
+`viaje`, `bitacora`, `asignacion`, `bandeja`, `conversacion`, `catalogos`, `reportes`, `Audiencia`, `Fresco`, `Sobre`, `Placas`.
 
 También son sustantivos de dominio (y por tanto se conservan en español) los nombres de servicio y los términos ubicuos ya presentes en las fuentes, por ejemplo: `operacion`, `mensajeria`, `identidad`, `procesamiento`, `custodio`, `patrulla`, `unidad`, `incidencia`, `estadia`, `solicitud`, `cliente`, `operador`, `tracto`, `contenedor`, `destino`, `parada`, `condicion`, `sin_senal`, `estado`, `transicion`, `reserva`, `auditoria`, `historico`.
 
