@@ -13,6 +13,20 @@ export type CicloViaje = 'ACTIVO' | 'CERRADO' | 'DESCARTADO';
 export type EstadoSubida = 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETA' | 'FALLIDA';
 export type TipoMedio = 'FOTO' | 'AUDIO';
 
+/**
+ * Catálogo cerrado de estados operativos.
+ */
+export type EstadoOperativo =
+  | 'activo'
+  | 'alerta_desvio'
+  | 'en_ruta'
+  | 'sin_novedad'
+  | 'sellado_forense'
+  | 'en_revision'
+  | 'sin_senal'
+  | 'sincronizacion_en_vivo'
+  | 'expedientes_registrados';
+
 /** Ubicación de una captura, con su confiabilidad. Una posición sin precisión ni
  *  antigüedad no se puede juzgar, así que las tres viajan juntas. */
 export interface Ubicacion {
@@ -47,18 +61,23 @@ export interface Viaje {
   id: string;
   placas: string;
   custodioCorreo: string;
+  /** Nombre visible del custodio. Opcional: el catálogo de custodios no existe
+   *  todavía, y el renglón cae a `custodioCorreo` cuando falta. */
+  custodioName?: string;
   custodioUid: string;
   fechaLocal: string;
   abiertoEn: Date;
   cerradoEn: Date | null;
   comentario: string | null;
-  hayNovedad: boolean;
+  isUpdated: boolean;
   ciclo: CicloViaje;
   motivoDescarte: string | null;
   subida: EstadoSubida;
   completo: boolean;
   mediosEsperados: number;
-  mediosSubidos: number;
+  uploadedFiles: number;
+  estados: EstadoOperativo[];
+  etiquetas: string[];
   fotos: number;
   audios: number;
 }
@@ -73,12 +92,27 @@ export interface Etiqueta {
 }
 
 export interface FiltrosViaje {
+  /** `YYYY-MM-DD` en zona de México. */
   desde: string;
   hasta: string;
+  /** Coincidencia parcial, sin acentos ni mayúsculas. */
   placas?: string;
+  /** Coincidencia parcial sobre `custodioName`. */
+  custodioName?: string;
   custodioUid?: string;
-  hayNovedad?: boolean;
-  limite?: number;
+  /** Se satisface por PERTENENCIA en `Viaje.etiquetas`, no por igualdad. */
+  etiqueta?: string;
+  isUpdated?: boolean;
+  /** Base 1, como `Pagination` de la librería. */
+  page: number;
+  pageSize: number;
+}
+
+/** Una página de resultados más el total que satisface los filtros. El total es lo
+ *  que `Pagination` necesita para saber cuántas páginas hay. */
+export interface ViajesPage {
+  viajes: Viaje[];
+  total: number;
 }
 
 /** Filtros de la galería: archivos entre viajes acotados por periodo, etiqueta y tipo.

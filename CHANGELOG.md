@@ -2,6 +2,166 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:21 17:39
+
+**Resumen:** Convenciones y documentación: registro de los sustantivos de dominio nuevos en el steering de nombres y corrección del README sobre el estado real de `@ai27-tech/ui`.
+
+**Cambios:**
+
+- `.kiro/steering/naming-conventions.md`: en §4 se agregaron `placas` a la lista de sustantivos de dominio canónicos, junto a `viaje`, `bitacora`, etc. En §6 se agregó `pf-web-frontend-analist-panel` a la lista de repos en el alcance de la convención, y el texto pasó de «los dos frontends» a «los tres frontends». El resto del archivo, incluida la excepción de los sustantivos de dominio y el criterio sobre inconsistencias existentes, quedó sin cambio.
+- `README.md`: la sección «### 2. `@ai27-tech/ui` requiere acceso a GitHub Packages», que afirmaba que la librería no estaba en `package.json` y que el panel no tenía componentes prefabricados, ya no era cierta — `package.json` fija `@ai27-tech/ui` en `0.2.0-beta.1` y ya se construyeron componentes reales con ella (`Card`, `Badge`, `Select`, `Input`, `FormField`, `Pagination`, `Button`). Se reescribió como una sección propia «## `@ai27-tech/ui`» que declara la librería instalada y conserva la nota de que se publica en GitHub Packages y requiere un token con `read:packages` para instalarla o actualizarla. Como ese bloqueo quedó resuelto, la sección «## Dos cosas que hoy bloquean el uso real» pasó a «## Una cosa que hoy bloquea el uso real», dejando sólo el bloqueo de lectura de Firestore (fase F1), que no cambia. La sección `## Convenciones` no se tocó.
+
+**Archivos modificados:**
+
+- `.kiro/steering/naming-conventions.md`
+- `README.md`
+- `CHANGELOG.md`
+
+## 2026:09:21 17:25
+
+**Resumen:** Componentes de filtros (`FiltrosActivos.tsx`, `ViajesFilters.tsx`) y cableado de la pantalla (`Pantalla_Viajes` en `src/routes/_privado/viajes.tsx`).
+
+**Cambios — filtros:**
+
+- `src/features/viajes/FiltrosActivos.tsx` (nuevo): fila «FILTROS ACTIVOS:» con un chip `Badge pill` por criterio activo distinto del periodo (`placas`, `custodioName`, `etiqueta` —resuelto a su nombre buscando en `etiquetas` por `id`, o el id tal cual si no se encuentra—, `isUpdated`), cada uno con un botón de cierre (`Button variant="ghost" size="sm"`, `aria-label` que nombra el filtro) que llama `onQuitarFiltro(clave)`, y un control «Limpiar todo» al final. La fila completa se omite (`return null`) cuando no hay ningún criterio activo fuera del periodo. El periodo nunca aparece como chip.
+- `src/features/viajes/ViajesFilters.tsx` (nuevo): Panel_Filtros. Componente controlado (`filtros` completo entra, `filtros` completo sale por `onFiltrosChange`), con estado local propio de `SeleccionPeriodo` inferido una sola vez al montar (comparando `filtros.desde`/`hasta` contra los tres atajos calculados para "ahora"; si no coincide con ninguno, se asume `{ atajo: 'rango', ... }`) y estado local del texto en vuelo de placas/custodio para el debounce de 300 ms. Cinco `FormField` con los rótulos exactos del diseño (`FECHA [PERIODO]`, `PLACA [UNIDAD]`, `CUSTODIO [AGENTE]`, `ETIQUETA [TAG]`, `NOVEDAD [STATUS]`): `Select` de periodo con cuatro opciones que resuelve y emite de inmediato para los tres atajos, o muestra dos `Input type="date"` para `'rango'` que validan con `esRangoValido` antes de emitir (si es inválido, ambos reciben `invalid` y no se emite, conservando el último rango válido); `Input` de placas y custodio con debounce y omisión de la clave cuando el campo queda vacío; `Select` de etiqueta con `''` → «Cualquier etiqueta» y una opción por cada elemento de la propiedad `etiquetas`; `Select` de novedad con la conversión a `boolean | undefined` en el manejador, no en el tipo. Se agregó un helper local `omitirClave` para quitar una clave de un objeto sin dejarla en `undefined` (`exactOptionalPropertyTypes` está activo en `tsconfig.app.json`) sin recurrir al patrón de desestructurar-para-descartar, que ESLint marca como variable sin uso bajo la configuración de este repo. Compone `FiltrosActivos` debajo de los controles; `onLimpiarTodo` restablece el periodo a `{ atajo: 'mes' }`, limpia los criterios sueltos y pone `page: 1` conservando `pageSize`. Sin el botón «+ Más filtros» y sin colores literales.
+- Se verificaron las firmas reales de `Select`, `Input`, `FormField`, `Badge`, `Button`, `Card`/`CardBody` contra `node_modules/@ai27-tech/ui/dist/components/**/*.d.ts` antes de escribir ambos componentes.
+
+**Cambios — cableado de la pantalla:**
+
+- `src/routes/_privado/viajes.tsx` (reescrito): `Pantalla_Viajes` reemplaza a `PorConstruir`, conservando `<EncabezadoPagina titulo="Viajes" />`. Estado propio: `SeleccionPeriodo` (inicial `{ atajo: 'mes' }`), `criterios` (`placas`/`custodioName`/`etiqueta`/`isUpdated`, con spread condicional para respetar `exactOptionalPropertyTypes` al recibirlos de `ViajesFilters`), `page` (inicial 1) y `pageSize` (inicial 10). `filtros: FiltrosViaje` se deriva combinando `resolverPeriodo(periodo)` con `criterios`, `page` y `pageSize`, y es la clave completa de `useQuery(['viajes', filtros], () => listarViajes(filtros))`; `isPending`/`isError`/`refetch` se mapean a `estado: 'cargando' | 'error' | 'listo'` y a `onReintentar`. Un segundo `useQuery(['etiquetas'], listarEtiquetas)` alimenta la propiedad `etiquetas` de `ViajesFilters`. Cualquier cambio de filtro o de `pageSize` reinicia `page` a 1. `onAbrirViaje` sólo hace `console.info` con un comentario explícito de que la ruta de detalle no existe en esta entrega; no navega. Estructura raíz `<div className="flex h-full min-h-0 flex-col">` con `EncabezadoPagina` y un `<div className="flex min-h-0 flex-1 flex-col gap-4 px-8 py-6">` conteniendo `ViajesFilters` y `ViajesList`.
+
+**Archivos modificados:**
+
+- `src/features/viajes/FiltrosActivos.tsx`
+- `src/features/viajes/ViajesFilters.tsx`
+- `src/routes/_privado/viajes.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:21 17:08
+
+**Resumen:** Componentes de la lista: `ViajeCard.tsx`, `ViajesListSkeleton.tsx` y `ViajesList.tsx`.
+
+**Cambios:**
+
+- `src/features/viajes/ViajeCard.tsx` (nuevo): Renglon_Viaje. `Card variant="outlined"` de `@ai27-tech/ui` con `onClick`, que lo rinde como `button` enfocable con el teclado sin `tabIndex`/`onKeyDown` a mano. Mosaico con `Truck` de `lucide-react`; línea 1 con `placas` en `font-mono font-bold` y un `Badge` por cada elemento de `viaje.estados`, con `variant`/`dot`/`pulse`/etiqueta obtenidos de `presentacionDeEstado` (`./mapeoEstados`) — el componente no decide color; línea 2 con `Calendar` + `fechaHoraDeViaje(viaje.abiertoEn)`, `User` + «Custodio: {nombre}» (`custodioName ?? custodioCorreo`, R8.9), y `Files` + «{uploadedFiles} archivos» con `cifras-tabulares`; `ChevronRight` decorativo con `aria-hidden`. Sin tira de miniaturas ni paréntesis de detalle (fuera de alcance) y sin colores literales.
+- `src/features/viajes/ViajesListSkeleton.tsx` (nuevo): `count` marcadores `bg-surface-high animate-pulse` con la altura aproximada de un `ViajeCard` real, para que la lista no salte al resolver la consulta (R11.1).
+- `src/features/viajes/ViajesList.tsx` (nuevo): Lista_Viajes. Estructura de tres franjas (`<section className="flex min-h-0 flex-1 flex-col">` → header `shrink-0` con «EXPEDIENTES REGISTRADOS» + «Mostrando {n} de {total} viajes» en `Intl.NumberFormat('es-MX')`, `cifras-tabulares` y `aria-live="polite"` → `<ul ref className="min-h-0 flex-1 overflow-y-auto">` → pie `shrink-0 border-t` con `Pagination` de `@ai27-tech/ui`, `showInfo={false}`, `pageSizeOptions` implícito). Dentro del `<ul>`, según `estado`: `ViajesListSkeleton` al cargar; `SearchX` + texto con el periodo + botón «Limpiar filtros» en vacío; un `<li><ViajeCard /></li>` por viaje en listo; `AlertTriangle` + texto genérico + botón «Reintentar» en error. Un `useEffect` sobre `page` hace `scrollTo({ top: 0 })` en el nodo del `<ul>`, no en la ventana (R10.5).
+
+**Archivos modificados:**
+
+- `src/features/viajes/ViajeCard.tsx`
+- `src/features/viajes/ViajesListSkeleton.tsx`
+- `src/features/viajes/ViajesList.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:21 16:57
+
+**Resumen:** Layout de altura completa: sólo se agregó `shrink-0` al `<header>` de `EncabezadoPagina`. El resto del layout (altura acotada de `<main>`) ya lo resuelven `src/routes/_privado.tsx` y `src/app/shell/AppShell.tsx`, que no necesitan ningún cambio.
+
+**Cambios:**
+
+- `src/components/EncabezadoPagina.tsx`: se agregó `shrink-0` al `<header>` del componente `EncabezadoPagina`, para que no se comprima como primer hijo del `flex h-full min-h-0 flex-col` que fija el contenedor raíz de `Pantalla_Viajes`. El componente `PorConstruir`, en el mismo archivo, no se tocó: se verificó por lectura que su contenido quedó idéntico.
+- **No se tocaron** `src/routes/_privado.tsx` ni `src/app/shell/AppShell.tsx`: `AppShell.tsx` ya tiene `<div className="flex h-screen">` como raíz y `<main className="min-w-0 flex-1 overflow-auto">`, dando a su contenido una altura acotada al 100% de la ventana. `_privado.tsx` sólo resuelve el guard de sesión y monta `AppShell`.
+- **No se tocaron** las tres pantallas marcador (`galeria`, `reporte`, `ajustes`): no necesitan cambio en esta entrega.
+
+**Archivos modificados:**
+
+- `src/components/EncabezadoPagina.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:21 16:44
+
+**Resumen:** Nuevo módulo puro `mapeoEstados.ts` que traduce cada `EstadoOperativo` a la presentación de un `Badge` (rótulo, variante, punto, pulso). Es la primera pieza que crea algo en `src/features/viajes/`, que hasta ahora estaba vacío.
+
+**Cambios:**
+
+- `mapeoEstados.ts` (nuevo): `PresentacionEstado { etiqueta; variant; dot; pulse }` y `presentacionDeEstado(estado: EstadoOperativo | string): PresentacionEstado`, función pura sin React ni capa de datos. Se implementó la tabla de nueve renglones de `design.md` tal cual, con `variant: BadgeVariant` importado de `@ai27-tech/ui` (confirmado en `dist/index.d.ts`: `Badge`/`BadgeProps`/`BadgeVariant` se re-exportan desde la raíz del paquete). Cada renglón lleva su razón semántica en comentario (por qué `secure` en `activo` y `sellado_forense`, por qué `escort` en `en_ruta` y `sincronizacion_en_vivo`, etc.), y se documentaron los dos criterios que gobiernan la tabla completa: el pulso es escaso (sólo `alerta_desvio`, `sin_senal` y `sincronizacion_en_vivo` lo llevan, porque son los tres que ocurren mientras el analista mira) y el punto separa proceso (`activo`, `en_revision`, `sin_senal`, etc.) de resultado (`sellado_forense`, `sin_novedad`, `expedientes_registrados`). El respaldo de un valor fuera del catálogo devuelve `variant: 'neutral'`, sin punto ni pulso, con el rótulo igual al valor recibido, sin lanzar.
+
+**Archivos modificados:**
+
+- `src/features/viajes/mapeoEstados.ts`
+- `CHANGELOG.md`
+
+## 2026:09:21 16:31
+
+**Resumen:** Capa de datos de viajes con dos fuentes seleccionables por `VITE_DATOS_MOCK` —Firestore y un arreglo estático de 24 viajes— más `catalogos.ts`/`catalogosMock.ts` para el catálogo de etiquetas con el mismo patrón.
+
+**Cambios:**
+
+- `viajesFirestore.ts` (nuevo): se movieron `aViaje`, `listarViajes` y `obtenerViaje` de `viajes.ts`, renombradas `listarViajesFirestore` y `obtenerViajeFirestore`. El mapper conserva la lectura de `d.hayNovedad` y `d.mediosSubidos` sin renombrarlos, con el comentario de que son del contrato de `pf-app-custodio` y este panel es sólo lectura. `estados: []` con el comentario `PENDIENTE (decisión D3)` y `etiquetas: d.etiquetas ?? []` con el comentario de la dependencia sobre el productor (decisión D8) se conservaron. `listarViajesFirestore` usa `limit(pageSize)`; se documentaron los cuatro límites conocidos de `design.md` §Riesgos, incluido que el `total` devuelto hoy es el conteo de la página traída y no el total real —eso exigiría `getCountFromServer`, que esta tarea no agrega— y que `page` no tiene efecto real porque Firestore pagina con cursores, no con desplazamiento.
+- `viajesMock.ts` (nuevo): encabezado de archivo de desarrollo («ESTE ARCHIVO ES DE DESARROLLO. Se borra cuando la lista consuma Firestore.»). Arreglo `viajesEstaticos` con 24 viajes de fechas y valores literales, sin `Date.now()` ni aleatorios. Cobertura: al menos un viaje por cada uno de los nueve `EstadoOperativo`, un viaje (`viaje-11`) con dos estados a la vez, viajes con `isUpdated` verdadero y falso, un viaje (`viaje-04`) sin `custodioName` para ejercitar el respaldo al correo, viajes con varias etiquetas (`viaje-23` con tres) y viajes con `etiquetas: []`. Las etiquetas usadas —`salida`, `llegada`, `incidencia`, `documento`, `candado`— coinciden con los `id` del catálogo estático nuevo. `listarViajesMock` y `obtenerViajeMock` envuelven `queryViajes` y la búsqueda por id en una promesa resuelta, sin `setTimeout`.
+- `vite-env.d.ts`: se agregó `readonly VITE_DATOS_MOCK?: string;` a `ImportMetaEnv`, junto a `VITE_USAR_EMULADORES`.
+- `.env`: se agregó `VITE_DATOS_MOCK=true` con el mismo estilo de comentario «SOLO DESARROLLO» que ya usa `VITE_SALTAR_LOGIN` en ese archivo.
+- `.env.example`: se agregó `VITE_DATOS_MOCK=false` (el valor conservador de ejemplo, siguiendo el patrón de `VITE_USAR_EMULADORES`).
+- `viajes.ts`: reescrito como selector final de fuente. `usarMock = import.meta.env.VITE_DATOS_MOCK === 'true'`; `listarViajes` y `obtenerViaje` delegan en las implementaciones de `viajesFirestore.ts` o `viajesMock.ts` según ese flag. Ya no importa el SDK de Firebase directamente —eso ahora vive sólo en `viajesFirestore.ts`—; el archivo quedó corto: imports, la constante y las dos funciones. Se documentó que `VITE_DATOS_MOCK` mezcla español e inglés a propósito, por consistencia con `VITE_USAR_EMULADORES` y `VITE_SALTAR_LOGIN`, y que los tres se borran juntos cuando F1 cierre.
+- `catalogosMock.ts` (nuevo): arreglo estático de `Etiqueta[]` con los mismos cinco identificadores usados en `viajesMock.ts`, ordenado por `orden` y filtrado por `activo`, con el mismo encabezado de archivo de desarrollo.
+- `catalogos.ts` (nuevo): `listarEtiquetas()` selecciona por `VITE_DATOS_MOCK` igual que `viajes.ts`. La implementación de Firestore consulta una colección con nombre **provisional** `'catalogos_etiquetas'` —`docs/PLAN.md` §13.1 confirma que el catálogo real sigue pendiente de definición por Operación y no nombra la colección— filtrando por `activo` y ordenando por `orden`. Se anotó que por eso las opciones de etiqueta nunca se declaran dentro de un componente.
+
+**Archivos modificados:**
+
+- `src/lib/datos/viajesFirestore.ts`
+- `src/lib/datos/viajesMock.ts`
+- `src/lib/datos/viajes.ts`
+- `src/lib/datos/catalogos.ts`
+- `src/lib/datos/catalogosMock.ts`
+- `src/vite-env.d.ts`
+- `CHANGELOG.md`
+
+## 2026:09:21 16:17
+
+**Resumen:** `src/lib/formato/fechas.ts` gana `SeleccionPeriodo`, `resolverPeriodo`, `esRangoValido` y `fechaHoraDeViaje`, sin tocar `fechaLocalDe` ni `rangoDeAtajo`.
+
+**Cambios:**
+
+- `fechas.ts`: se agregó `SeleccionPeriodo` como unión `{ atajo: Atajo } | { atajo: 'rango'; desde; hasta }`. `'rango'` vive únicamente en esta unión nueva y no se agregó a `Atajo`: un rango explícito no se calcula a partir de "ahora" y meterlo en el `switch` de `rangoDeAtajo` habría exigido un valor de retorno para un caso que no aplica ahí.
+- `fechas.ts`: se agregó `resolverPeriodo(seleccion, ahora?)`. Los tres atajos delegan tal cual en `rangoDeAtajo`, sin repetir su lógica; `'rango'` devuelve `{ desde, hasta }` exactamente como llegaron, ignorando `ahora` por completo.
+- `fechas.ts`: se agregó `esRangoValido(desde, hasta)` con comparación lexicográfica `desde <= hasta`, documentado con el mismo razonamiento que ya usa `queryViajes` para el rango de fechas: el formato `YYYY-MM-DD` es de ancho fijo y de mayor a menor significancia, así que el orden de cadenas coincide con el orden cronológico.
+- `fechas.ts`: se agregó `fechaHoraDeViaje(instante)` con el formato `24 Oct 2024, 08:30 hrs`, zona fijada a `America/Mexico_City` y hora de 24 horas. Se armó a mano con `formatToParts` y una tabla de doce rótulos abreviados en vez de un solo `Intl.DateTimeFormat` con `month: 'short'`, porque `es-MX` da el mes en minúscula y sin punto ("oct") y no hay opción de `Intl` que capitalice la inicial; se pidió el mes como `'numeric'` para poder indexar la tabla ya capitalizada. Se normalizó también el caso de `hour: '24'` que algunos motores ICU devuelven para la medianoche con `hour12: false`, para no romper el patrón `HH` de dos dígitos.
+- `fechas.ts`: se conservaron intactas `rangoDeAtajo`, `Atajo` y `fechaLocalDe`; el archivo sólo creció al final.
+
+**Archivos modificados:**
+
+- `src/lib/formato/fechas.ts`
+- `CHANGELOG.md`
+
+## 2026:09:21 14:52
+
+**Resumen:** Lógica pura de consulta de viajes —rango de fechas, igualdades, pertenencia, coincidencia parcial de texto, orden y corte de la página.
+
+**Cambios:**
+
+- `viajesQuery.ts` (nuevo): `normalizar(texto)` con `normalize('NFD')` + `replace(/\p{Diacritic}/gu, '')` + `toLocaleLowerCase('es-MX')`. Queda documentado por qué se usa la clase Unicode y no el rango `\u0300-\u036f` —el rango es sólo el bloque «Combining Diacritical Marks» y deja fuera las marcas de los bloques de extensión, así que un diacrítico de otro bloque sobreviviría a la limpieza— y por qué `ñ` → `n` es el comportamiento deseado para buscar y no un daño colateral.
+- `viajesQuery.ts`: `queryViajes(viajes, filtros)` en cuatro pasos. Rango de fechas comparando las cadenas `YYYY-MM-DD` directamente, con la nota de que la comparación lexicográfica basta por ser un formato de ancho fijo y de mayor a menor significancia, y de que comparar `Date` reintroduciría la zona horaria que `fechaLocal` existe para eliminar. Igualdad de `custodioUid`, **pertenencia** de `etiqueta` con `includes` sobre `viaje.etiquetas` (decisión D8, no igualdad) e `isUpdated` comparado con `===` y no por veracidad, porque `false` es un filtro y no una ausencia. Coincidencia parcial normalizada de `placas` y `custodioName`. Orden por `fechaLocal` descendente con `id` ascendente de desempate, `total` tomado antes del corte y página por `slice`.
+- `viajesQuery.ts`: se decidió y documentó que un `custodioName` ausente **no** coincide con ningún criterio de nombre. El campo es opcional porque el catálogo de custodios todavía no existe, y quien escribe «morales» pide los viajes de esa persona, no los de aquellos de los que no se sabe quién es; incluirlos convertiría el filtro en un «morales o desconocido» que el control no ofrece.
+- `viajesQuery.ts`: un criterio de texto vacío cuenta como ausencia de criterio, que es lo que emite un campo en blanco y lo que emite la primera opción de los `Select` («Cualquier etiqueta»). El módulo no importa `firebase/*` ni React, y ordena sobre una copia para no mutar el arreglo del llamador.
+- `CHANGELOG.md`: se reordenaron las entradas de `14:22` y `14:38` para que el archivo cumpla el orden de más reciente primero que declara su encabezado. Las dos marcas de tiempo se conservan tal como se registraron, así que la entrada de `14:22` queda debajo de la de la decisión D8 (`14:38`) aunque el trabajo se hizo después: el reloj de la máquina va atrasado y por eso la marca de tiempo no refleja el orden real. Por la misma razón el bloque de entradas fechadas `2026:09:22` sigue más abajo, sin reescribir marcas históricas.
+
+**Archivos modificados:**
+
+- `src/lib/datos/viajesQuery.ts`
+- `CHANGELOG.md`
+
+## 2026:09:21 14:22
+
+**Resumen:** Los tipos del panel ya expresan lo que la pantalla de lista de viajes necesita —estados operativos, etiquetas desnormalizadas, nombre del custodio y paginación— y el mapper de Firestore traduce los nombres del contrato a los del panel.
+
+**Cambios:**
+
+- `tipos.ts`: se agregó `EstadoOperativo`, unión literal cerrada de los nueve valores en `snake_case`, con el comentario de por qué conserva su forma en español (`estado` es término ubicuo del steering §4) y de que no se traduce a `OperationalStatus`.
+- `tipos.ts`: se agregó `ViajesPage { viajes; total }`, que es lo que la paginación necesita para saber cuántas páginas hay.
+- `tipos.ts`: en `Viaje` se agregaron `custodioName?` (opcional, porque el catálogo de custodios no existe y el renglón cae al correo), `estados: EstadoOperativo[]` (decisión D3: varios a la vez, sin grupos excluyentes) y `etiquetas: string[]` (decisión D8: desnormalizado, no opcional, porque el criterio de filtro se resuelve por pertenencia y no por igualdad).
+- `tipos.ts`: se renombró `hayNovedad` → `isUpdated` y `mediosSubidos` → `uploadedFiles`, cada uno con el comentario de por qué el nombre va en inglés y de cómo se llama el campo en Firestore. Los otros doce campos de `Viaje` y el nombre del tipo `FiltrosViaje` se conservan: es la deuda registrada en `requirements.md` §«Deuda de nombres aceptada».
+- `tipos.ts`: en `FiltrosViaje` se agregaron `custodioName?`, `etiqueta?` y `page`/`pageSize` obligatorios, y se quitó `limite`. La paginación es obligatoria para que no exista un llamado sin ella que devuelva la colección entera por descuido.
+- `viajes.ts`: ajuste mínimo para que el repo siga compilando. `aViaje` traduce `d.hayNovedad` → `isUpdated` y `d.mediosSubidos` → `uploadedFiles` —los nombres del contrato de `pf-app-custodio` no se renombran, y este mapper es el único lugar donde conviven ambos vocabularios—, lee `custodioName` con respaldo a `undefined`, devuelve `estados: []` con la nota de la decisión D3 pendiente y `etiquetas: d.etiquetas ?? []` con la nota de que depende de que el productor lo escriba.
+- `viajes.ts`: `listarViajes` usa `filtros.isUpdated` donde usaba `hayNovedad` y `filtros.pageSize` donde usaba `limite`. El reparto en `viajesFirestore.ts` / `viajesMock.ts` / `viajesQuery.ts` no se adelantó.
+
+**Archivos modificados:**
+
+- `src/lib/datos/tipos.ts`
+- `src/lib/datos/viajes.ts`
+- `CHANGELOG.md`
+
 ## 2026:09:22 01:10
 
 **Resumen:** Se implementó el visor —zoom, desplazamiento, rotación, ajustar a pantalla y navegación por teclado— y se normalizaron los identificadores técnicos a inglés según `.kiro/steering/naming-conventions.md`. Los sustantivos de dominio (`Visor`, `Medio`, `medios`) y la prosa/UI se mantienen en español.

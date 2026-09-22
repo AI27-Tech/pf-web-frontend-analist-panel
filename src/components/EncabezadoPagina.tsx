@@ -8,7 +8,7 @@ export function EncabezadoPagina({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="border-border flex items-center justify-between border-b px-8 py-6">
+    <header className="border-border flex shrink-0 items-center justify-between border-b px-8 py-6">
       <h1 className="text-text text-xl font-semibold tracking-tight">{titulo}</h1>
       {children && <div className="flex items-center gap-2">{children}</div>}
     </header>
