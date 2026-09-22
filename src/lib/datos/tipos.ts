@@ -114,3 +114,15 @@ export interface ViajesPage {
   viajes: Viaje[];
   total: number;
 }
+
+/** Filtros de la galería: archivos entre viajes acotados por periodo, etiqueta y tipo.
+ *  Comparte `desde`/`hasta` (cadena `YYYY-MM-DD`) con la pantalla de Viajes. */
+export interface FiltrosMedio {
+  desde: string;
+  hasta: string;
+  tipo?: TipoMedio;
+  etiqueta?: string;
+  placas?: string;
+  custodioUid?: string;
+  limite?: number;
+}
