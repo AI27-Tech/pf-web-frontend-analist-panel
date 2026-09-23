@@ -91,6 +91,19 @@ export function esMuestra(medio: Medio): boolean {
 }
 
 /**
+ * Identificador corto y estable de un medio, como el sello hexadecimal de la maqueta
+ * (`#4a8b9c1`). Se deriva del id con el mismo hash determinista, así que el mismo medio
+ * siempre muestra el mismo sello entre recargas. Es una ayuda visual de la maqueta, no
+ * un dato del contrato de `Medio`; cuando exista un folio real, se reemplaza por él.
+ */
+export function idCortoDe(medio: Medio): string {
+  // Se mezcla el id con su longitud y se toman los 7 dígitos hex BAJOS: los altos apenas
+  // cambian entre ids casi iguales (`muestra-exp-0` vs `-1`) y darían sellos repetidos.
+  const h = (hash(medio.id) ^ (hash(medio.id.split('').reverse().join('')) * 2654435761)) >>> 0;
+  return `#${h.toString(16).padStart(8, '0').slice(-7)}`;
+}
+
+/**
  * Resuelve la URL que el visor debe mostrar.
  *
  * Para una FOTO de muestra devuelve el SVG local en grande —Storage no tiene ese archivo,

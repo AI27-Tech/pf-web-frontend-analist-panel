@@ -123,3 +123,16 @@ export function fechaHoraDeViaje(instante: Date): string {
 
   return `${dia} ${mes} ${anio}, ${hora}:${minuto} hrs`;
 }
+
+/**
+ * Duración entre dos instantes como texto corto `HHhMMm` (o `MMm` si dura menos de una
+ * hora), para la tarjeta de duración del expediente. Si el viaje sigue abierto, se mide
+ * contra `ahora`.
+ */
+export function duracionEntre(inicio: Date, fin: Date | null, ahora: Date = new Date()): string {
+  const finReal = fin ?? ahora;
+  const minutosTotales = Math.max(0, Math.round((finReal.getTime() - inicio.getTime()) / 60000));
+  const horas = Math.floor(minutosTotales / 60);
+  const minutos = minutosTotales % 60;
+  return horas > 0 ? `${horas}h ${minutos}m` : `${minutos}m`;
+}
