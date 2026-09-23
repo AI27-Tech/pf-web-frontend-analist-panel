@@ -72,4 +72,38 @@
     background: #ffffff;
     color: #1a2130;
   }
+
+  /*
+   * Restricciones para que el PDF abarque toda la información al imprimir.
+   */
+  html,
+  body,
+  #root,
+  main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  #root > div {
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .bloque-imprimible {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .reporte-imprimible .recharts-responsive-container {
+    width: 100% !important;
+  }
+
+  /* Los SVG de las gráficas conservan sus colores en el PDF. */
+  .reporte-imprimible svg {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

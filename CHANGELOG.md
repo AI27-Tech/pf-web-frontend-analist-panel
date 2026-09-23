@@ -2,6 +2,56 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:22 17:42
+
+**Resumen:** Pantalla de Reporte completa (rama `feat/report-section-implementation`): la ruta `/reporte` deja de ser marcador y monta la vista real con cabecera, selector de periodo, cuatro tarjetas de estadística y tres gráficas de recharts, todo sobre una nueva frontera de datos `lib/datos/metricas` con fuente mock, y con soporte de impresión a PDF desde el navegador.
+
+**Cambios — frontera de datos:**
+
+- `src/lib/datos/metricas.ts` (nuevo): la FRONTERA de las métricas, mismo patrón que `viajes.ts`. Expone `obtenerMetricas(periodo)` seleccionando fuente por `VITE_DATOS_MOCK` (hoy sólo existe el mock; la rama real de agregaciones de Firestore se conecta en F5, cuando las reglas autoricen al analista) y `folioDePeriodo(periodo)`, que deriva el folio del corte (`EXP-2026-09-MX`, o `EXP-AAAA-MM_a_MM-MX` cuando el rango cruza meses). Define los tipos que consume la pantalla: `Estadistica` (`valor` ya formateado, `delta` como fracción o `null`, `contexto`), `EstadisticasReporte` (las cuatro tarjetas), `PuntoCategoria`/`PuntoSerie`, `GraficasReporte` (`descartesPorMotivo`, `capturasPorHora`, `gbAcumulados`) y `Metricas`. Deliberadamente sin métricas de volumen ni rankings de custodios por cantidad de fotos (`docs/PLAN.md` §8).
+- `src/lib/datos/metricasMock.ts` (nuevo): implementación estática que calcula las mismas cifras sobre datos de desarrollo, para que la pantalla funcione mientras F1 sigue cerrada.
+
+**Cambios — pantalla y componentes (`src/features/reporte/`):**
+
+- `ReporteSection.tsx` (nuevo): orquesta la pantalla siguiendo el patrón de Viajes. El periodo vive en estado (`SeleccionPeriodo`, inicial `{ atajo: 'mes' }`), se resuelve con `resolverPeriodo` y es la clave de `useQuery(['metricas', rango], …)`, así cada periodo se cachea por separado. Mapea `isPending`/`isError`/`isSuccess` a los estados de carga, error y vacío; el vacío se detecta cuando `viajesAuditados.valor === '0'` y ofrece ampliar el rango al mes. El bloque con datos se envuelve en `.reporte-imprimible`.
+- `ReporteHeader.tsx` (nuevo): cabecera con título, `Badge` «AI27 FORENSIC AUDIT», el folio en pastilla monoespaciada, subtítulo, el `SelectorPeriodo` y un botón Imprimir (`onImprimir ?? window.print`). La fila de controles lleva `no-imprimir` para no salir en el PDF.
+- `SelectorPeriodo.tsx` (nuevo): grupo de atajos Hoy/Semana/Mes/Rango con `aria-pressed`; al elegir Rango aparecen dos `input type="date"` con validación por `esRangoValido` y aviso `role="alert"` cuando la fecha inicial es posterior a la final.
+- `TarjetaEstadistica.tsx` (nuevo) y `TarjetasEstadistica.tsx` (nuevo): la tarjeta presentacional (valor grande, delta con signo y flecha, verde/rojo según favorabilidad, con `invertirColorDelta` para métricas donde subir es malo) y la fila de las cuatro tarjetas (viajes auditados, incidencias, evidencias fotográficas, efectividad de custodia) con sus iconos de lucide.
+- `GraficasSection.tsx` (nuevo): banda «Operación y evidencia» que dispone `GraficaDescartes` y `GraficaCapturasPorHora` en dos columnas y `GraficaGbAcumulados` a lo ancho.
+- `graficas/Graficas.tsx` (nuevo): las tres gráficas de recharts, cada una presentacional y con su propio estado vacío: descartes por motivo (barras horizontales), capturas por hora (línea sobre 24 h) y almacenamiento acumulado en GB (área con degradado).
+- `graficas/PanelGrafica.tsx` (nuevo): marco común de una gráfica (título, subtítulo, `extra` opcional y cuerpo de alto fijo) sobre la `Card` de `@ai27-tech/ui`.
+- `graficas/tema.ts` (nuevo): `COLORES` y `ESTILO_TOOLTIP` como cadenas `var(--…)` que recharts resuelve contra el DOM, para que el tema claro/oscuro se herede sin recalcular; no define ningún color propio.
+- `estados.tsx` (nuevo): esqueletos de carga (tarjetas y gráficas), estado vacío (`ReporteVacio`) y estado de error (`ReporteError`), con el mismo encuadre que los estados de `ViajesList`.
+- `SelectorPeriodo.test.tsx` y `TarjetaEstadistica.test.tsx` (nuevos): pruebas de los dos componentes con lógica propia —atajo activo, notificación de cambio, campos de Rango y aviso de rango inválido; y título/valor, formato del delta con color según favorabilidad y ausencia de delta sin periodo anterior.
+
+**Cambios — ruta, estilos y dependencia:**
+
+- `src/routes/_privado/reporte.tsx`: la ruta deja de renderizar `EncabezadoPagina` + `PorConstruir` y ahora monta `<ReporteSection />`.
+- `src/styles/globales.css`: se amplió la hoja `@media print` para que el PDF abarque toda la información: se libera la altura/desbordes de `html`/`body`/`#root`/`main`, `.bloque-imprimible` evita cortes de página, la gráfica responsiva ocupa el 100 % y los SVG conservan sus colores (`print-color-adjust: exact`).
+- `package.json`: se agregó `recharts` `^3.10.1` como dependencia (con su entrada en `pnpm-lock.yaml`).
+
+**Archivos modificados:**
+
+- `src/lib/datos/metricas.ts`
+- `src/lib/datos/metricasMock.ts`
+- `src/features/reporte/ReporteSection.tsx`
+- `src/features/reporte/ReporteHeader.tsx`
+- `src/features/reporte/SelectorPeriodo.tsx`
+- `src/features/reporte/SelectorPeriodo.test.tsx`
+- `src/features/reporte/TarjetaEstadistica.tsx`
+- `src/features/reporte/TarjetaEstadistica.test.tsx`
+- `src/features/reporte/TarjetasEstadistica.tsx`
+- `src/features/reporte/GraficasSection.tsx`
+- `src/features/reporte/estados.tsx`
+- `src/features/reporte/graficas/Graficas.tsx`
+- `src/features/reporte/graficas/PanelGrafica.tsx`
+- `src/features/reporte/graficas/tema.ts`
+- `src/routes/_privado/reporte.tsx`
+- `src/styles/globales.css`
+- `package.json`
+- `pnpm-lock.yaml`
+- `CHANGELOG.md`
+
 ## 2026:09:21 17:39
 
 **Resumen:** Convenciones y documentación: registro de los sustantivos de dominio nuevos en el steering de nombres y corrección del README sobre el estado real de `@ai27-tech/ui`.
