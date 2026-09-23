@@ -2,6 +2,69 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:23 13:19
+
+**Resumen:** Pantalla de Expediente de un viaje (rama `feat/single-viaje-implementation`): la ruta `/viajes/$id` deja de ser inexistente y monta la vista real del expediente —cabecera con estados y exportación a PDF, cuatro tarjetas de resumen y la galería de evidencias agrupada por etiqueta—. La lista de viajes se movió a la ruta índice para dejar sitio al detalle, y el diseño de tarjeta del reporte se extrajo a un componente compartido que ahora usan reporte y expediente.
+
+**Cambios — ruteo:**
+
+- `src/routes/_privado/viajes.tsx` → `src/routes/_privado/viajes.index.tsx` (renombrado): `Pantalla_Viajes` pasa a ser la ruta índice `/_privado/viajes/` para convivir con la ruta de detalle. Sin cambios de comportamiento salvo que `onAbrirViaje` ahora **navega** a `/viajes/$id` con `useNavigate` en vez de sólo registrar en consola, ya que el destino ya existe.
+- `src/routes/_privado/viajes.$id.tsx` (nuevo): `Pantalla_Expediente`. Lee `id` de los parámetros, consulta el viaje con `useQuery(['viaje', id], obtenerViaje)` y sus medios con `useQuery(['medios', id], …)`, esta última habilitada sólo cuando el viaje resolvió. Mientras el corpus real esté vacío o la lectura falle, la consulta de medios cae a `MEDIOS_MUESTRA_EXPEDIENTE`. Estados: esqueleto al cargar; tarjeta de error con enlace «Volver a viajes» cuando la consulta falla o el viaje es `null` (con textos distintos para «no encontrado» y «no se pudo cargar»); y `ExpedienteDetalle` con datos.
+
+**Cambios — expediente (`src/features/expediente/`):**
+
+- `ExpedienteDetalle.tsx` (nuevo): compone la pantalla presentacional —`ExpedienteHeader`, `ExpedienteResumenCards` y `ExpedienteGaleria`— recibiendo viaje y medios ya resueltos por props, con el cuerpo desplazable de altura acotada.
+- `ExpedienteHeader.tsx` (nuevo): cabecera con breadcrumb hacia `/viajes`, las `placas` en monoespaciada, un `Badge` por cada `EstadoOperativo` (vía `presentacionDeEstado`, sin decidir color) y el botón «Exportar reporte PDF» que dispara `window.print()` —el PDF del expediente es la vista impresa, sin librería (docs/PLAN.md §8)—.
+- `ExpedienteResumenCards.tsx` (nuevo): las cuatro tarjetas del expediente (fecha de registro con indicador En progreso/Cerrado, custodio asignado con respaldo `custodioName ?? custodioCorreo`, archivos registrados sobre `mediosEsperados`, y duración del viaje), todas sobre `TarjetaResumen` y usando sólo campos reales de `Viaje`.
+- `ExpedienteGaleria.tsx` (nuevo): agrupa los medios por `etiqueta` y los presenta con `ImageCarousel`/`ImageCard` de `@ai27-tech/ui`, una sección por grupo con conteo real de evidencias, y abre cada archivo en el `Visor`. Las miniaturas de muestra usan el SVG local determinista; las reales resuelven `urlMiniatura`.
+- `ExpedienteDetalleSkeleton.tsx` (nuevo): esqueleto de carga del expediente completo, para que la pantalla no salte al resolver la consulta.
+- `provisional.ts` (nuevo): `MEDIOS_MUESTRA_EXPEDIENTE`, evidencias de muestra agrupadas en tres secciones (inspección de origen, incidencias en ruta, llegada y cotejo) como la maqueta, deterministas y sin red. Se borra cuando el expediente consuma medios reales.
+- `ExpedienteGaleria.test.tsx`, `ExpedienteHeader.test.tsx`, `ExpedienteResumenCards.test.tsx` (nuevos): pruebas de agrupación/estado vacío de la galería, del breadcrumb/estados/acción de impresión de la cabecera, y del contenido de las cuatro tarjetas de resumen.
+
+**Cambios — componente compartido y utilidades:**
+
+- `src/components/TarjetaResumen.tsx` (nuevo) y `src/components/TarjetaResumen.test.tsx` (nuevo): el diseño de tarjeta que nació en la cabecera del reporte, extraído para compartirse entre reporte y expediente (rótulo en versalitas, ícono, valor con `tamanoValor` `grande`/`medio`, `contexto` y `delta` opcional con color por favorabilidad e `invertirColorDelta`). Sobre la `Card` de la librería.
+- `src/features/reporte/TarjetaEstadistica.tsx`: se reescribió como adaptador delgado que traduce una `Estadistica` a las props de `TarjetaResumen`, en vez de dibujar la tarjeta a mano; el marcado y el formateo del delta se movieron al componente compartido.
+- `src/lib/formato/fechas.ts`: se agregó `duracionEntre(inicio, fin, ahora?)`, que devuelve la duración como `HHh MMm` (o `MMm` si dura menos de una hora) y mide contra `ahora` cuando el viaje sigue abierto. Alimenta la tarjeta de duración del expediente.
+- `src/features/galeria/provisional.ts`: se agregó `idCortoDe(medio)`, el sello hexadecimal corto y estable de la maqueta (`#4a8b9c1`) derivado del id con el mismo hash determinista, que la galería del expediente muestra bajo cada miniatura.
+
+**Archivos modificados:**
+
+- `src/routes/_privado/viajes.index.tsx` (renombrado desde `viajes.tsx`)
+- `src/routes/_privado/viajes.$id.tsx`
+- `src/features/expediente/ExpedienteDetalle.tsx`
+- `src/features/expediente/ExpedienteDetalleSkeleton.tsx`
+- `src/features/expediente/ExpedienteHeader.tsx`
+- `src/features/expediente/ExpedienteHeader.test.tsx`
+- `src/features/expediente/ExpedienteResumenCards.tsx`
+- `src/features/expediente/ExpedienteResumenCards.test.tsx`
+- `src/features/expediente/ExpedienteGaleria.tsx`
+- `src/features/expediente/ExpedienteGaleria.test.tsx`
+- `src/features/expediente/provisional.ts`
+- `src/components/TarjetaResumen.tsx`
+- `src/components/TarjetaResumen.test.tsx`
+- `src/features/reporte/TarjetaEstadistica.tsx`
+- `src/lib/formato/fechas.ts`
+- `src/features/galeria/provisional.ts`
+- `CHANGELOG.md`
+
+## 2026:09:23 10:57
+
+**Resumen:** Actualización de `@ai27-tech/ui` de `0.2.0-beta.1` a `0.2.0-beta.2`, que trae los componentes usados por el expediente (`ImageCarousel`, `ImageCard`, `Visor`).
+
+**Cambios:**
+
+- `package.json`: se subió `@ai27-tech/ui` de `0.2.0-beta.1` a `0.2.0-beta.2`.
+- `pnpm-workspace.yaml`: se agregó `minimumReleaseAgeExclude` con `@ai27-tech/ui@0.2.0-beta.2`, para que la política de antigüedad mínima de publicación no bloquee la instalación de un beta recién publicado.
+- `pnpm-lock.yaml`: se regeneró con la nueva versión.
+
+**Archivos modificados:**
+
+- `package.json`
+- `pnpm-workspace.yaml`
+- `pnpm-lock.yaml`
+- `CHANGELOG.md`
+
 ## 2026:09:22 17:42
 
 **Resumen:** Pantalla de Reporte completa (rama `feat/report-section-implementation`): la ruta `/reporte` deja de ser marcador y monta la vista real con cabecera, selector de periodo, cuatro tarjetas de estadística y tres gráficas de recharts, todo sobre una nueva frontera de datos `lib/datos/metricas` con fuente mock, y con soporte de impresión a PDF desde el navegador.
