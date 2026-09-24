@@ -51,8 +51,8 @@ export function ReporteVacio({ onAmpliarRango }: { onAmpliarRango: () => void })
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 py-24 text-center">
       <FileBarChart className="text-text-muted size-8" aria-hidden="true" />
       <p className="text-text-muted max-w-prose text-sm">
-        No hay viajes en este periodo, así que no hay métricas que consolidar. Amplía el rango de
-        fechas para ver el reporte.
+        No hay viajes en este periodo, así que no hay métricas que consolidar. Amplía el
+        rango de fechas para ver el reporte.
       </p>
       <Button variant="outline" size="sm" onClick={onAmpliarRango}>
         Ampliar a este mes

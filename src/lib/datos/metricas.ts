@@ -63,11 +63,9 @@ export interface Metricas {
 }
 
 export function obtenerMetricas(periodo: RangoFechas): Promise<Metricas> {
-  if (usarMock) return obtenerMetricasMock(periodo);
-  // La rama real vive en su propio módulo y se importa de forma diferida: así el
-  // camino de desarrollo (`VITE_DATOS_MOCK=true`) no carga el SDK de Firestore sólo
-  // para el reporte, y el módulo de agregaciones sólo entra al bundle cuando se usa.
-  return import('./metricasFirestore').then((m) => m.obtenerMetricasFirestore(periodo));
+  // La rama real —agregaciones de Firestore— se conecta en F5, cuando las reglas
+  // autoricen al analista. Hoy sólo existe el mock.
+  return usarMock ? obtenerMetricasMock(periodo) : obtenerMetricasMock(periodo);
 }
 
 /**

@@ -15,11 +15,7 @@ export interface ExpedienteDetalleProps {
   cargandoMedios?: boolean;
 }
 
-export function ExpedienteDetalle({
-  viaje,
-  medios,
-  cargandoMedios = false,
-}: ExpedienteDetalleProps) {
+export function ExpedienteDetalle({ viaje, medios, cargandoMedios = false }: ExpedienteDetalleProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ExpedienteHeader viaje={viaje} />

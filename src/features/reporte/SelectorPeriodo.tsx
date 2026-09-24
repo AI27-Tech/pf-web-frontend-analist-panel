@@ -69,7 +69,9 @@ export function SelectorPeriodo({ seleccion, onChange }: SelectorPeriodoProps) {
               value={desde}
               max={hasta}
               aria-label="Fecha desde"
-              onChange={(event) => onChange({ atajo: 'rango', desde: event.target.value, hasta })}
+              onChange={(event) =>
+                onChange({ atajo: 'rango', desde: event.target.value, hasta })
+              }
               className="border-border bg-surface text-text rounded-md border px-2 py-1 text-sm"
             />
           </label>
@@ -80,7 +82,9 @@ export function SelectorPeriodo({ seleccion, onChange }: SelectorPeriodoProps) {
               value={hasta}
               min={desde}
               aria-label="Fecha hasta"
-              onChange={(event) => onChange({ atajo: 'rango', desde, hasta: event.target.value })}
+              onChange={(event) =>
+                onChange({ atajo: 'rango', desde, hasta: event.target.value })
+              }
               className="border-border bg-surface text-text rounded-md border px-2 py-1 text-sm"
             />
           </label>

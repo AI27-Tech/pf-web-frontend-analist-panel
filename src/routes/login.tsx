@@ -45,7 +45,7 @@ function Login() {
               SEC-ID: OP-27
             </span>
           </div>
-          <p className="text-text-muted mb-10 pb-2 text-xs font-semibold tracking-[0.12em] uppercase">
+          <p className="text-text-muted mb-10 text-xs font-semibold tracking-[0.12em] uppercase pb-2">
             Plataforma de inteligencia y evidencia forense
           </p>
 
@@ -128,9 +128,9 @@ function Login() {
               </span>
               <span>AUTH_V4.8.2</span>
             </div>
-            <p className="leading-loose uppercase">
-              Uso exclusivo // personal autorizado de investigación. Cualquier intento de acceso no
-              certificado será registrado en la bitácora de auditoría forense.
+            <p className="uppercase leading-loose">
+              Uso exclusivo // personal autorizado de investigación. Cualquier intento de acceso
+              no certificado será registrado en la bitácora de auditoría forense.
             </p>
           </div>
         </CardBody>

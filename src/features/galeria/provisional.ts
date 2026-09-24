@@ -68,7 +68,7 @@ export function imagenProvisional(medio: Medio, lado = 320): string {
   const c1 = `hsl(${hue} 45% 28%)`;
   const c2 = `hsl(${(hue + 40) % 360} 40% 18%)`;
   // Etiqueta abreviada, en mayúsculas, escapada para XML (por si trae &, < o >).
-  const texto = (medio.etiquetas[0] || 'EVIDENCIA')
+  const texto = (medio.etiqueta || 'EVIDENCIA')
     .slice(0, 12)
     .toUpperCase()
     .replace(/[<>&]/g, ' ');
@@ -176,7 +176,7 @@ function buildSample(fileName: string, i: number): Medio {
     id: `muestra-${i}`,
     viajeId: `viaje-muestra-${i % 8}`,
     tipo: isAudio ? 'AUDIO' : 'FOTO',
-    etiquetas: [fileName.split(/[_.]/)[0] ?? 'EVIDENCIA'],
+    etiqueta: fileName.split(/[_.]/)[0] ?? 'EVIDENCIA',
     rutaOriginal: `muestras/${fileName}`,
     rutaMiniatura: null,
     capturadoEn: base,

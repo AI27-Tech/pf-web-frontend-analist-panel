@@ -84,12 +84,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
     setPeriodo(nuevoPeriodo);
 
     if (esRangoValido(nuevoPeriodo.desde, nuevoPeriodo.hasta)) {
-      onFiltrosChange({
-        ...filtros,
-        desde: nuevoPeriodo.desde,
-        hasta: nuevoPeriodo.hasta,
-        page: 1,
-      });
+      onFiltrosChange({ ...filtros, desde: nuevoPeriodo.desde, hasta: nuevoPeriodo.hasta, page: 1 });
     }
     // Si el rango es inválido, no se emite: la lista sigue mostrando el último rango
     // válido.
@@ -155,16 +150,12 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
     onFiltrosChange({ desde, hasta, page: 1, pageSize: filtros.pageSize });
   }
 
-  const rangoInvalido = periodo.atajo === 'rango' && !esRangoValido(periodo.desde, periodo.hasta);
+  const rangoInvalido =
+    periodo.atajo === 'rango' && !esRangoValido(periodo.desde, periodo.hasta);
 
   return (
-    // El `Card` de la librería trae `overflow: hidden` (para recortar sus esquinas
-    // redondeadas), y el desplegable del `Select` es `position: absolute` en el flujo,
-    // no en un portal. Sin esto, la lista de opciones se recorta al borde de la tarjeta
-    // (se ve en Viajes, no en Galería, que no envuelve sus filtros en un Card). Se fuerza
-    // `overflow-visible` para que el desplegable escape la tarjeta.
-    <Card variant="outlined" className="!overflow-visible">
-      <CardBody className="flex flex-wrap items-end gap-4 !overflow-visible">
+    <Card variant="outlined">
+      <CardBody className="flex flex-wrap items-end gap-4">
         <FormField label={<RotuloFiltro texto="FECHA [PERIODO]" />}>
           <Select
             options={OPCIONES_PERIODO.map((opcion) => ({
@@ -172,7 +163,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
               label: opcion.label,
             }))}
             value={periodo.atajo}
-            onChange={(valor) => manejarCambioPeriodo(String(valor))}
+            onChange={(evento) => manejarCambioPeriodo(evento.target.value)}
           />
         </FormField>
 
@@ -222,7 +213,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
               ...etiquetas.map((etiqueta) => ({ value: etiqueta.id, label: etiqueta.nombre })),
             ]}
             value={filtros.etiqueta ?? ''}
-            onChange={(valor) => manejarCambioEtiqueta(String(valor))}
+            onChange={(evento) => manejarCambioEtiqueta(evento.target.value)}
           />
         </FormField>
 
@@ -234,7 +225,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
               { value: 'false', label: 'Sin novedad' },
             ]}
             value={filtros.isUpdated === undefined ? '' : String(filtros.isUpdated)}
-            onChange={(valor) => manejarCambioNovedad(String(valor))}
+            onChange={(evento) => manejarCambioNovedad(evento.target.value)}
           />
         </FormField>
 

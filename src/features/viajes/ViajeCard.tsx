@@ -15,7 +15,7 @@ export interface ViajeCardProps {
 }
 
 export function ViajeCard({ viaje, onAbrir }: ViajeCardProps) {
-  const nombreCustodio = viaje.custodioName ?? viaje.custodioTelefono;
+  const nombreCustodio = viaje.custodioName ?? viaje.custodioCorreo;
 
   return (
     <Card
@@ -31,7 +31,7 @@ export function ViajeCard({ viaje, onAbrir }: ViajeCardProps) {
       <div className="min-w-0 flex-1">
         {/* Línea 1: placas + un Badge por cada estado operativo */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-text font-mono font-bold">{viaje.placas}</span>
+          <span className="font-mono font-bold text-text">{viaje.placas}</span>
           {viaje.estados.map((estado) => {
             const presentacion = presentacionDeEstado(estado);
             return (

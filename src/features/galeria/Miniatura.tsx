@@ -23,7 +23,7 @@ export interface MiniaturaProps {
  *  Si la ruta viene vacía, se cae a la etiqueta para no mostrar un hueco. */
 function fileName(medio: Medio): string {
   const segment = medio.rutaOriginal.split('/').pop() ?? '';
-  return segment || medio.etiquetas?.join(', ') || 'SIN_NOMBRE';
+  return segment || medio.etiqueta || 'SIN_NOMBRE';
 }
 export function Miniatura({ medio, onOpen }: MiniaturaProps) {
   const estado = estadoProvisional(medio);
@@ -44,7 +44,7 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
         ) : (
           <img
             src={imagenProvisional(medio)}
-            alt={medio.comentario ?? medio.etiquetas?.join(', ') ?? 'Sin categoría'}
+            alt={medio.comentario ?? medio.etiqueta}
             loading="lazy"
             draggable={false}
             className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
