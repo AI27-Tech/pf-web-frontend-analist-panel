@@ -104,10 +104,7 @@ function estadisticas(periodo: RangoFechas): EstadisticasReporte {
     },
     efectividadCustodia: {
       valor: efectividadA === null ? '—' : `${(efectividadA * 100).toFixed(1)}%`,
-      delta:
-        efectividadA === null || efectividadP === null
-          ? null
-          : efectividadA - efectividadP,
+      delta: efectividadA === null || efectividadP === null ? null : efectividadA - efectividadP,
       contexto: 'viajes cerrados sin novedad',
     },
   };
@@ -115,13 +112,15 @@ function estadisticas(periodo: RangoFechas): EstadisticasReporte {
 
 /** Hora del día (0–23) en zona de México a partir de un instante. */
 function horaDelDia(instante: Date): number {
-  return Number(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: ZONA,
-      hour: '2-digit',
-      hour12: false,
-    }).format(instante),
-  ) % 24;
+  return (
+    Number(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: ZONA,
+        hour: '2-digit',
+        hour12: false,
+      }).format(instante),
+    ) % 24
+  );
 }
 
 /** Distribución horaria de capturas. */

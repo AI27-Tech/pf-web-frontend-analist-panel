@@ -19,7 +19,8 @@ function aMedio(id: string, d: DocumentData): Medio {
     id,
     viajeId: d.reporteId ?? '',
     tipo: d.tipo ?? 'FOTO',
-    etiqueta: d.etiqueta ?? '',
+    // Contrato real: `etiquetas` es un ARRAY (pf-app-custodio §5.1), no `etiqueta`.
+    etiquetas: Array.isArray(d.etiquetas) ? d.etiquetas : [],
     rutaOriginal: d.storagePath ?? '',
     rutaMiniatura: d.thumbnailPath ?? null,
     capturadoEn: d.createdAtDevice?.toDate?.() ?? new Date(0),
@@ -73,7 +74,8 @@ export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
   ];
 
   if (filtros.tipo) restricciones.push(where('tipo', '==', filtros.tipo));
-  if (filtros.etiqueta) restricciones.push(where('etiqueta', '==', filtros.etiqueta));
+  // `etiquetas` es un array: la pertenencia se consulta con `array-contains`, no con `==`.
+  if (filtros.etiqueta) restricciones.push(where('etiquetas', 'array-contains', filtros.etiqueta));
   if (filtros.placas) restricciones.push(where('placas', '==', filtros.placas));
   if (filtros.custodioUid) restricciones.push(where('custodioUid', '==', filtros.custodioUid));
 

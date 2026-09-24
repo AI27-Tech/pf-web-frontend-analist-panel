@@ -21,7 +21,10 @@ export interface ExpedienteHeaderProps {
 export function ExpedienteHeader({ viaje }: ExpedienteHeaderProps) {
   return (
     <header className="border-border flex flex-col gap-4 border-b px-8 py-6">
-      <nav aria-label="Ruta de navegación" className="text-text-muted flex items-center gap-1.5 text-sm">
+      <nav
+        aria-label="Ruta de navegación"
+        className="text-text-muted flex items-center gap-1.5 text-sm"
+      >
         <Link to="/viajes" className="hover:text-text inline-flex items-center gap-1">
           <ChevronLeft className="size-4" aria-hidden="true" />
           Viajes

@@ -64,8 +64,7 @@ export function ViajesList({
           <li className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
             <SearchX className="text-text-muted size-8" aria-hidden="true" />
             <p className="text-text-muted text-sm">
-              No hay viajes entre el {periodo.desde} y el {periodo.hasta} con los filtros
-              actuales.
+              No hay viajes entre el {periodo.desde} y el {periodo.hasta} con los filtros actuales.
             </p>
             <Button variant="outline" size="sm" onClick={onLimpiarFiltros}>
               Limpiar filtros

@@ -46,13 +46,17 @@ pnpm dev
 
 ---
 
-## Dos cosas que hoy bloquean el uso real
+## Dos cosas para el uso real
 
-### 1. El analista todavía no puede leer nada
+### 1. Autorización del analista: allowlist de correo
 
-Las reglas de Firestore del proyecto autorizan la lectura **sólo al custodio dueño** de cada documento. El analista no es dueño de nada, así que con las reglas actuales no ve ni un registro. Hacen falta un claim `rol: analista`, una rama de lectura en `firestore.rules` y otra en `storage.rules`. Está detallado en `docs/PLAN.md` §6 y es la fase **F1**.
+La lectura del custodio es **sólo del dueño**, y el analista no es dueño de nada. Su acceso ya está resuelto en las reglas del proyecto (`pf-app-custodio`/`pf-infra-firebase`), y **no es por custom claim**: es por **allowlist de correo**. Un analista ES quien tiene su correo en `config/analistas.correos`. Para habilitar a un analista:
 
-Mientras eso no exista, se puede trabajar contra el **Emulator Suite** poniendo `VITE_USAR_EMULADORES=true` en el `.env`.
+1. Habilitar el proveedor **email/password** en el proyecto y crear su cuenta (consola o Admin SDK; la función `beforeUserCreated` bloquea altas sin teléfono, así que la cuenta del analista se crea por vía admin).
+2. Agregar su correo a `config/analistas.correos` (consola en producción; Emulator UI/REST en local).
+3. Poner `VITE_DATOS_MOCK=false` (y `VITE_USAR_EMULADORES` según el entorno) en el `.env`.
+
+Detalle en `docs/PLAN.md` §6. Se prueba con el **Emulator Suite** (`pf-infra-firebase/test/reglas.test.js`). Mientras tanto, se trabaja contra el emulador con `VITE_USAR_EMULADORES=true` o contra datos estáticos con `VITE_DATOS_MOCK=true`.
 
 ### 2. `@ai27-tech/ui` requiere acceso a GitHub Packages
 

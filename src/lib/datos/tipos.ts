@@ -41,7 +41,10 @@ export interface Medio {
   id: string;
   viajeId: string;
   tipo: TipoMedio;
-  etiqueta: string;
+  /** Etiquetas del catálogo. Es un ARRAY en el contrato del productor —un medio puede
+   *  llevar varias (`medios.etiquetas`, pf-app-custodio §5.1)—, no una sola cadena.
+   *  Para mostrar una etiqueta suelta en la UI, usa `etiquetaVisible(medio)`. */
+  etiquetas: string[];
   rutaOriginal: string;
   rutaMiniatura: string | null;
   capturadoEn: Date;
@@ -56,13 +59,24 @@ export interface Medio {
   fechaLocal: string;
 }
 
+/**
+ * Etiqueta visible de un medio para la UI: la primera del array, o «Sin etiqueta» si no
+ * trae ninguna.
+ *
+ * Un `Medio` puede llevar varias etiquetas, pero la mayoría de las vistas (visor,
+ * miniatura, agrupación del expediente) muestran una sola. Centralizar la elección aquí
+ * evita esparcir `etiquetas[0]` por toda la interfaz y da un texto consistente cuando el
+ * array viene vacío.
+ */
+export function etiquetaVisible(medio: Pick<Medio, 'etiquetas'>): string {
+  return medio.etiquetas[0] ?? 'Sin etiqueta';
+}
+
 /** Un viaje: el contenedor de los archivos de un servicio. */
 export interface Viaje {
   id: string;
   placas: string;
-  custodioCorreo: string;
-  /** Nombre visible del custodio. Opcional: el catálogo de custodios no existe
-   *  todavía, y el renglón cae a `custodioCorreo` cuando falta. */
+  custodioTelefono: string;
   custodioName?: string;
   custodioUid: string;
   fechaLocal: string;
@@ -82,11 +96,16 @@ export interface Viaje {
   audios: number;
 }
 
-/** Valor del catálogo de etiquetas. Pendiente de definición por Operación; hoy el
- *  panel lo lee de Firestore y no lo hardcodea. */
+/** Categoría de una etiqueta del catálogo (pf-app-custodio §5.1). */
+export type CategoriaEtiqueta = 'SITUACION' | 'EVIDENCIA';
+
+/**
+ * Valor del catálogo de etiquetas.
+ */
 export interface Etiqueta {
   id: string;
   nombre: string;
+  categoria?: CategoriaEtiqueta;
   orden: number;
   activo: boolean;
 }

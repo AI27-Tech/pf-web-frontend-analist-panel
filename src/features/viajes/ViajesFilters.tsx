@@ -84,7 +84,12 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
     setPeriodo(nuevoPeriodo);
 
     if (esRangoValido(nuevoPeriodo.desde, nuevoPeriodo.hasta)) {
-      onFiltrosChange({ ...filtros, desde: nuevoPeriodo.desde, hasta: nuevoPeriodo.hasta, page: 1 });
+      onFiltrosChange({
+        ...filtros,
+        desde: nuevoPeriodo.desde,
+        hasta: nuevoPeriodo.hasta,
+        page: 1,
+      });
     }
     // Si el rango es inválido, no se emite: la lista sigue mostrando el último rango
     // válido.
@@ -150,8 +155,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
     onFiltrosChange({ desde, hasta, page: 1, pageSize: filtros.pageSize });
   }
 
-  const rangoInvalido =
-    periodo.atajo === 'rango' && !esRangoValido(periodo.desde, periodo.hasta);
+  const rangoInvalido = periodo.atajo === 'rango' && !esRangoValido(periodo.desde, periodo.hasta);
 
   return (
     <Card variant="outlined">

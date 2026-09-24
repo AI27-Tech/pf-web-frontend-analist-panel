@@ -105,11 +105,13 @@ La regla de `src/lib/datos/` como única frontera con Firebase se verifica con u
 
 El panel es **sólo lectura**. No escribe ni un documento. Las colecciones y campos son los que define `pf-app-custodio/docs/PLAN.md` §5.1, y este repo no los redefine: los consume.
 
-De `reportes` usa `placas`, `custodioCorreo`, `fechaLocal`, `createdAtServer`, `closedAt`, `comentario`, `hayNovedad`, `ciclo`, `motivoDescarte`, `completo`, `mediosEsperados`, `mediosSubidos`, `resumenMedios`.
+De `reportes` usa `placas`, `custodioTelefono`, `fechaLocal`, `createdAtServer`, `createdAtDevice`, `closedAt`, `comentario`, `hayNovedad`, `ciclo`, `motivoDescarte`, `subida`, `completo`, `mediosEsperados`, `mediosSubidos`, `resumenMedios`. El **nombre** del custodio no vive en el reporte: se resuelve desde `usuarios/{uid}.nombre` (el reporte sólo trae `custodioUid` y `custodioTelefono`, porque el custodio se identifica por teléfono, no por correo — pf-app-custodio §5.1). El renglón cae al teléfono cuando no hay nombre.
 
-De `medios` usa `reporteId`, `tipo`, `etiqueta`, `storagePath`, `thumbnailPath`, `createdAtDevice`, `createdAtServer`, `gps`, `ubicacionTexto`, `comentario`, `sizeBytes`, `durationMs`, `placas`, `custodioUid`, `fechaLocal`.
+De `medios` usa `reporteId`, `tipo`, `etiquetas`, `storagePath`, `thumbnailPath`, `createdAtDevice`, `createdAtServer`, `gps`, `ubicacionTexto`, `comentario`, `sizeBytes`, `durationMs`, `placas`, `custodioUid`, `fechaLocal`. **`etiquetas` es un array** (un medio puede llevar varias), no una sola cadena: la galería filtra por pertenencia (`array-contains`).
 
 La desnormalización que lleva `medios` —`placas`, `custodioUid`, `fechaLocal`— es justo lo que permite filtrar archivos sin joins. Firestore no los tiene.
+
+**`resumenMedios` es un snapshot de cierre.** El productor lo computa al cerrar el viaje; mientras el viaje está `ACTIVO` queda en cero aunque ya haya evidencia subida. El conteo de fotos/audios se toma de `resumenMedios` sólo cuando el viaje NO está activo; en abierto, el total sale de `mediosSubidos`.
 
 **Dos cosas que hay que tener presentes al construir el visor:**
 
@@ -118,23 +120,27 @@ La desnormalización que lleva `medios` —`placas`, `custodioUid`, `fechaLocal`
 
 ---
 
-## 6. Autorización: el rol del analista
+## 6. Autorización: el analista se autoriza por su correo
 
-**Esto bloquea todo y va primero.** Tal como están hoy las reglas del proyecto, la lectura es **sólo del dueño**:
+La autorización del analista **ya existe en las reglas del proyecto** (`pf-app-custodio/firebase/` y `pf-infra-firebase/`), y es por **allowlist de correo**.
+
+Un analista es quien tiene su correo en el documento `config/analistas.correos`. La rama de lectura, tanto en `firestore.rules` como en `storage.rules`, es:
 
 ```
-allow read: if autenticado() && (resource == null || esDuenoDe(resource));
+function esAnalista() {
+  let lista = get(/databases/$(database)/documents/config/analistas);
+  return autenticado() && 'correos' in lista.data && request.auth.token.email in lista.data.correos;
+}
 ```
 
-El analista no es dueño de nada, así que **hoy no puede leer un solo documento**. Hacen falta tres cosas:
+Tres consecuencias que importan:
 
-1. **Claim personalizado** `rol: analista` en el usuario del analista, puesto con un script de provisión usando el Admin SDK. Se documenta en el README junto al alta de custodios.
-2. **Rama de lectura en `firestore.rules`** para ese rol en `reportes`, `medios` y `catalogos`. Importa que la condición sea **independiente del documento** (`request.auth.token.rol == 'analista'`), porque las reglas de Firestore no filtran consultas: una condición por documento como `esDuenoDe` hace que las consultas de lista fallen, mientras que una condición sobre el token las deja pasar.
-3. **Rama de lectura en `storage.rules`.** La regla actual hace un `firestore.get()` por archivo para comprobar el dueño: eso cobra **una lectura de Firestore por cada miniatura** que el analista vea, más latencia. La rama del analista debe autorizar por el claim, sin tocar Firestore.
+1. **La condición es independiente del documento** (`request.auth.token.email in …`), que es lo que permite las consultas de lista.
+2. **Storage** autoriza al analista por la misma lista. La regla del dueño hace un `firestore.get()` por archivo; la rama del analista comparte ese costo al leer `config/analistas`.
 
-La escritura sigue negada para el analista en todo. Los reportes y los medios son inmutables por diseño, y este panel no cambia eso.
+**Se prueba con el Emulator Suite**, en `pf-infra-firebase/test/reglas.test.js`: el analista lee `reportes`/`medios`/`catalogos`/`usuarios`, consulta las colecciones sin filtro, no escribe ni borra nada, un correo fuera de la lista no obtiene acceso, y un custodio sigue sin poder leer lo de otro.
 
-**Se prueba con el Emulator Suite**, extendiendo `pf-app-custodio/firebase/test/reglas.test.js`: que el analista lee todo, que no escribe nada, y que un custodio sigue sin poder leer lo de otro.
+**Identidad del panel:** el analista entra con **correo y contraseña** (Firebase Auth email/password); es un eje de identidad aparte del custodio, que entra por SMS. Requiere habilitar el proveedor email/password en el proyecto y crear la cuenta del analista por consola/Admin SDK.
 
 ---
 
@@ -183,9 +189,13 @@ Dos cosas que conviene no perder de vista:
 
 ## 9. Índices de Firestore
 
-Las agregaciones y los filtros combinados necesitan índices compuestos declarados, y es el tipo de cosa que se descubre en producción si no se planea. Los que se anticipan sobre `medios`: `fechaLocal` + `etiqueta`, `fechaLocal` + `custodioUid`, `fechaLocal` + `placas`, `fechaLocal` + `tipo`. Sobre `reportes`: `fechaLocal` + `ciclo`, `fechaLocal` + `custodioUid`, `fechaLocal` + `hayNovedad`, `placas` + `fechaLocal`.
+Los filtros combinados de las pantallas de **Viajes** y **Galería** necesitan índices compuestos declarados. El **reporte NO figura aquí**: sus métricas se resuelven con una lectura acotada por rango de `fechaLocal` y agregación en el cliente (§8, `lib/datos/metricasFirestore.ts`), que usa el índice de campo único automático de Firestore.
 
-Se versionan en `firebase/firestore.indexes.json` del repo de la app, que es donde vive la configuración del proyecto.
+Sobre `reportes` (lista de Viajes, orden por `fechaLocal` desc), un índice por cada filtro de igualdad combinado con el rango de fecha: `custodioUid` + `fechaLocal`, `placas` + `fechaLocal`, `hayNovedad` + `fechaLocal`.
+
+Sobre `medios` (Galería, que ordena por `createdAtDevice` mientras acota por rango de `fechaLocal` —dos campos distintos, así que el índice lleva los tres): `etiquetas`(array-contains) + `fechaLocal` + `createdAtDevice`, y lo mismo con `tipo`, `placas`, `custodioUid`; la galería sin filtro necesita `fechaLocal` + `createdAtDevice`; y el expediente `reporteId` + `createdAtDevice`.
+
+En total son **9 índices** (3 de `reportes`, 6 de `medios`). La lista de Viajes SIN filtro y el reporte no requieren ninguno. Se versionan en **`firestore.indexes.json` de `pf-infra-firebase`** (branch `pf-inffb-d`), referenciado desde su `firebase.json`, y se despliegan con `firebase deploy --only firestore:indexes`.
 
 ---
 
