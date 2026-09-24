@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Medio } from '@/lib/datos/tipos';
+import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 
 /**
  * El visor: superposición a pantalla completa para revisar una evidencia. Es el corazón
@@ -121,12 +121,12 @@ export function Visor({
       className="bg-canvas/95 fixed inset-0 z-[1000] flex flex-col"
       role="dialog"
       aria-modal="true"
-      aria-label={`Visor de evidencia: ${medio.etiqueta}`}
+      aria-label={`Visor de evidencia: ${etiquetaVisible(medio)}`}
     >
       {/* Barra superior: etiqueta, posición y cerrar. Común a foto y audio. */}
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-baseline gap-3">
-          <span className="text-text text-sm font-semibold">{medio.etiqueta}</span>
+          <span className="text-text text-sm font-semibold">{etiquetaVisible(medio)}</span>
           <span className="text-text-muted cifras-tabulares text-xs">
             {index + 1} / {medios.length}
           </span>
@@ -144,7 +144,7 @@ export function Visor({
             variant="ghost"
             onClick={previous}
             aria-label="Anterior"
-            className="absolute left-4 top-1/2 z-10 -translate-y-1/2"
+            className="absolute top-1/2 left-4 z-10 -translate-y-1/2"
           >
             <ChevronLeft size={28} strokeWidth={1.5} />
           </Button>
@@ -161,7 +161,7 @@ export function Visor({
             variant="ghost"
             onClick={next}
             aria-label="Siguiente"
-            className="absolute right-4 top-1/2 z-10 -translate-y-1/2"
+            className="absolute top-1/2 right-4 z-10 -translate-y-1/2"
           >
             <ChevronRight size={28} strokeWidth={1.5} />
           </Button>
@@ -296,7 +296,7 @@ function VisorImagen({ medio, url }: { medio: Medio; url: string | null }) {
         {url ? (
           <img
             src={url}
-            alt={medio.comentario ?? medio.etiqueta}
+            alt={medio.comentario ?? etiquetaVisible(medio)}
             draggable={false}
             className="max-h-full max-w-full object-contain select-none"
             style={{
@@ -399,8 +399,10 @@ function VisorAudio({ medio, url }: { medio: Medio; url: string | null }) {
       <Headphones size={72} strokeWidth={1.25} className="text-text-muted" aria-hidden="true" />
 
       <div className="text-center">
-        <p className="text-text text-sm font-semibold">{medio.etiqueta}</p>
-        {medio.comentario && <p className="text-text-muted mt-1 max-w-prose text-xs">{medio.comentario}</p>}
+        <p className="text-text text-sm font-semibold">{etiquetaVisible(medio)}</p>
+        {medio.comentario && (
+          <p className="text-text-muted mt-1 max-w-prose text-xs">{medio.comentario}</p>
+        )}
       </div>
 
       {url === null ? (

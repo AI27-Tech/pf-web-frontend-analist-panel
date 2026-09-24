@@ -9,7 +9,7 @@ import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { urlMiniatura, urlOriginal } from '@/lib/datos/medios';
-import type { Medio } from '@/lib/datos/tipos';
+import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { formatearBytes, horaLocal } from '@/lib/formato/tamano';
 import {
   esMuestra,
@@ -49,7 +49,9 @@ function agruparPorEtiqueta(medios: Medio[]): GrupoEtiqueta[] {
   const porEtiqueta = new Map<string, Medio[]>();
 
   for (const medio of medios) {
-    const clave = medio.etiqueta || 'Sin etiqueta';
+    // Un medio puede llevar varias etiquetas; el expediente lo agrupa por su etiqueta
+    // visible (la primera), que es el mismo criterio de una sola sección que ya usaba.
+    const clave = etiquetaVisible(medio);
     if (!porEtiqueta.has(clave)) {
       orden.push(clave);
       porEtiqueta.set(clave, []);
@@ -88,7 +90,7 @@ export function ExpedienteGaleria({ medios, cargando = false }: ExpedienteGaleri
       mediosVisor.map((medio) => ({
         id: medio.id,
         type: tipoAMedium(medio.tipo),
-        label: medio.etiqueta,
+        label: etiquetaVisible(medio),
         ...(medio.comentario ? { comment: medio.comentario } : {}),
       })),
     [mediosVisor],
@@ -196,7 +198,7 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
   return (
     <ImageCard
       src={src ?? ''}
-      alt={medio.comentario ?? medio.etiqueta}
+      alt={medio.comentario ?? etiquetaVisible(medio)}
       title={<span className="font-mono text-xs">{nombreArchivo(medio)}</span>}
       subtitle={
         <span className="cifras-tabulares flex items-center gap-2 font-mono">
@@ -214,5 +216,5 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
  *  etiqueta. Es lo que la maqueta muestra bajo cada miniatura. */
 function nombreArchivo(medio: Medio): string {
   const segmento = medio.rutaOriginal.split('/').pop() ?? '';
-  return segmento || medio.etiqueta || 'SIN_NOMBRE';
+  return segmento || medio.etiquetas[0] || 'SIN_NOMBRE';
 }

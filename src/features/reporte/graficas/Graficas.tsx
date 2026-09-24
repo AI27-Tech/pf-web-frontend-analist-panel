@@ -71,11 +71,7 @@ export function GraficaDescartes({ datos }: { datos: GraficasReporte['descartesP
 }
 
 /** Distribución horaria de capturas, en línea sobre las 24 horas del día. */
-export function GraficaCapturasPorHora({
-  datos,
-}: {
-  datos: GraficasReporte['capturasPorHora'];
-}) {
+export function GraficaCapturasPorHora({ datos }: { datos: GraficasReporte['capturasPorHora'] }) {
   const total = datos.reduce((suma, punto) => suma + punto.valor, 0);
 
   return (
@@ -134,7 +130,10 @@ export function GraficaGbAcumulados({ datos }: { datos: GraficasReporte['gbAcumu
             <CartesianGrid vertical={false} stroke={COLORES.borde} />
             <XAxis dataKey="etiqueta" {...ejeComun} />
             <YAxis allowDecimals {...ejeComun} width={40} unit=" GB" />
-            <Tooltip contentStyle={ESTILO_TOOLTIP} formatter={(valor) => [`${valor} GB`, 'Acumulado']} />
+            <Tooltip
+              contentStyle={ESTILO_TOOLTIP}
+              formatter={(valor) => [`${valor} GB`, 'Acumulado']}
+            />
             <Area
               type="monotone"
               dataKey="valor"

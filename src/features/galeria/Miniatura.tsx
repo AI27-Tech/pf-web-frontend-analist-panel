@@ -20,10 +20,10 @@ export interface MiniaturaProps {
   onOpen: () => void;
 }
 /** Nombre de archivo a partir de la ruta del original: el último segmento de la ruta.
- *  Si la ruta viene vacía, se cae a la etiqueta para no mostrar un hueco. */
+ *  Si la ruta viene vacía, se cae a la primera etiqueta para no mostrar un hueco. */
 function fileName(medio: Medio): string {
   const segment = medio.rutaOriginal.split('/').pop() ?? '';
-  return segment || medio.etiqueta || 'SIN_NOMBRE';
+  return segment || (medio.etiquetas || [])[0] || 'SIN_NOMBRE';
 }
 export function Miniatura({ medio, onOpen }: MiniaturaProps) {
   const estado = estadoProvisional(medio);
@@ -44,7 +44,7 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
         ) : (
           <img
             src={imagenProvisional(medio)}
-            alt={medio.comentario ?? medio.etiqueta}
+            alt={medio.comentario ?? (medio.etiquetas || [])[0] ?? 'Evidencia'}
             loading="lazy"
             draggable={false}
             className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"

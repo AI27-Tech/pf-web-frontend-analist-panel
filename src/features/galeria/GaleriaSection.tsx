@@ -84,7 +84,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       label: 'Categoría',
       options: [
         { label: 'Todas', value: 'TODO' },
-        ...Array.from(new Set(medios.map((m) => m.etiqueta).filter(Boolean)))
+        ...Array.from(new Set(medios.flatMap((m) => m.etiquetas || []).filter(Boolean)))
           .sort((a, b) => a.localeCompare(b, 'es'))
           .map((val) => ({ label: val, value: val })),
       ],
@@ -115,15 +115,16 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const matchesFiltersAndSearch = (medio: Medio): boolean => {
     // Aplicar filtros
     if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo) return false;
-    if (filterValues.etiqueta && filterValues.etiqueta !== 'TODO' && medio.etiqueta !== filterValues.etiqueta) return false;
+    if (filterValues.etiqueta && filterValues.etiqueta !== 'TODO' && !(medio.etiquetas || []).includes(filterValues.etiqueta)) return false;
     if (filterValues.placa && filterValues.placa !== 'TODO' && medio.placas !== filterValues.placa) return false;
     if (filterValues.custodio && filterValues.custodio !== 'TODO' && medio.custodioUid !== filterValues.custodio) return false;
 
-    // Aplicar búsqueda (buscar en etiqueta, comentario, placas y custodio)
+    // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio)
     if (searchValue) {
       const searchLower = searchValue.toLowerCase();
+      const etiquetasJoined = (medio.etiquetas || []).join(', ').toLowerCase();
       const hayCoincidencia =
-        medio.etiqueta.toLowerCase().includes(searchLower) ||
+        etiquetasJoined.includes(searchLower) ||
         (medio.comentario?.toLowerCase().includes(searchLower) ?? false) ||
         (medio.placas?.toLowerCase().includes(searchLower) ?? false) ||
         (medio.custodioUid?.toLowerCase().includes(searchLower) ?? false);
@@ -206,9 +207,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                 <ImageCard
                   key={medio.id}
                   src={isAudio ? '' : urlMini || imagenProvisional(medio)}
-                  alt={medio.etiqueta}
+                  alt={(medio.etiquetas || [])[0] || 'Evidencia'}
                   title={`${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`}
-                  subtitle={medio.etiqueta}
+                  subtitle={(medio.etiquetas || []).join(', ') || 'Sin etiqueta'}
                   footer={<small>{medio.placas || 'S/UNIDAD'}</small>}
                   onClick={() => {
                     setOpenIndex(inicioGrid + index);
@@ -252,7 +253,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   ) : (
                     <img
                       src={urlMini || imagenProvisional(medio, 80)}
-                      alt={medio.etiqueta}
+                      alt={(medio.etiquetas || [])[0] || 'Evidencia'}
                       style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '3px' }}
                     />
                   );
@@ -325,7 +326,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           mediums={medios.map((medio) => ({
             id: medio.id,
             type: medio.tipo === 'AUDIO' ? 'AUDIO' : 'IMAGE',
-            label: medio.etiqueta,
+            label: (medio.etiquetas || []).join(', ') || 'Sin etiqueta',
             comment: medio.comentario ?? '',
           }))}
           initialIndex={openIndex}
