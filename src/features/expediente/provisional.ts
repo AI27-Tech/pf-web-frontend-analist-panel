@@ -60,7 +60,7 @@ function buildMedio(etiqueta: string, fileName: string, indice: number): Medio {
     id: `muestra-exp-${indice}`,
     viajeId: 'viaje-muestra',
     tipo: esAudio ? 'AUDIO' : 'FOTO',
-    etiqueta,
+    etiquetas: [etiqueta],
     rutaOriginal: `muestras/${fileName}`,
     rutaMiniatura: null,
     capturadoEn: base,

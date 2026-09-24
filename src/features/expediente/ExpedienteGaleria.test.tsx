@@ -13,7 +13,7 @@ function crearMedio(sobrescribir: Partial<Medio>): Medio {
     id: 'muestra-0',
     viajeId: 'viaje-01',
     tipo: 'FOTO',
-    etiqueta: 'salida',
+    etiquetas: ['salida'],
     rutaOriginal: 'muestras/archivo.jpg',
     rutaMiniatura: null,
     capturadoEn: new Date('2026-09-01T08:19:00-06:00'),
@@ -49,9 +49,9 @@ describe('ExpedienteGaleria', () => {
 
   it('agrupa los medios por etiqueta y numera cada sección en orden de aparición', () => {
     const medios = [
-      crearMedio({ id: 'muestra-1', etiqueta: 'salida' }),
-      crearMedio({ id: 'muestra-2', etiqueta: 'salida' }),
-      crearMedio({ id: 'muestra-3', etiqueta: 'incidencia' }),
+      crearMedio({ id: 'muestra-1', etiquetas: ['salida'] }),
+      crearMedio({ id: 'muestra-2', etiquetas: ['salida'] }),
+      crearMedio({ id: 'muestra-3', etiquetas: ['incidencia'] }),
     ];
 
     render(<ExpedienteGaleria medios={medios} />);
@@ -62,8 +62,8 @@ describe('ExpedienteGaleria', () => {
 
   it('muestra el conteo real de evidencias por grupo, sin inventar ubicación ni alertas', () => {
     const medios = [
-      crearMedio({ id: 'muestra-1', etiqueta: 'salida' }),
-      crearMedio({ id: 'muestra-2', etiqueta: 'salida' }),
+      crearMedio({ id: 'muestra-1', etiquetas: ['salida'] }),
+      crearMedio({ id: 'muestra-2', etiquetas: ['salida'] }),
     ];
 
     render(<ExpedienteGaleria medios={medios} />);
@@ -72,13 +72,13 @@ describe('ExpedienteGaleria', () => {
   });
 
   it('agrupa los medios sin etiqueta bajo «Sin etiqueta»', () => {
-    render(<ExpedienteGaleria medios={[crearMedio({ id: 'muestra-1', etiqueta: '' })]} />);
+    render(<ExpedienteGaleria medios={[crearMedio({ id: 'muestra-1', etiquetas: [] })]} />);
 
     expect(screen.getByText(/\[01\]\s*Sin etiqueta/i)).toBeInTheDocument();
   });
 
   it('renderiza una tarjeta por cada medio con su hora y placas', () => {
-    const medios = [crearMedio({ id: 'muestra-1', etiqueta: 'salida' })];
+    const medios = [crearMedio({ id: 'muestra-1', etiquetas: ['salida'] })];
     const { container } = render(<ExpedienteGaleria medios={medios} />);
 
     expect(within(container).getByText(/02:19|08:19/)).toBeInTheDocument();

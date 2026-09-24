@@ -52,12 +52,14 @@ export function TarjetaResumen({
   const FlechaDelta = sube ? TrendingUp : TrendingDown;
 
   const claseValor =
-    tamanoValor === 'grande'
-      ? 'text-5xl font-semibold tracking-tight'
-      : 'text-lg font-semibold';
+    tamanoValor === 'grande' ? 'text-5xl font-semibold tracking-tight' : 'text-lg font-semibold';
 
   return (
-    <Card variant="outlined" padding="none" className="bloque-imprimible flex min-h-40 flex-col p-5">
+    <Card
+      variant="outlined"
+      padding="none"
+      className="bloque-imprimible flex min-h-40 flex-col p-5"
+    >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-text-muted flex items-center gap-1.5 font-mono text-[12px] tracking-widest uppercase">
           {titulo}

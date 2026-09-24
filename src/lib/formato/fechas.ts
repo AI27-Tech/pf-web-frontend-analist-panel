@@ -69,7 +69,10 @@ export type SeleccionPeriodo = { atajo: Atajo } | { atajo: 'rango'; desde: strin
 /**
  * Resuelve una selección de periodo a un rango concreto
  */
-export function resolverPeriodo(seleccion: SeleccionPeriodo, ahora: Date = new Date()): RangoFechas {
+export function resolverPeriodo(
+  seleccion: SeleccionPeriodo,
+  ahora: Date = new Date(),
+): RangoFechas {
   if (seleccion.atajo === 'rango') {
     return { desde: seleccion.desde, hasta: seleccion.hasta };
   }

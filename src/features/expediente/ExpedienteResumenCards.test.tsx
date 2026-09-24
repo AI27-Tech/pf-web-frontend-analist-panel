@@ -9,7 +9,7 @@ function crearViaje(sobrescribir: Partial<Viaje> = {}): Viaje {
   return {
     id: 'viaje-01',
     placas: 'YZ-498-LK',
-    custodioCorreo: 'jperez@ai27.mx',
+    custodioTelefono: '+525563320001',
     custodioName: 'Cap. Jesús Pérez R.',
     custodioUid: 'custodio-01',
     fechaLocal: '2026-09-01',
@@ -46,17 +46,19 @@ describe('ExpedienteResumenCards', () => {
     expect(screen.getByText(/Cerrado/)).toBeInTheDocument();
   });
 
-  it('usa el correo del custodio cuando no hay custodioName', () => {
-    const viaje = crearViaje({ custodioCorreo: 'sortiz@ai27.mx' });
+  it('usa el teléfono del custodio cuando no hay custodioName', () => {
+    const viaje = crearViaje({ custodioTelefono: '+525563329999' });
     delete viaje.custodioName;
     render(<ExpedienteResumenCards viaje={viaje} />);
 
-    // El nombre respalda al correo, así que el correo aparece dos veces (título y subtítulo).
-    expect(screen.getAllByText('sortiz@ai27.mx').length).toBeGreaterThan(0);
+    // El nombre respalda al teléfono, así que el teléfono aparece dos veces (título y subtítulo).
+    expect(screen.getAllByText('+525563329999').length).toBeGreaterThan(0);
   });
 
   it('muestra el conteo de archivos subidos contra los esperados', () => {
-    render(<ExpedienteResumenCards viaje={crearViaje({ uploadedFiles: 14, mediosEsperados: 18 })} />);
+    render(
+      <ExpedienteResumenCards viaje={crearViaje({ uploadedFiles: 14, mediosEsperados: 18 })} />,
+    );
 
     expect(screen.getByText('14')).toBeInTheDocument();
     expect(screen.getByText('de 18 esperados')).toBeInTheDocument();
