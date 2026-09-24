@@ -1,11 +1,7 @@
 import { FirebaseError } from 'firebase/app';
 import { signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
 
-import {
-  auth,
-  esperarSesionFirebase,
-  observarSesionFirebase,
-} from '@/lib/firebase/cliente';
+import { auth, esperarSesionFirebase, observarSesionFirebase } from '@/lib/firebase/cliente';
 
 export type ResultadoSesion = { ok: true } | { ok: false; mensaje: string };
 

@@ -16,7 +16,7 @@ export interface ExpedienteResumenCardsProps {
 }
 
 export function ExpedienteResumenCards({ viaje }: ExpedienteResumenCardsProps) {
-  const nombreCustodio = viaje.custodioName ?? viaje.custodioCorreo;
+  const nombreCustodio = viaje.custodioName ?? viaje.custodioTelefono;
   const enProgreso = viaje.cerradoEn === null;
 
   return (
@@ -46,7 +46,7 @@ export function ExpedienteResumenCards({ viaje }: ExpedienteResumenCardsProps) {
         Icono={User}
         tamanoValor="medio"
         valor={<span className="truncate">{nombreCustodio}</span>}
-        contexto={<span className="truncate">{viaje.custodioCorreo}</span>}
+        contexto={<span className="truncate">{viaje.custodioTelefono}</span>}
       />
 
       <TarjetaResumen

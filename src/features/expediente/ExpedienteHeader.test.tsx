@@ -1,6 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } from '@tanstack/react-router';
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Viaje } from '@/lib/datos/tipos';
@@ -11,7 +16,7 @@ function crearViaje(sobrescribir: Partial<Viaje> = {}): Viaje {
   return {
     id: 'viaje-01',
     placas: 'YZ-498-LK',
-    custodioCorreo: 'jperez@ai27.mx',
+    custodioTelefono: '+525563320001',
     custodioName: 'Cap. Jesús Pérez R.',
     custodioUid: 'custodio-01',
     fechaLocal: '2026-09-01',
@@ -63,8 +68,12 @@ describe('ExpedienteHeader', () => {
   it('muestra sólo la acción de exportar a PDF, sin las otras dos', async () => {
     renderConRouter(crearViaje());
 
-    expect(await screen.findByRole('button', { name: /Exportar reporte PDF/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Compartir enlace forense/i })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Exportar reporte PDF/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Compartir enlace forense/i }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Descargar todo/i })).not.toBeInTheDocument();
   });
 

@@ -13,7 +13,13 @@ describe('TarjetaResumen', () => {
 
   it('formatea el delta positivo con signo y en verde cuando subir es bueno', () => {
     render(
-      <TarjetaResumen titulo="Viajes" Icono={Truck} valor="1,428" delta={0.124} contexto="vs. anterior" />,
+      <TarjetaResumen
+        titulo="Viajes"
+        Icono={Truck}
+        valor="1,428"
+        delta={0.124}
+        contexto="vs. anterior"
+      />,
     );
     const delta = screen.getByText('+12.4%');
     expect(delta.parentElement?.className).toContain('text-success');
@@ -34,7 +40,9 @@ describe('TarjetaResumen', () => {
   });
 
   it('sin delta muestra sólo el contexto', () => {
-    render(<TarjetaResumen titulo="Duración" Icono={Truck} valor="10h 40m" contexto="Duración total" />);
+    render(
+      <TarjetaResumen titulo="Duración" Icono={Truck} valor="10h 40m" contexto="Duración total" />,
+    );
     expect(screen.getByText('Duración total')).toBeInTheDocument();
     expect(screen.queryByText(/%$/)).not.toBeInTheDocument();
   });

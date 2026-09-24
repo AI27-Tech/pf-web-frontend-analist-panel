@@ -14,7 +14,7 @@ import type { FilterDefinition } from '@ai27-tech/ui';
 import { useState } from 'react';
 
 import { urlOriginal } from '@/lib/datos/medios';
-import type { Medio } from '@/lib/datos/tipos';
+import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { resolverImagenVisor, imagenProvisional, estadoProvisional } from './provisional';
 
 export interface GaleriaSectionProps {
@@ -40,7 +40,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       label: 'Categoría',
       options: [
         { label: 'Todas', value: 'TODO' },
-        ...Array.from(new Set(medios.map((m) => m.etiqueta).filter(Boolean)))
+        ...Array.from(new Set(medios.flatMap((m) => m.etiquetas).filter(Boolean)))
           .sort((a, b) => a.localeCompare(b, 'es'))
           .map((val) => ({ label: val, value: val })),
       ],
@@ -71,11 +71,23 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const matchesFilters = (medio: Medio, activeFilters: Record<string, string>) => {
     if (activeFilters.tipo && activeFilters.tipo !== 'TODO' && medio.tipo !== activeFilters.tipo)
       return false;
-    if (activeFilters.etiqueta && activeFilters.etiqueta !== 'TODO' && medio.etiqueta !== activeFilters.etiqueta)
+    if (
+      activeFilters.etiqueta &&
+      activeFilters.etiqueta !== 'TODO' &&
+      !medio.etiquetas.includes(activeFilters.etiqueta)
+    )
       return false;
-    if (activeFilters.placa && activeFilters.placa !== 'TODO' && medio.placas !== activeFilters.placa)
+    if (
+      activeFilters.placa &&
+      activeFilters.placa !== 'TODO' &&
+      medio.placas !== activeFilters.placa
+    )
       return false;
-    if (activeFilters.custodio && activeFilters.custodio !== 'TODO' && medio.custodioUid !== activeFilters.custodio)
+    if (
+      activeFilters.custodio &&
+      activeFilters.custodio !== 'TODO' &&
+      medio.custodioUid !== activeFilters.custodio
+    )
       return false;
     return true;
   };
@@ -90,9 +102,28 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             AI27 FORENSIC ARCHIVE
           </Badge>
         </div>
-        <p style={{ margin: '0.5rem 0 0 0', color: 'var(--ui-text-muted, #999)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ display: 'inline-block', width: '0.5rem', height: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--ui-success, #10b981)' }} />
-          {medios.length.toLocaleString('es-MX')} {medios.length === 1 ? 'evidencia fotográfica' : 'evidencias fotográficas'} registradas en ruta
+        <p
+          style={{
+            margin: '0.5rem 0 0 0',
+            color: 'var(--ui-text-muted, #999)',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '0.5rem',
+              height: '0.5rem',
+              borderRadius: '50%',
+              backgroundColor: 'var(--ui-success, #10b981)',
+            }}
+          />
+          {medios.length.toLocaleString('es-MX')}{' '}
+          {medios.length === 1 ? 'evidencia fotográfica' : 'evidencias fotográficas'} registradas en
+          ruta
         </p>
       </div>
 
@@ -106,9 +137,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             <ImageCard
               key={medio.id}
               src={imagenProvisional(medio)}
-              alt={medio.etiqueta}
+              alt={etiquetaVisible(medio)}
               title={`${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`}
-              subtitle={medio.etiqueta}
+              subtitle={etiquetaVisible(medio)}
               footer={<small>{medio.placas || 'S/UNIDAD'}</small>}
               badges={[
                 {
@@ -141,7 +172,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           mediums={medios.map((medio) => ({
             id: medio.id,
             type: medio.tipo === 'AUDIO' ? 'AUDIO' : 'IMAGE',
-            label: medio.etiqueta,
+            label: etiquetaVisible(medio),
             comment: medio.comentario ?? '',
           }))}
           initialIndex={openIndex}

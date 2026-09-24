@@ -2,6 +2,27 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:23 18:00 — Integración con Firebase y corrección del contrato
+
+**Resumen:** la capa de datos deja de leer campos que el productor no escribe y conecta las agregaciones reales del reporte. Se alinea el contrato con `pf-app-custodio` §5.1 verificado contra documentos reales, se corrige el modelo de autorización documentado (allowlist de correo, no custom claim) y se declaran los índices compuestos en `pf-infra-firebase`.
+
+**Cambios — frontera de datos (`src/lib/datos/`):**
+
+- `tipos.ts`: `Viaje.custodioCorreo` → `custodioTelefono` (E.164; el custodio se identifica por teléfono, no por correo). `Medio.etiqueta: string` → `etiquetas: string[]` (el contrato lleva un array). Nuevo helper `etiquetaVisible(medio)` (primera etiqueta o «Sin etiqueta»). `Etiqueta` gana `categoria?: 'SITUACION' | 'EVIDENCIA'`.
+- `custodios.ts` (nuevo): `obtenerCustodios(uids)` y `enriquecerConNombres(viajes)` resuelven el **nombre** del custodio desde `usuarios/{uid}.nombre` (el reporte no lo trae), con deduplicado, en paralelo y con respaldo al teléfono. Se aplica en `listarViajesFirestore` y `obtenerViajeFirestore`.
+- `viajesFirestore.ts`: mapea `custodioTelefono`; nuevo `conteoDeMedios(d)` que trata `resumenMedios` como **snapshot de cierre** (viaje `ACTIVO` → `fotos = mediosSubidos`, `audios = 0`; cerrado/descartado → `resumenMedios`).
+- `medios.ts`: mapea `etiquetas` como array; el filtro de galería pasa a `where('etiquetas', 'array-contains', …)`.
+- `catalogos.ts`: lee el documento único `catalogos/etiquetas` y mapea su array `valores` (`[{ id, nombre, categoria, orden, activo }]`), en vez de la colección provisional `catalogos_etiquetas`. Nuevo `mapearValores` puro.
+- `metricasFirestore.ts` (nuevo): agregaciones reales del reporte. Cabecera con `getCountFromServer` (viajes, incidencias, evidencias fotográficas por `count` sobre `medios` tipo FOTO, efectividad), gráficas no agregables por lectura acotada (`descartesPorMotivo`, `capturasPorHora`, `gbAcumulados`), y `gigabytesAcumulados` con `sum(sizeBytes)`. `metricas.ts` conmuta a esta rama (import diferido) cuando `VITE_DATOS_MOCK` es false.
+
+**Cambios — UI (consumen `etiquetaVisible`/`custodioTelefono`):** `Visor.tsx`, `Miniatura.tsx`, `GaleriaSection.tsx`, `ExpedienteGaleria.tsx`, `ViajeCard.tsx`, `ExpedienteResumenCards.tsx`, y los `provisional.ts` de galería y expediente.
+
+**Cambios — infraestructura (`pf-infra-firebase`):** nuevo `firestore.indexes.json` con 10 índices compuestos para las consultas del panel, referenciado desde `firebase.json`. `test/reglas.test.js` gana dos regresiones de la allowlist (un correo fuera de `config/analistas.correos` no lee ni consulta).
+
+**Cambios — documentación:** `docs/PLAN.md` §5/§6/§9 y `README.md` corregidos: `custodioTelefono`, `etiquetas` array, `resumenMedios` como snapshot, autorización por correo (no custom claim), e índices en `pf-infra-firebase`. `.env.example` describe el web appId y el modelo de allowlist.
+
+**Verificación:** `pnpm typecheck`, `pnpm lint`, `pnpm build` y `pnpm test` (13 archivos, 64 pruebas) en verde. Las pruebas de reglas del emulador y el despliegue de índices quedan para CI/entorno con Java y credenciales del proyecto.
+
 ## 2026:09:23 13:19
 
 **Resumen:** Pantalla de Expediente de un viaje (rama `feat/single-viaje-implementation`): la ruta `/viajes/$id` deja de ser inexistente y monta la vista real del expediente —cabecera con estados y exportación a PDF, cuatro tarjetas de resumen y la galería de evidencias agrupada por etiqueta—. La lista de viajes se movió a la ruta índice para dejar sitio al detalle, y el diseño de tarjeta del reporte se extrajo a un componente compartido que ahora usan reporte y expediente.

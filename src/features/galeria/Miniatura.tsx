@@ -1,7 +1,7 @@
 import { Badge } from '@ai27-tech/ui';
 import { Headphones } from 'lucide-react';
 
-import type { Medio } from '@/lib/datos/tipos';
+import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { formatearBytes, horaLocal } from '@/lib/formato/tamano';
 
 import { estadoProvisional, imagenProvisional } from './provisional';
@@ -27,7 +27,7 @@ export interface MiniaturaProps {
  *  Si la ruta viene vacía, se cae a la etiqueta para no mostrar un hueco. */
 function fileName(medio: Medio): string {
   const segment = medio.rutaOriginal.split('/').pop() ?? '';
-  return segment || medio.etiqueta || 'SIN_NOMBRE';
+  return segment || medio.etiquetas[0] || 'SIN_NOMBRE';
 }
 
 export function Miniatura({ medio, onOpen }: MiniaturaProps) {
@@ -50,7 +50,7 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
         ) : (
           <img
             src={imagenProvisional(medio)}
-            alt={medio.comentario ?? medio.etiqueta}
+            alt={medio.comentario ?? etiquetaVisible(medio)}
             loading="lazy"
             draggable={false}
             className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
@@ -59,12 +59,12 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
 
         {/* Hora de captura, esquina superior izquierda. Cifras tabulares para que no
             bailen entre celdas. */}
-        <span className="cifras-tabulares absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
+        <span className="cifras-tabulares absolute top-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
           {horaLocal(medio.capturadoEn)}
         </span>
 
         {/* Sello de estado, esquina superior derecha. */}
-        <span className="absolute right-1.5 top-1.5">
+        <span className="absolute top-1.5 right-1.5">
           <Badge variant={estado.variant}>{estado.label}</Badge>
         </span>
       </div>

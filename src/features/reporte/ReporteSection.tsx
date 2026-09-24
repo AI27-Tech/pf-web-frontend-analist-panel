@@ -28,8 +28,7 @@ export function ReporteSection() {
 
   const folio = consulta.data?.folio ?? folioDePeriodo(rango);
 
-  const sinDatos =
-    consulta.isSuccess && consulta.data.estadisticas.viajesAuditados.valor === '0';
+  const sinDatos = consulta.isSuccess && consulta.data.estadisticas.viajesAuditados.valor === '0';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

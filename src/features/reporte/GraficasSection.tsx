@@ -1,10 +1,6 @@
 import type { GraficasReporte } from '@/lib/datos/metricas';
 
-import {
-  GraficaCapturasPorHora,
-  GraficaDescartes,
-  GraficaGbAcumulados,
-} from './graficas/Graficas';
+import { GraficaCapturasPorHora, GraficaDescartes, GraficaGbAcumulados } from './graficas/Graficas';
 
 /**
  * Banda de gráficas del reporte.
