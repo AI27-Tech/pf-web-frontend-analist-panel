@@ -16,7 +16,7 @@ import { Headphones } from 'lucide-react';
 
 import { urlOriginal, urlMiniatura } from '@/lib/datos/medios';
 import type { Medio } from '@/lib/datos/tipos';
-import { resolverImagenVisor, imagenProvisional, estadoProvisional, esMuestra } from './provisional';
+import { resolverImagenVisor, imagenProvisional, estadoProvisional, esMuestra, idCortoDe } from './provisional';
 
 export interface GaleriaSectionProps {
   readonly medios: readonly Medio[];
@@ -202,21 +202,23 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
               const isAudio = medio.tipo === 'AUDIO';
               const urlMini = urlsMiniatura.get(medio.id);
               const estado = estadoProvisional(medio);
+              const idCorto = idCortoDe(medio);
+              const tamanoMB = (medio.bytes / (1024 * 1024)).toFixed(2);
+              const hora = `${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`;
 
               return (
                 <ImageCard
                   key={medio.id}
-                  src={isAudio ? '' : urlMini || imagenProvisional(medio)}
+                  src={isAudio ? '' : urlMini || imagenProvisional(medio, 640)}
                   alt={(medio.etiquetas || [])[0] || 'Evidencia'}
-                  title={`${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`}
-                  subtitle={(medio.etiquetas || []).join(', ') || 'Sin etiqueta'}
-                  footer={<small>{medio.placas || 'S/UNIDAD'}</small>}
+                  title={medio.id}
+                  subtitle={`${tamanoMB} MB ${idCorto}`}
                   onClick={() => {
                     setOpenIndex(inicioGrid + index);
                   }}
                   badges={[
-                    { label: estado.label, variant: estado.variant, position: 'left', pill: true },
-                    { label: medio.tipo, variant: 'neutral', position: 'right', pill: true },
+                    { label: hora, variant: 'neutral', position: 'left' },
+                    { label: estado.label, variant: estado.variant, position: 'right' },
                   ]}
                 >
                   {isAudio && (
@@ -248,7 +250,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   const urlMini = urlsMiniatura.get(medio.id);
                   return isAudio ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px' }}>
-                      <Headphones size={20} strokeWidth={1.5} color="rgba(255,255,255,0.6)" />
+                      <Headphones size={20} strokeWidth={1.5} color="currentColor" />
                     </div>
                   ) : (
                     <img
@@ -274,14 +276,14 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                 header: 'Estado',
                 cell: (medio: Medio) => {
                   const estado = estadoProvisional(medio);
-                  return <Badge variant={estado.variant} pill>{estado.label}</Badge>;
+                  return <Badge variant={estado.variant}>{estado.label}</Badge>;
                 },
               },
               {
                 key: 'tipo',
                 header: 'Tipo',
                 cell: (medio: Medio) => (
-                  <Badge variant={medio.tipo === 'AUDIO' ? 'warning' : 'neutral'} pill>
+                  <Badge variant={medio.tipo === 'AUDIO' ? 'warning' : 'neutral'}>
                     {medio.tipo}
                   </Badge>
                 ),
