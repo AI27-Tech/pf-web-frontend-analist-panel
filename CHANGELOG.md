@@ -2,6 +2,22 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 18:45 — Desbloquear CI y cerrar residuos de Fase 0 (rama `fix/desbloquear-ci`)
+
+**Resumen:** `pnpm run format:check` —el primer paso del workflow de CI— estaba en rojo en la rama base `pf-wfap-d`, así que toda rama de feature que saliera de ahí heredaba CI en rojo y los cuatro pasos siguientes ni siquiera corrían. Se reaplica Prettier a los tres archivos con problema de formato y se moderniza el hook de pre-commit de husky para dejar el workflow en verde por primera vez.
+
+**Cambios:**
+
+- Se corrió `pnpm format`, que reformateó los tres archivos que rompían `format:check`: `CHANGELOG.md`, `src/app/shell/AppShell.tsx` y `src/features/galeria/GaleriaSection.tsx` (los dos últimos habían entrado con `#17`). No hay cambios de comportamiento: sólo estilo de Prettier.
+- `.husky/pre-commit` se reduce a una sola línea (`pnpm lint-staged`). Se retiraron el shebang `#!/bin/sh` y la línea `. "$(dirname "$0")/_/husky.sh"`, deprecadas en husky 9 y que en husky 10 hacen fallar el hook. El hook se reinstaló con `pnpm prepare` y sigue corriendo `lint-staged` (Prettier + ESLint) sobre lo que se commitea.
+
+**Archivos modificados:**
+
+- `CHANGELOG.md`
+- `src/app/shell/AppShell.tsx`
+- `src/features/galeria/GaleriaSection.tsx`
+- `.husky/pre-commit`
+
 ## 2026:09:25 16:27 — Correcciones de UI (rama `chore/ui-bugs`)
 
 **Resumen:** dos correcciones de interfaz. La pestaña «Viajes» del menú lateral se apagaba al entrar al detalle de un viaje, y el visor de la galería abría el archivo equivocado cuando había más de una página de resultados. La rama corrige ambos y deja el archivo de la galería con el formato de Prettier.
