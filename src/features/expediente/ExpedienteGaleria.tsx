@@ -5,6 +5,7 @@ import {
   type BadgeConfig,
   type CarouselSection,
 } from '@ai27-tech/ui';
+import { Headphones } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -170,12 +171,16 @@ export function ExpedienteGaleria({ medios, cargando = false }: ExpedienteGaleri
 
 function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
   const esDeMuestra = esMuestra(medio);
+  // Un audio no tiene miniatura: se muestra el ícono de audífonos, igual que en la
+  // galería (`features/galeria`), en vez de una tarjeta con imagen vacía.
+  const isAudio = medio.tipo === 'AUDIO';
   // Guarda el par {id, url} en vez de sólo la url: así, al cambiar de medio, la url
   // vieja no se muestra un instante de más mientras se resuelve la nueva.
   const [resuelto, setResuelto] = useState<{ id: string; url: string } | null>(null);
 
   useEffect(() => {
-    if (esDeMuestra) return;
+    // Para audios no se resuelve miniatura: se pinta el ícono.
+    if (esDeMuestra || isAudio) return;
     let vivo = true;
     void urlMiniatura(medio).then((url) => {
       if (vivo) setResuelto({ id: medio.id, url });
@@ -183,10 +188,10 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
     return () => {
       vivo = false;
     };
-  }, [medio, esDeMuestra]);
+  }, [medio, esDeMuestra, isAudio]);
 
   const urlReal = resuelto && resuelto.id === medio.id ? resuelto.url : null;
-  const src = esDeMuestra ? imagenProvisional(medio) : urlReal;
+  const src = isAudio ? '' : esDeMuestra ? imagenProvisional(medio) : urlReal;
   const estado = estadoProvisional(medio);
 
   // Dos sellos sobre la miniatura.
@@ -208,7 +213,13 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
       }
       badges={badges}
       onClick={onAbrir}
-    />
+    >
+      {isAudio && (
+        <div className="flex h-full w-full items-center justify-center">
+          <Headphones size={48} strokeWidth={1.5} color="rgba(255,255,255,0.7)" aria-hidden="true" />
+        </div>
+      )}
+    </ImageCard>
   );
 }
 

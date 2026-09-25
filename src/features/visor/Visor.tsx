@@ -107,7 +107,7 @@ export function Visor({
 
   if (!medio) return null;
 
-  const esAudio = medio.tipo === 'AUDIO';
+  const isAudio = medio.tipo === 'AUDIO';
 
   return (
     <div
@@ -150,7 +150,7 @@ export function Visor({
           </Button>
         )}
 
-        {esAudio ? (
+        {isAudio ? (
           <VisorAudio medio={medio} url={url} />
         ) : (
           <VisorImagen key={medio.id} medio={medio} url={url} />
