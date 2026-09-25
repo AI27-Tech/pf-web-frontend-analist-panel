@@ -1,0 +1,16 @@
+# Configuración de Firebase App Hosting.
+# Ver https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  # El panel es estático (Vite); una sola instancia basta.
+  maxInstances: 1
+
+# Variables disponibles durante el build en la nube.
+# GH_PACKAGES_TOKEN da acceso de lectura a @ai27-tech/ui en GitHub Packages.
+# El valor vive en Secret Manager: se registra con
+#   firebase apphosting:secrets:set GH_PACKAGES_TOKEN
+env:
+  - variable: GH_PACKAGES_TOKEN
+    secret: GH_PACKAGES_TOKEN
+    availability:
+      - BUILD
