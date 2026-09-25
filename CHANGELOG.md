@@ -2,6 +2,23 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 16:49 — Acceso a GitHub Packages en el build de Firebase App Hosting
+
+**Resumen:** el despliegue en Firebase App Hosting fallaba con `401 Unauthorized` al instalar dependencias, porque el build en la nube no tenía credenciales para `@ai27-tech/ui` en GitHub Packages. Se agregó un `.npmrc` versionado sin token (lee la credencial de la variable de entorno `GH_PACKAGES_TOKEN`), un `apphosting.yaml` que inyecta esa variable desde Secret Manager durante el build, y se alineó el workflow de CI al mismo esquema.
+
+**Cambios:**
+
+- Se creó `apphosting.yaml` con la configuración de App Hosting: expone `GH_PACKAGES_TOKEN` (desde el secreto homónimo en Secret Manager) como variable de entorno disponible en el build.
+- Se creó un `.npmrc` versionado que apunta el scope `@ai27-tech` a `https://npm.pkg.github.com` y lee el token de `${GH_PACKAGES_TOKEN}`. No contiene el token literal, por eso es seguro versionarlo.
+- Se ajustó `.gitignore` para forzar la inclusión del `.npmrc` versionado (`.npmrc` seguido de `!.npmrc`), manteniendo la protección contra un token literal.
+- Se simplificó el workflow de CI: en lugar de construir el `.npmrc` a mano, `pnpm install` recibe `GH_PACKAGES_TOKEN` como variable de entorno y usa el `.npmrc` del repo.
+
+**Archivos modificados:**
+- `apphosting.yaml`
+- `.npmrc`
+- `.gitignore`
+- `.github/workflows/ci.yml`
+
 ## 2026:09:25 16:27 — Correcciones de UI (rama `chore/ui-bugs`)
 
 **Resumen:** dos correcciones de interfaz. La pestaña «Viajes» del menú lateral se apagaba al entrar al detalle de un viaje, y el visor de la galería abría el archivo equivocado cuando había más de una página de resultados. La rama corrige ambos y deja el archivo de la galería con el formato de Prettier.

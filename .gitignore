@@ -21,7 +21,12 @@ src/routeTree.gen.ts
 .env.*
 !.env.example
 !.env.test
+# El .npmrc se ignora por seguridad (evita commitear un token literal).
+# El .npmrc versionado del repo NO contiene el token: lo lee de la variable de
+# entorno GH_PACKAGES_TOKEN (${...}), que en local se exporta y en la nube la
+# inyecta App Hosting desde Secret Manager. Se fuerza su inclusión abajo.
 .npmrc
+!.npmrc
 *service-account*.json
 serviceAccountKey.json
 *.pem
