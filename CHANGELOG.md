@@ -2,15 +2,31 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 17:34 — Migrar el despliegue a Firebase Hosting (SPA estática)
+
+**Resumen:** el build de App Hosting ya compilaba, pero el rollout fallaba porque el contenedor no escuchaba en `PORT=8080`: el panel es una SPA de Vite sin servidor, y App Hosting (pensado para Angular/Next.js) esperaba un proceso servidor. Como el panel es 100% cliente, se migró el despliegue a Firebase Hosting, que sirve archivos estáticos desde CDN sin contenedor. Se agregó el bloque `hosting` a `firebase.json` con `public: dist` y un rewrite de SPA (todas las rutas → `/index.html`) para que el enrutado en cliente de TanStack Router resuelva los enlaces profundos.
+
+**Cambios:**
+
+- Se agregó el bloque `hosting` a `firebase.json`: `public: "dist"`, `ignore` estándar y rewrite `**` → `/index.html`.
+
+**Verificación:** build local con pnpm 12.3.4 correcto; probado con el emulador de Hosting: `/` y rutas profundas como `/viajes/abc123` devuelven `index.html` (200), y los assets se sirven como archivo con su MIME correcto.
+
+**Archivos modificados:**
+
+- `firebase.json`
+
 ## 2026:09:25 17:30 — Causa raíz del 401 en el build: pnpm ignora ${VAR} en el .npmrc
 
 **Resumen:** se identificó y corrigió la verdadera causa del `401 Unauthorized` al instalar `@ai27-tech/ui` en el build de App Hosting. Desde pnpm v11.5.3 (el repo usa 12.3.4), pnpm **no expande `${...}` en las líneas de credencial del `.npmrc` del proyecto** por seguridad (GHSA-3qhv-2rgh-x77r), así que el token se ignoraba en silencio y la petición viajaba sin autenticación. Se agregó la variable `PNPM_CONFIG_NPMRC_AUTH_FILE=.npmrc` en `apphosting.yaml`, que indica a pnpm que trate el `.npmrc` del repo como archivo de auth de confianza y vuelva a expandir el token. Verificado localmente con pnpm 12.3.4: sin la variable el install da 401; con ella instala correctamente.
 
 **Cambios:**
+
 - Se agregó `PNPM_CONFIG_NPMRC_AUTH_FILE=.npmrc` (availability BUILD) en `apphosting.yaml`.
 - Se revirtieron las líneas `always-auth` del `.npmrc` (no aplicaban a este problema); el archivo vuelve a su forma mínima con la expansión de `${GH_PACKAGES_TOKEN}`.
 
 **Archivos modificados:**
+
 - `apphosting.yaml`
 - `.npmrc`
 
@@ -19,9 +35,11 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 **Resumen:** tras resolver el secreto, el build de App Hosting seguía dando `401 Unauthorized` al instalar `@ai27-tech/ui`. La causa: pnpm enviaba el token en la petición de metadata pero no en la descarga del tarball (`npm.pkg.github.com/download/...`). Se agregó `always-auth=true` al `.npmrc` para forzar el token en todas las peticiones al host. Se verificó instalando el paquete con el token real (descarga del tarball incluida).
 
 **Cambios:**
+
 - Se agregaron `//npm.pkg.github.com/:always-auth=true` y `always-auth=true` al `.npmrc` versionado.
 
 **Archivos modificados:**
+
 - `.npmrc`
 
 ## 2026:09:25 16:49 — Acceso a GitHub Packages en el build de Firebase App Hosting
@@ -36,6 +54,7 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 - Se simplificó el workflow de CI: en lugar de construir el `.npmrc` a mano, `pnpm install` recibe `GH_PACKAGES_TOKEN` como variable de entorno y usa el `.npmrc` del repo.
 
 **Archivos modificados:**
+
 - `apphosting.yaml`
 - `.npmrc`
 - `.gitignore`
