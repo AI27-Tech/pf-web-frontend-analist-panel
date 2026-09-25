@@ -32,7 +32,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const INITIAL_PAGE_SIZE = 25;
 
 export function GaleriaSection({ medios }: GaleriaSectionProps) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openMedioId, setOpenMedioId] = useState<string | null>(null);
   const [urlsMiniatura, setUrlsMiniatura] = useState<Map<string, string>>(new Map());
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -175,6 +175,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     setPage(1);
   };
 
+  // Calcular el índice inicial del Visor basado en el ID abierto
+  const initialVisibleIndex = openMedioId ? medios.findIndex((m) => m.id === openMedioId) : -1;
+
   return (
     <div style={{ padding: '2rem' }}>
       {/* Cabezal */}
@@ -237,7 +240,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           {/* Grid de imágenes */}
           <ImageGrid
             items={mediosPaginados}
-            renderItem={(medio, index) => {
+            renderItem={(medio) => {
               const isAudio = medio.tipo === 'AUDIO';
               const urlMini = urlsMiniatura.get(medio.id);
               const estado = estadoProvisional(medio);
@@ -253,7 +256,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   title={medio.id}
                   subtitle={`${tamanoMB} MB ${idCorto}`}
                   onClick={() => {
-                    setOpenIndex(inicioGrid + index);
+                    setOpenMedioId(medio.id);
                   }}
                   badges={[
                     { label: hora, variant: 'neutral', position: 'left' },
@@ -359,8 +362,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             ]}
             density="compact"
             onRowClick={(row) => {
-              const index = mediosFiltrados.indexOf(row as Medio);
-              setOpenIndex(inicioGrid + index);
+              setOpenMedioId((row as Medio).id);
             }}
           />
         </>
@@ -386,7 +388,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       )}
 
       {/* Visor: abre cuando se hace click en un item */}
-      {openIndex !== null && medios[openIndex] && (
+      {openMedioId !== null && initialVisibleIndex >= 0 && medios[initialVisibleIndex] && (
         <Visor
           mediums={medios.map((medio) => ({
             id: medio.id,
@@ -394,8 +396,8 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             label: (medio.etiquetas || []).join(', ') || 'Sin etiqueta',
             comment: medio.comentario ?? '',
           }))}
-          initialIndex={openIndex}
-          onClose={() => setOpenIndex(null)}
+          initialIndex={initialVisibleIndex}
+          onClose={() => setOpenMedioId(null)}
           resolveUrl={(medium) => {
             const medio = medios.find((m) => m.id === medium.id);
             return medio ? resolverImagenVisor(medio, urlOriginal) : '';

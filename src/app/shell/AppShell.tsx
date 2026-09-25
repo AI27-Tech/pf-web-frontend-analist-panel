@@ -48,7 +48,11 @@ export function AppShell() {
             href={to}
             label={label}
             icon={<Icon size={18} strokeWidth={1.75} />}
-            active={Boolean(matchRoute({ to }))}
+            // `fuzzy` marca activo el item tambien en las subrutas: sin el, `matchRoute`
+            // hace match EXACTO y "Viajes" se apaga al entrar al detalle `/viajes/$id`.
+            // Es seguro porque ningun item del nav es prefijo de otro (solo `/viajes`
+            // tiene hijos), asi que no se activan dos pestanas a la vez.
+            active={Boolean(matchRoute({ to, fuzzy: true }))}
             onClick={(event) => {
               // Renderiza como `<a>` real (accesible, clic-derecho), pero navega con
               // el router para no recargar la SPA en el clic normal.
