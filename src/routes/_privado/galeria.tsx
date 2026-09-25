@@ -25,7 +25,8 @@ export const Route = createFileRoute('/_privado/galeria')({
     try {
       const medios = await listarMedios({ desde, hasta });
       return { medios: medios.length > 0 ? medios : SAMPLE_MEDIOS };
-    } catch {
+    } catch (error) {
+      console.error('[Galería] Error al listar medios:', error);
       return { medios: SAMPLE_MEDIOS };
     }
   },
