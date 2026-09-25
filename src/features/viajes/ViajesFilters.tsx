@@ -165,7 +165,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
     // `overflow-visible` para que el desplegable escape la tarjeta.
     <Card variant="outlined" className="!overflow-visible">
       <CardBody className="flex flex-wrap items-end gap-4 !overflow-visible">
-        <FormField label={<RotuloFiltro texto="FECHA [PERIODO]" />}>
+        <FormField label="Periodo">
           <Select
             options={OPCIONES_PERIODO.map((opcion) => ({
               value: opcion.value,
@@ -178,7 +178,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
 
         {periodo.atajo === 'rango' && (
           <>
-            <FormField label={<RotuloFiltro texto="DESDE" />}>
+            <FormField label="Desde">
               <Input
                 type="date"
                 value={periodo.desde}
@@ -186,7 +186,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
                 onChange={(evento) => manejarCambioRango('desde', evento.target.value)}
               />
             </FormField>
-            <FormField label={<RotuloFiltro texto="HASTA" />}>
+            <FormField label="Hasta">
               <Input
                 type="date"
                 value={periodo.hasta}
@@ -197,7 +197,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
           </>
         )}
 
-        <FormField label={<RotuloFiltro texto="PLACA [UNIDAD]" />}>
+        <FormField label="Placa">
           <Input
             type="text"
             placeholder="Todas las placas"
@@ -206,7 +206,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
           />
         </FormField>
 
-        <FormField label={<RotuloFiltro texto="CUSTODIO [AGENTE]" />}>
+        <FormField label="Custodio">
           <Input
             type="text"
             placeholder="Todos los custodios"
@@ -215,7 +215,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
           />
         </FormField>
 
-        <FormField label={<RotuloFiltro texto="ETIQUETA [TAG]" />}>
+        <FormField label="Etiqueta">
           <Select
             options={[
               { value: '', label: 'Cualquier etiqueta' },
@@ -226,7 +226,7 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
           />
         </FormField>
 
-        <FormField label={<RotuloFiltro texto="NOVEDAD [STATUS]" />}>
+        <FormField label="Novedad">
           <Select
             options={[
               { value: '', label: 'Todas las novedades' },
@@ -249,10 +249,6 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
       </CardBody>
     </Card>
   );
-}
-
-function RotuloFiltro({ texto }: { texto: string }) {
-  return <span className="font-mono text-xs tracking-widest uppercase">{texto}</span>;
 }
 
 /**

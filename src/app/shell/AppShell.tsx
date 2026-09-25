@@ -1,9 +1,7 @@
-import { Button, Input, Navbar, Sidebar, SidebarItem } from '@ai27-tech/ui';
+import { Button, Navbar, Sidebar, SidebarItem } from '@ai27-tech/ui';
 import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
 import {
   Images,
-  Bell,
-  Search,
   User as UserIcon,
   Route,
   SquareText,
@@ -37,11 +35,19 @@ export function AppShell() {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   useEffect(() => observarSesion(setUsuario), []);
 
+  const [colapsada, setColapsada] = useState(false);
+
   return (
     <div className="flex h-screen">
       <Sidebar
         className="no-imprimir shrink-0"
-        header={<span className="text-lg font-semibold tracking-tight">AI27</span>}
+        header={
+          colapsada ? undefined : (
+            <span className="text-lg font-semibold tracking-tight">AI27</span>
+          )
+        }
+        collapsed={colapsada}
+        onToggleCollapse={() => setColapsada((previa) => !previa)}
       >
         {nav.map(({ to, label, Icon }) => (
           <SidebarItem
@@ -68,31 +74,15 @@ export function AppShell() {
         <Navbar
           sticky
           className="no-imprimir"
-          brand={
-            <Input
-              type="search"
-              placeholder="Buscar viajes, folios…"
-              aria-label="Buscar"
-              startAdornment={<Search size={16} strokeWidth={1.75} />}
-            />
-          }
           actions={
-            <>
-              <Button
-                variant="ghost"
-                aria-label="Notificaciones"
-                startIcon={<Bell size={18} strokeWidth={1.75} />}
-              >
-              </Button>
-              <Button
-                variant="ghost"
-                aria-label="Cuenta de usuario"
-                title={usuario?.correo ?? undefined}
-                startIcon={<UserIcon size={18} strokeWidth={1.75} />}
-              >
-                {usuario?.nombre ?? 'Cuenta'}
-              </Button>
-            </>
+            <Button
+              variant="ghost"
+              aria-label="Cuenta de usuario"
+              title={usuario?.correo ?? undefined}
+              startIcon={<UserIcon size={18} strokeWidth={1.75} />}
+            >
+              {usuario?.nombre ?? 'Cuenta'}
+            </Button>
           }
         />
 
