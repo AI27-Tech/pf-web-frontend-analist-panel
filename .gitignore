@@ -20,6 +20,7 @@ src/routeTree.gen.ts
 .env
 .env.*
 !.env.example
+!.env.test
 .npmrc
 *service-account*.json
 serviceAccountKey.json
