@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "custodio-906e7268"
+    "default": "demo-custodio",
+    "produccion": "custodio-906e7268"
   }
 }
