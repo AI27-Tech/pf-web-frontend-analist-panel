@@ -8,23 +8,29 @@
  * - ImageCard: renderiza cada item con su imagen y metadata
  * - Visor: abre fotos/audios con zoom, rotación y reproductor
  */
- 
+
 import { ImageGrid, ImageCard, Visor, Badge, FilterBar, Pagination, Table } from '@ai27-tech/ui';
 import type { FilterDefinition, FilterValues } from '@ai27-tech/ui';
 import { useEffect, useState } from 'react';
 import { Headphones } from 'lucide-react';
- 
+
 import { urlOriginal, urlMiniatura } from '@/lib/datos/medios';
 import type { Medio } from '@/lib/datos/tipos';
-import { resolverImagenVisor, imagenProvisional, estadoProvisional, esMuestra, idCortoDe } from './provisional';
- 
+import {
+  resolverImagenVisor,
+  imagenProvisional,
+  estadoProvisional,
+  esMuestra,
+  idCortoDe,
+} from './provisional';
+
 export interface GaleriaSectionProps {
   readonly medios: readonly Medio[];
 }
- 
+
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const INITIAL_PAGE_SIZE = 25;
- 
+
 export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const [openMedioId, setOpenMedioId] = useState<string | null>(null);
   const [urlsMiniatura, setUrlsMiniatura] = useState<Map<string, string>>(new Map());
@@ -33,7 +39,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(INITIAL_PAGE_SIZE);
   const [searchValue, setSearchValue] = useState('');
- 
+
   // Cargar URLs de miniaturas reales en paralelo (solo para FOTOs)
   useEffect(() => {
     const cargarMiniaturasReales = async () => {
@@ -45,7 +51,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             urls.set(medio.id, ''); // Vacío indica "mostrar ícono"
             return;
           }
- 
+
           try {
             // Para medios de muestra, usar imagen provisional
             if (esMuestra(medio)) {
@@ -64,10 +70,10 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       );
       setUrlsMiniatura(urls);
     };
- 
+
     cargarMiniaturasReales();
   }, [medios]);
- 
+
   // Definir los filtros
   const filters: FilterDefinition[] = [
     {
@@ -110,15 +116,27 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       ],
     },
   ];
- 
+
   // Determina si un medio cumple con los filtros y búsqueda
   const matchesFiltersAndSearch = (medio: Medio): boolean => {
     // Aplicar filtros
-    if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo) return false;
-    if (filterValues.etiqueta && filterValues.etiqueta !== 'TODO' && !(medio.etiquetas || []).includes(filterValues.etiqueta)) return false;
-    if (filterValues.placa && filterValues.placa !== 'TODO' && medio.placas !== filterValues.placa) return false;
-    if (filterValues.custodio && filterValues.custodio !== 'TODO' && medio.custodioUid !== filterValues.custodio) return false;
- 
+    if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo)
+      return false;
+    if (
+      filterValues.etiqueta &&
+      filterValues.etiqueta !== 'TODO' &&
+      !(medio.etiquetas || []).includes(filterValues.etiqueta)
+    )
+      return false;
+    if (filterValues.placa && filterValues.placa !== 'TODO' && medio.placas !== filterValues.placa)
+      return false;
+    if (
+      filterValues.custodio &&
+      filterValues.custodio !== 'TODO' &&
+      medio.custodioUid !== filterValues.custodio
+    )
+      return false;
+
     // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio)
     if (searchValue) {
       const searchLower = searchValue.toLowerCase();
@@ -130,36 +148,36 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
         (medio.custodioUid?.toLowerCase().includes(searchLower) ?? false);
       if (!hayCoincidencia) return false;
     }
- 
+
     return true;
   };
- 
+
   // Filtrar medios
   const mediosFiltrados = medios.filter(matchesFiltersAndSearch);
- 
+
   // Calcular paginación para grid
   const inicioGrid = (page - 1) * pageSize;
   const mediosPaginados = mediosFiltrados.slice(inicioGrid, inicioGrid + pageSize);
- 
+
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
     setPage(1); // Reiniciar a página 1
   };
- 
+
   const handleClearFilters = () => {
     setFilterValues({});
     setSearchValue('');
     setPage(1);
   };
- 
+
   const handleViewModeChange = (mode: 'grid' | 'list') => {
     setViewMode(mode);
     setPage(1);
   };
- 
+
   // Calcular el índice inicial del Visor basado en el ID abierto
   const initialVisibleIndex = openMedioId ? medios.findIndex((m) => m.id === openMedioId) : -1;
- 
+
   return (
     <div style={{ padding: '2rem' }}>
       {/* Cabezal */}
@@ -170,12 +188,33 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             AI27 FORENSIC ARCHIVE
           </Badge>
         </div>
-        <p style={{ margin: '0.5rem 0 0 0', color: 'var(--ui-text-muted, #999)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ display: 'inline-block', width: '0.5rem', height: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--ui-success, #10b981)' }} />
-          {mediosFiltrados.length.toLocaleString('es-MX')} {mediosFiltrados.length === 1 ? 'evidencia' : 'evidencias'} {mediosFiltrados.length === medios.length ? 'registradas' : 'que coinciden con los filtros'}
+        <p
+          style={{
+            margin: '0.5rem 0 0 0',
+            color: 'var(--ui-text-muted, #999)',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '0.5rem',
+              height: '0.5rem',
+              borderRadius: '50%',
+              backgroundColor: 'var(--ui-success, #10b981)',
+            }}
+          />
+          {mediosFiltrados.length.toLocaleString('es-MX')}{' '}
+          {mediosFiltrados.length === 1 ? 'evidencia' : 'evidencias'}{' '}
+          {mediosFiltrados.length === medios.length
+            ? 'registradas'
+            : 'que coinciden con los filtros'}
         </p>
       </div>
- 
+
       {/* Barra de filtros */}
       <div style={{ marginBottom: '1rem' }}>
         <FilterBar
@@ -194,7 +233,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           onViewModeChange={handleViewModeChange}
         />
       </div>
- 
+
       {/* Contenido: Galería */}
       {viewMode === 'grid' ? (
         <>
@@ -208,7 +247,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
               const idCorto = idCortoDe(medio);
               const tamanoMB = (medio.bytes / (1024 * 1024)).toFixed(2);
               const hora = `${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`;
- 
+
               return (
                 <ImageCard
                   key={medio.id}
@@ -225,7 +264,14 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   ]}
                 >
                   {isAudio && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                      }}
+                    >
                       <Headphones size={48} strokeWidth={1.5} color="rgba(255,255,255,0.7)" />
                     </div>
                   )}
@@ -234,7 +280,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             }}
             columns={6}
             gap="1rem"
-            emptyMessage={mediosFiltrados.length === 0 ? 'No hay archivos para estos filtros.' : 'Cargando...'}
+            emptyMessage={
+              mediosFiltrados.length === 0 ? 'No hay archivos para estos filtros.' : 'Cargando...'
+            }
           />
         </>
       ) : (
@@ -252,14 +300,27 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   const isAudio = medio.tipo === 'AUDIO';
                   const urlMini = urlsMiniatura.get(medio.id);
                   return isAudio ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '40px',
+                        height: '40px',
+                      }}
+                    >
                       <Headphones size={20} strokeWidth={1.5} color="currentColor" />
                     </div>
                   ) : (
                     <img
                       src={urlMini || imagenProvisional(medio, 80)}
                       alt={(medio.etiquetas || [])[0] || 'Evidencia'}
-                      style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '3px' }}
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        objectFit: 'cover',
+                        borderRadius: '3px',
+                      }}
                     />
                   );
                 },
@@ -267,7 +328,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
               {
                 key: 'capturadoEn',
                 header: 'Fecha/Hora',
-                cell: (medio: Medio) => <span>{medio.capturadoEn.toLocaleTimeString('es-MX')}</span>,
+                cell: (medio: Medio) => (
+                  <span>{medio.capturadoEn.toLocaleTimeString('es-MX')}</span>
+                ),
               },
               {
                 key: 'bytes',
@@ -304,7 +367,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           />
         </>
       )}
- 
+
       {/* Paginación */}
       {mediosFiltrados.length > 0 && (
         <div style={{ marginTop: '2rem' }}>
@@ -323,7 +386,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           />
         </div>
       )}
- 
+
       {/* Visor: abre cuando se hace click en un item */}
       {openMedioId !== null && initialVisibleIndex >= 0 && medios[initialVisibleIndex] && (
         <Visor
