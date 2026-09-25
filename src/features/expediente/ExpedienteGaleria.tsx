@@ -216,7 +216,12 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
     >
       {isAudio && (
         <div className="flex h-full w-full items-center justify-center">
-          <Headphones size={48} strokeWidth={1.5} color="rgba(255,255,255,0.7)" aria-hidden="true" />
+          <Headphones
+            size={48}
+            strokeWidth={1.5}
+            color="rgba(255,255,255,0.7)"
+            aria-hidden="true"
+          />
         </div>
       )}
     </ImageCard>

@@ -15,10 +15,7 @@ describe('errores', () => {
     });
 
     it('mapea failed-precondition a indice-faltante', () => {
-      const error = new FirebaseError(
-        'failed-precondition',
-        'Index creation failed',
-      );
+      const error = new FirebaseError('failed-precondition', 'Index creation failed');
       const resultado = aErrorDatos(error);
 
       expect(resultado.causa).toBe('indice-faltante');
@@ -103,10 +100,7 @@ describe('errores', () => {
 
   describe('integración', () => {
     it('aErrorDatos + mensajeDeErrorDatos producen mensaje coherente', () => {
-      const firebaseError = new FirebaseError(
-        'permission-denied',
-        'Denied',
-      );
+      const firebaseError = new FirebaseError('permission-denied', 'Denied');
       const errorDatos = aErrorDatos(firebaseError);
       const mensaje = mensajeDeErrorDatos(errorDatos.causa);
 

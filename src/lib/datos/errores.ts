@@ -6,10 +6,10 @@ import { FirebaseError } from 'firebase/app';
  * conectividad y otros, mostrando mensajes útiles sin exponer códigos del SDK.
  */
 export type CausaErrorDatos =
-  | 'sin-permiso'      // permission-denied: el correo falta en config/analistas
-  | 'indice-faltante'  // failed-precondition: índice compuesto no desplegado
-  | 'sin-conexion'     // unavailable: red inaccesible, backend caído
-  | 'desconocida';     // cualquier otro código
+  | 'sin-permiso' // permission-denied: el correo falta en config/analistas
+  | 'indice-faltante' // failed-precondition: índice compuesto no desplegado
+  | 'sin-conexion' // unavailable: red inaccesible, backend caído
+  | 'desconocida'; // cualquier otro código
 
 /**
  * Error de dominio que encapsula un error de Firestore o Storage con su causa clasificada.
@@ -71,8 +71,7 @@ export function mensajeDeErrorDatos(causa: CausaErrorDatos): string {
       );
     case 'sin-conexion':
       return (
-        'No hay conexión con el servidor. ' +
-        'Verifica tu conexión a internet y vuelve a intentar.'
+        'No hay conexión con el servidor. ' + 'Verifica tu conexión a internet y vuelve a intentar.'
       );
     case 'desconocida':
       return (

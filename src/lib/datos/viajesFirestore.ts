@@ -91,7 +91,7 @@ export async function listarViajesFirestore(filtros: FiltrosViaje): Promise<Viaj
 
   const resultado = await getDocs(query(collection(firestore, 'reportes'), ...restricciones));
   const viajes = resultado.docs.map((documento) => aViaje(documento.id, documento.data()));
-  
+
   const enriquecidos = await enriquecerConNombres(viajes);
 
   return {

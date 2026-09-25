@@ -16,7 +16,13 @@ import { Headphones } from 'lucide-react';
 
 import { urlOriginal, urlMiniatura } from '@/lib/datos/medios';
 import type { Medio } from '@/lib/datos/tipos';
-import { resolverImagenVisor, imagenProvisional, estadoProvisional, esMuestra, idCortoDe } from './provisional';
+import {
+  resolverImagenVisor,
+  imagenProvisional,
+  estadoProvisional,
+  esMuestra,
+  idCortoDe,
+} from './provisional';
 
 export interface GaleriaSectionProps {
   readonly medios: readonly Medio[];
@@ -114,10 +120,22 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   // Determina si un medio cumple con los filtros y búsqueda
   const matchesFiltersAndSearch = (medio: Medio): boolean => {
     // Aplicar filtros
-    if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo) return false;
-    if (filterValues.etiqueta && filterValues.etiqueta !== 'TODO' && !(medio.etiquetas || []).includes(filterValues.etiqueta)) return false;
-    if (filterValues.placa && filterValues.placa !== 'TODO' && medio.placas !== filterValues.placa) return false;
-    if (filterValues.custodio && filterValues.custodio !== 'TODO' && medio.custodioUid !== filterValues.custodio) return false;
+    if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo)
+      return false;
+    if (
+      filterValues.etiqueta &&
+      filterValues.etiqueta !== 'TODO' &&
+      !(medio.etiquetas || []).includes(filterValues.etiqueta)
+    )
+      return false;
+    if (filterValues.placa && filterValues.placa !== 'TODO' && medio.placas !== filterValues.placa)
+      return false;
+    if (
+      filterValues.custodio &&
+      filterValues.custodio !== 'TODO' &&
+      medio.custodioUid !== filterValues.custodio
+    )
+      return false;
 
     // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio)
     if (searchValue) {
@@ -167,9 +185,30 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             AI27 FORENSIC ARCHIVE
           </Badge>
         </div>
-        <p style={{ margin: '0.5rem 0 0 0', color: 'var(--ui-text-muted, #999)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ display: 'inline-block', width: '0.5rem', height: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--ui-success, #10b981)' }} />
-          {mediosFiltrados.length.toLocaleString('es-MX')} {mediosFiltrados.length === 1 ? 'evidencia' : 'evidencias'} {mediosFiltrados.length === medios.length ? 'registradas' : 'que coinciden con los filtros'}
+        <p
+          style={{
+            margin: '0.5rem 0 0 0',
+            color: 'var(--ui-text-muted, #999)',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '0.5rem',
+              height: '0.5rem',
+              borderRadius: '50%',
+              backgroundColor: 'var(--ui-success, #10b981)',
+            }}
+          />
+          {mediosFiltrados.length.toLocaleString('es-MX')}{' '}
+          {mediosFiltrados.length === 1 ? 'evidencia' : 'evidencias'}{' '}
+          {mediosFiltrados.length === medios.length
+            ? 'registradas'
+            : 'que coinciden con los filtros'}
         </p>
       </div>
 
@@ -222,7 +261,14 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   ]}
                 >
                   {isAudio && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                      }}
+                    >
                       <Headphones size={48} strokeWidth={1.5} color="rgba(255,255,255,0.7)" />
                     </div>
                   )}
@@ -231,7 +277,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             }}
             columns={6}
             gap="1rem"
-            emptyMessage={mediosFiltrados.length === 0 ? 'No hay archivos para estos filtros.' : 'Cargando...'}
+            emptyMessage={
+              mediosFiltrados.length === 0 ? 'No hay archivos para estos filtros.' : 'Cargando...'
+            }
           />
         </>
       ) : (
@@ -249,14 +297,27 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   const isAudio = medio.tipo === 'AUDIO';
                   const urlMini = urlsMiniatura.get(medio.id);
                   return isAudio ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '40px',
+                        height: '40px',
+                      }}
+                    >
                       <Headphones size={20} strokeWidth={1.5} color="currentColor" />
                     </div>
                   ) : (
                     <img
                       src={urlMini || imagenProvisional(medio, 80)}
                       alt={(medio.etiquetas || [])[0] || 'Evidencia'}
-                      style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '3px' }}
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        objectFit: 'cover',
+                        borderRadius: '3px',
+                      }}
                     />
                   );
                 },
@@ -264,7 +325,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
               {
                 key: 'capturadoEn',
                 header: 'Fecha/Hora',
-                cell: (medio: Medio) => <span>{medio.capturadoEn.toLocaleTimeString('es-MX')}</span>,
+                cell: (medio: Medio) => (
+                  <span>{medio.capturadoEn.toLocaleTimeString('es-MX')}</span>
+                ),
               },
               {
                 key: 'bytes',
