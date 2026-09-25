@@ -1,0 +1,43 @@
+name: Deploy a Firebase Hosting
+
+# Despliega el panel a Firebase Hosting al hacer push a la rama de despliegue.
+# El panel es una SPA estática: se compila con Vite y se sube el contenido de
+# dist/ al canal live. La autorización de Firebase usa una cuenta de servicio
+# guardada en el secreto FIREBASE_SERVICE_ACCOUNT.
+on:
+  push:
+    branches: [pf-wfap-m]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          # Token de lectura de @ai27-tech/ui en GitHub Packages.
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+          # pnpm >= 11.5.3 (usamos 12.3.4) no expande ${...} en el .npmrc del
+          # proyecto por seguridad; esta variable le indica que trate el .npmrc
+          # del repo como archivo de auth de confianza y vuelva a expandir el token.
+          PNPM_CONFIG_NPMRC_AUTH_FILE: .npmrc
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Deploy a Firebase Hosting (canal live)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: custodio-906e7268
+          channelId: live
