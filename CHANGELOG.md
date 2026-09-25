@@ -2,6 +2,20 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 17:43 — CI/CD: despliegue automático a Firebase Hosting
+
+**Resumen:** se agregó un workflow de GitHub Actions que compila y despliega el panel a Firebase Hosting (canal live) en cada push a `pf-wfap-m`, recuperando el despliegue automático que tenía App Hosting pero por la vía estática correcta. Usa la acción oficial `FirebaseExtended/action-hosting-deploy` con una cuenta de servicio guardada en el secreto `FIREBASE_SERVICE_ACCOUNT`. De paso se corrigió el workflow de CI, cuyo `pnpm install` también necesitaba `PNPM_CONFIG_NPMRC_AUTH_FILE` para autenticar contra GitHub Packages con pnpm 12.3.4.
+
+**Cambios:**
+
+- Se creó `.github/workflows/deploy.yml`: install (con auth de GitHub Packages) → build → deploy a Hosting canal live del proyecto `custodio-906e7268`.
+- Se agregó `PNPM_CONFIG_NPMRC_AUTH_FILE=.npmrc` al paso de instalación de `.github/workflows/ci.yml`.
+
+**Archivos modificados:**
+
+- `.github/workflows/deploy.yml`
+- `.github/workflows/ci.yml`
+
 ## 2026:09:25 17:34 — Migrar el despliegue a Firebase Hosting (SPA estática)
 
 **Resumen:** el build de App Hosting ya compilaba, pero el rollout fallaba porque el contenedor no escuchaba en `PORT=8080`: el panel es una SPA de Vite sin servidor, y App Hosting (pensado para Angular/Next.js) esperaba un proceso servidor. Como el panel es 100% cliente, se migró el despliegue a Firebase Hosting, que sirve archivos estáticos desde CDN sin contenedor. Se agregó el bloque `hosting` a `firebase.json` con `public: dist` y un rewrite de SPA (todas las rutas → `/index.html`) para que el enrutado en cliente de TanStack Router resuelva los enlaces profundos.
