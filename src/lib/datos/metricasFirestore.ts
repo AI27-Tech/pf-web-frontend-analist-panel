@@ -151,9 +151,13 @@ function estadisticas(
   const cerradosA = reportesA.filter((r) => r.ciclo === 'CERRADO');
   const cerradosP = reportesP.filter((r) => r.ciclo === 'CERRADO');
   const efectividadA =
-    cerradosA.length === 0 ? null : cerradosA.filter((r) => !r.hayNovedad).length / cerradosA.length;
+    cerradosA.length === 0
+      ? null
+      : cerradosA.filter((r) => !r.hayNovedad).length / cerradosA.length;
   const efectividadP =
-    cerradosP.length === 0 ? null : cerradosP.filter((r) => !r.hayNovedad).length / cerradosP.length;
+    cerradosP.length === 0
+      ? null
+      : cerradosP.filter((r) => !r.hayNovedad).length / cerradosP.length;
 
   return {
     viajesAuditados: {

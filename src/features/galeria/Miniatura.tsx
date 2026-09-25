@@ -52,11 +52,11 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
         )}
         {/* Hora de captura, esquina superior izquierda. Cifras tabulares para que no
             bailen entre celdas. */}
-        <span className="cifras-tabulares absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
+        <span className="cifras-tabulares absolute top-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
           {horaLocal(medio.capturadoEn)}
         </span>
         {/* Sello de estado, esquina superior derecha. */}
-        <span className="absolute right-1.5 top-1.5">
+        <span className="absolute top-1.5 right-1.5">
           <Badge variant={estado.variant}>{estado.label}</Badge>
         </span>
       </div>

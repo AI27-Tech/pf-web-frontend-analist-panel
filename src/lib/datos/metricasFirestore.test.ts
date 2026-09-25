@@ -22,7 +22,9 @@ import { obtenerMetricasFirestore } from './metricasFirestore';
 const periodo = { desde: '2026-09-01', hasta: '2026-09-30' };
 
 /** Snapshot con `docs` a partir de un arreglo de datos crudos. */
-const snap = (datos: Record<string, unknown>[]) => ({ docs: datos.map((d) => ({ data: () => d })) });
+const snap = (datos: Record<string, unknown>[]) => ({
+  docs: datos.map((d) => ({ data: () => d })),
+});
 
 function reporte(overrides: Record<string, unknown> = {}) {
   return { ciclo: 'CERRADO', hayNovedad: false, motivoDescarte: null, ...overrides };

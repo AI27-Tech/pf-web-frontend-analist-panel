@@ -8,6 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "prepare": "husky",
     "dev": "vite",
     "routes": "tsr generate",
     "build": "tsr generate && tsc --build --force && vite build",
@@ -60,6 +61,10 @@
     "vitest": "5.0.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,mjs,json,css,md}": "prettier --write"
+    "*.{ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{js,mjs,json,css,md}": "prettier --write"
   }
 }

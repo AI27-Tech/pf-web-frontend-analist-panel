@@ -1,18 +1,12 @@
 import { Button, Navbar, Sidebar, SidebarItem } from '@ai27-tech/ui';
 import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
-import {
-  Images,
-  User as UserIcon,
-  Route,
-  SquareText,
-  SlidersHorizontal,
-} from 'lucide-react';
+import { Images, User as UserIcon, Route, SquareText, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { observarSesion, type UsuarioSesion } from '@/lib/datos/sesion';
 
 const nav = [
-  { to: '/viajes', label: 'Viajes', Icon: Route  },
+  { to: '/viajes', label: 'Viajes', Icon: Route },
   { to: '/galeria', label: 'Galería', Icon: Images },
   { to: '/reporte', label: 'Reporte', Icon: SquareText },
   { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal },
@@ -42,9 +36,7 @@ export function AppShell() {
       <Sidebar
         className="no-imprimir shrink-0"
         header={
-          colapsada ? undefined : (
-            <span className="text-lg font-semibold tracking-tight">AI27</span>
-          )
+          colapsada ? undefined : <span className="text-lg font-semibold tracking-tight">AI27</span>
         }
         collapsed={colapsada}
         onToggleCollapse={() => setColapsada((previa) => !previa)}
@@ -56,7 +48,11 @@ export function AppShell() {
             href={to}
             label={label}
             icon={<Icon size={18} strokeWidth={1.75} />}
-            active={Boolean(matchRoute({ to }))}
+            // `fuzzy` marca activo el item tambien en las subrutas: sin el, `matchRoute`
+            // hace match EXACTO y "Viajes" se apaga al entrar al detalle `/viajes/$id`.
+            // Es seguro porque ningun item del nav es prefijo de otro (solo `/viajes`
+            // tiene hijos), asi que no se activan dos pestanas a la vez.
+            active={Boolean(matchRoute({ to, fuzzy: true }))}
             onClick={(event) => {
               // Renderiza como `<a>` real (accesible, clic-derecho), pero navega con
               // el router para no recargar la SPA en el clic normal.

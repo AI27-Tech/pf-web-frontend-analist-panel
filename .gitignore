@@ -20,6 +20,7 @@ src/routeTree.gen.ts
 .env
 .env.*
 !.env.example
+!.env.test
 .npmrc
 *service-account*.json
 serviceAccountKey.json
@@ -32,10 +33,13 @@ serviceAccountKey.json
 coverage/
 *.tsbuildinfo
 
-# --- Logs ---
+# --- Logs y artefactos de pruebas ---
 *.log
 npm-debug.log*
 pnpm-debug.log*
+test-results/
+playwright-report/
+e2e/.cache/
 
 # --- Editores ---
 .vscode/
