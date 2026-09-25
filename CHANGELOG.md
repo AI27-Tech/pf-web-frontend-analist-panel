@@ -2,6 +2,40 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 12:20 — Limpieza de UI (rama `chore/app-cleanup`)
+
+**Resumen:** limpieza de la interfaz sobre elementos que aún no tenían función real. Se retiran del shell la barra de búsqueda y el botón de notificaciones, se hace colapsable la barra lateral, los rótulos de los filtros de viajes pasan de la estética monoespaciada en versalitas a etiquetas legibles, y el teléfono del custodio se muestra agrupado en el expediente mediante un nuevo formateador.
+
+**Cambios — shell (`src/app/shell/AppShell.tsx`):**
+
+- Se eliminó el `Input` de búsqueda («Buscar viajes, folios…») que ocupaba el `brand` del `Navbar` y el botón de `Notificaciones` (`Bell`); las importaciones de `Input`, `Bell` y `Search` se retiraron al quedar sin uso. El `Navbar` conserva sólo el botón de cuenta de usuario en `actions`.
+- La `Sidebar` ahora es colapsable: nuevo estado `colapsada`, con `collapsed` y `onToggleCollapse`; al colapsar se oculta el encabezado «AI27» (`header` pasa a `undefined`).
+
+**Cambios — filtros de viajes (`src/features/viajes/ViajesFilters.tsx`):**
+
+- Los rótulos de los seis `FormField` dejan de usar el componente `RotuloFiltro` (monoespaciado, versalitas, `tracking-widest`) y pasan a etiquetas de texto simples: `FECHA [PERIODO]` → «Periodo», `DESDE` → «Desde», `HASTA` → «Hasta», `PLACA [UNIDAD]` → «Placa», `CUSTODIO [AGENTE]` → «Custodio», `ETIQUETA [TAG]` → «Etiqueta», `NOVEDAD [STATUS]` → «Novedad». Se eliminó el helper `RotuloFiltro`, ya sin uso.
+
+**Cambios — expediente (`src/features/expediente/ExpedienteResumenCards.tsx`):**
+
+- El teléfono del custodio se muestra agrupado con el nuevo `formatearTelefono` tanto en el valor de respaldo (cuando no hay `custodioName`) como en el contexto de la tarjeta.
+- La tarjeta de archivos registrados dejó de mostrar el contexto «de {mediosEsperados} esperados»; ahora presenta sólo el conteo de archivos subidos.
+- `ExpedienteResumenCards.test.tsx`: se ajustaron dos pruebas para esperar el teléfono agrupado (`+52 (556) 332 9999`) y para verificar que ya no aparece el texto «esperados».
+
+**Cambios — formato (`src/lib/formato/telefono.ts`, nuevo):**
+
+- `formatearTelefono(valor)`: agrupa un E.164 mexicano como `+XX (XXX) XXX XXXX` (código de país + nacional en 3-3-4). Es puramente cosmético: devuelve la cadena vacía para valores nulos o vacíos, y respeta tal cual cualquier valor que no empiece con `+` o cuya longitud no sea la esperada (12 dígitos), para no mutilar el dato.
+- `telefono.test.ts` (nuevo): cubre el agrupado del E.164 mexicano, la normalización de separadores previos, los valores vacíos/nulos, y el respeto de valores sin prefijo `+` o de longitud atípica.
+
+**Archivos modificados:**
+
+- `src/app/shell/AppShell.tsx`
+- `src/features/viajes/ViajesFilters.tsx`
+- `src/features/expediente/ExpedienteResumenCards.tsx`
+- `src/features/expediente/ExpedienteResumenCards.test.tsx`
+- `src/lib/formato/telefono.ts`
+- `src/lib/formato/telefono.test.ts`
+- `CHANGELOG.md`
+
 ## 2026:09:23 18:00 — Integración con Firebase y corrección del contrato
 
 **Resumen:** la capa de datos deja de leer campos que el productor no escribe y conecta las agregaciones reales del reporte. Se alinea el contrato con `pf-app-custodio` §5.1 verificado contra documentos reales, se corrige el modelo de autorización documentado (allowlist de correo, no custom claim) y se declaran los índices compuestos en `pf-infra-firebase`.
