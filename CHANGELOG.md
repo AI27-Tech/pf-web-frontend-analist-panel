@@ -2,6 +2,25 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 16:27 — Correcciones de UI (rama `chore/ui-bugs`)
+
+**Resumen:** dos correcciones de interfaz. La pestaña «Viajes» del menú lateral se apagaba al entrar al detalle de un viaje, y el visor de la galería abría el archivo equivocado cuando había más de una página de resultados. La rama corrige ambos y deja el archivo de la galería con el formato de Prettier.
+
+**Cambios — shell (`src/app/shell/AppShell.tsx`):**
+
+- El resaltado del ítem activo del `Sidebar` pasa de `matchRoute({ to })` a `matchRoute({ to, fuzzy: true })`. Con el match exacto, «Viajes» se apagaba al navegar a la subruta de detalle `/viajes/$id`; el match difuso lo mantiene activo también en las subrutas. Es seguro porque ningún destino del nav es prefijo de otro (sólo `/viajes` tiene hijos), así que no se encienden dos pestañas a la vez.
+
+**Cambios — galería (`src/features/galeria/GaleriaSection.tsx`):**
+
+- Se corrigió el archivo que abría el `Visor`. El estado abierto se rastreaba por índice de la página (`openIndex = inicioGrid + index`), pero el `Visor` recibe el arreglo completo de `medios`, no la porción paginada; a partir de la segunda página, el índice apuntaba al medio equivocado. Ahora el estado guarda el **id** del medio (`openMedioId`) y el `initialIndex` del `Visor` se calcula buscando ese id en el arreglo completo (`initialVisibleIndex`). El mismo arreglo aplica a la apertura desde la vista de cuadrícula (`ImageCard.onClick`) y desde la vista de lista (`Table.onRowClick`), que antes también dependían del índice paginado.
+- Sin cambios de comportamiento en el resto del componente; el `chore: format check` que acompaña a la rama sólo reaplicó Prettier sobre este archivo (imports multilínea, JSX y espacios en blanco).
+
+**Archivos modificados:**
+
+- `src/app/shell/AppShell.tsx`
+- `src/features/galeria/GaleriaSection.tsx`
+- `CHANGELOG.md`
+
 ## 2026:09:25 12:20 — Limpieza de UI (rama `chore/app-cleanup`)
 
 **Resumen:** limpieza de la interfaz sobre elementos que aún no tenían función real. Se retiran del shell la barra de búsqueda y el botón de notificaciones, se hace colapsable la barra lateral, los rótulos de los filtros de viajes pasan de la estética monoespaciada en versalitas a etiquetas legibles, y el teléfono del custodio se muestra agrupado en el expediente mediante un nuevo formateador.
