@@ -55,11 +55,11 @@ function buildMedio(etiqueta: string, fileName: string, indice: number): Medio {
   const placa = PLACAS[indice % PLACAS.length] ?? 'YZ-490-LK';
   const base = new Date();
   base.setHours(8, 14 + indice * 7, 0, 0);
-  const esAudio = fileName.endsWith('.IR') && indice % 9 === 2;
+  const isAudio = fileName.endsWith('.IR') && indice % 9 === 2;
   return {
     id: `muestra-exp-${indice}`,
     viajeId: 'viaje-muestra',
-    tipo: esAudio ? 'AUDIO' : 'FOTO',
+    tipo: isAudio ? 'AUDIO' : 'FOTO',
     etiquetas: [etiqueta],
     rutaOriginal: `muestras/${fileName}`,
     rutaMiniatura: null,
@@ -69,7 +69,7 @@ function buildMedio(etiqueta: string, fileName: string, indice: number): Medio {
     ubicacionTexto: null,
     comentario: null,
     bytes: Math.round((2.1 + ((indice * 137) % 48) / 10) * 1024 * 1024),
-    duracionMs: esAudio ? 42000 : null,
+    duracionMs: isAudio ? 42000 : null,
     placas: placa,
     custodioUid: `custodio-${indice % 6}`,
     fechaLocal: '2024-10-24',

@@ -46,22 +46,23 @@ describe('ExpedienteResumenCards', () => {
     expect(screen.getByText(/Cerrado/)).toBeInTheDocument();
   });
 
-  it('usa el teléfono del custodio cuando no hay custodioName', () => {
+  it('usa el teléfono del custodio (formateado) cuando no hay custodioName', () => {
     const viaje = crearViaje({ custodioTelefono: '+525563329999' });
     delete viaje.custodioName;
     render(<ExpedienteResumenCards viaje={viaje} />);
 
-    // El nombre respalda al teléfono, así que el teléfono aparece dos veces (título y subtítulo).
-    expect(screen.getAllByText('+525563329999').length).toBeGreaterThan(0);
+    // El nombre respalda al teléfono, así que el teléfono aparece dos veces (título y
+    // subtítulo), y en ambos lugares se muestra agrupado como `+XX (XXX) XXX XXXX`.
+    expect(screen.getAllByText('+52 (556) 332 9999').length).toBeGreaterThan(0);
   });
 
-  it('muestra el conteo de archivos subidos contra los esperados', () => {
+  it('muestra el conteo de archivos subidos sin el contexto de esperados', () => {
     render(
       <ExpedienteResumenCards viaje={crearViaje({ uploadedFiles: 14, mediosEsperados: 18 })} />,
     );
 
     expect(screen.getByText('14')).toBeInTheDocument();
-    expect(screen.getByText('de 18 esperados')).toBeInTheDocument();
+    expect(screen.queryByText(/esperados/)).not.toBeInTheDocument();
   });
 
   it('calcula la duración transcurrida entre apertura y cierre', () => {
