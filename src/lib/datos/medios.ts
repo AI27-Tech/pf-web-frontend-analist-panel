@@ -66,6 +66,11 @@ export async function listarMediosDelViaje(viajeId: string): Promise<Medio[]> {
  *
  * El orden es por captura descendente: lo más reciente primero, que es como el analista
  * revisa el día.
+ *
+ * NOTA: La consulta original usaba orderBy('createdAtDevice', 'desc') con múltiples
+ * filtros de rango, lo que exige un índice compuesto de Firestore. Para desarrollo,
+ * ordenamos en memoria. Ver:
+ * https://console.firebase.google.com/v1/r/project/custodio-906e7268/firestore/indexes
  */
 export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
   const restricciones: QueryConstraint[] = [
@@ -79,10 +84,18 @@ export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
   if (filtros.placas) restricciones.push(where('placas', '==', filtros.placas));
   if (filtros.custodioUid) restricciones.push(where('custodioUid', '==', filtros.custodioUid));
 
-  restricciones.push(orderBy('createdAtDevice', 'desc'), limit(filtros.limite ?? 120));
+  // Sin orderBy en la consulta (evita exigir índice). Ordenamos en memoria en el cliente.
+  restricciones.push(limit(filtros.limite ?? 120));
 
   const resultado = await getDocs(query(collection(firestore, 'medios'), ...restricciones));
-  return resultado.docs.map((documento) => aMedio(documento.id, documento.data()));
+  const medios = resultado.docs.map((documento) => aMedio(documento.id, documento.data()));
+
+  // Ordenar en cliente por createdAtDevice descendente (más reciente primero)
+  return medios.sort((a, b) => {
+    const timeA = a.capturadoEn.getTime();
+    const timeB = b.capturadoEn.getTime();
+    return timeB - timeA; // Descendente
+  });
 }
 
 /**

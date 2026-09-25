@@ -1,11 +1,8 @@
 import { Badge } from '@ai27-tech/ui';
 import { Headphones } from 'lucide-react';
-
-import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
+import type { Medio } from '@/lib/datos/tipos';
 import { formatearBytes, horaLocal } from '@/lib/formato/tamano';
-
 import { estadoProvisional, imagenProvisional } from './provisional';
-
 /**
  * Una celda de la rejilla de la galería: la evidencia como tarjeta.
  *
@@ -22,18 +19,15 @@ export interface MiniaturaProps {
   medio: Medio;
   onOpen: () => void;
 }
-
 /** Nombre de archivo a partir de la ruta del original: el último segmento de la ruta.
- *  Si la ruta viene vacía, se cae a la etiqueta para no mostrar un hueco. */
+ *  Si la ruta viene vacía, se cae a la primera etiqueta para no mostrar un hueco. */
 function fileName(medio: Medio): string {
   const segment = medio.rutaOriginal.split('/').pop() ?? '';
-  return segment || medio.etiquetas[0] || 'SIN_NOMBRE';
+  return segment || (medio.etiquetas || [])[0] || 'SIN_NOMBRE';
 }
-
 export function Miniatura({ medio, onOpen }: MiniaturaProps) {
   const estado = estadoProvisional(medio);
   const isAudio = medio.tipo === 'AUDIO';
-
   return (
     <button
       type="button"
@@ -50,25 +44,22 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
         ) : (
           <img
             src={imagenProvisional(medio)}
-            alt={medio.comentario ?? etiquetaVisible(medio)}
+            alt={medio.comentario ?? (medio.etiquetas || [])[0] ?? 'Evidencia'}
             loading="lazy"
             draggable={false}
             className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
           />
         )}
-
         {/* Hora de captura, esquina superior izquierda. Cifras tabulares para que no
             bailen entre celdas. */}
-        <span className="cifras-tabulares absolute top-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
+        <span className="cifras-tabulares absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
           {horaLocal(medio.capturadoEn)}
         </span>
-
         {/* Sello de estado, esquina superior derecha. */}
-        <span className="absolute top-1.5 right-1.5">
+        <span className="absolute right-1.5 top-1.5">
           <Badge variant={estado.variant}>{estado.label}</Badge>
         </span>
       </div>
-
       {/* Pie de la celda: nombre del archivo y, debajo, unidad y peso. */}
       <div className="flex flex-col gap-0.5 px-2 py-1.5">
         <span className="text-text truncate font-mono text-xs" title={fileName(medio)}>
