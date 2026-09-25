@@ -14,3 +14,14 @@ env:
     secret: GH_PACKAGES_TOKEN
     availability:
       - BUILD
+
+  # Desde pnpm v11.5.3 (usamos 12.3.4) pnpm NO expande ${...} en el .npmrc del
+  # proyecto para líneas de credencial, por seguridad (GHSA-3qhv-2rgh-x77r). Eso
+  # hacía que el token se ignorara en silencio y el build fallara con 401.
+  # Esta variable le indica a pnpm que trate el .npmrc del repo como archivo de
+  # auth de confianza, restaurando la expansión de ${GH_PACKAGES_TOKEN}.
+  # Es aceptable porque es un repo privado y de primera parte.
+  - variable: PNPM_CONFIG_NPMRC_AUTH_FILE
+    value: ".npmrc"
+    availability:
+      - BUILD
