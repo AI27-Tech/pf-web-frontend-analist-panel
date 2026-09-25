@@ -1,6 +1,6 @@
 /**
  * SOLO DESARROLLO: `usarMock` se borra junto con `VITE_USAR_EMULADORES` y
- * `VITE_SALTAR_LOGIN` cuando la fase F1 (rol del analista) cierre.
+ * `VITE_DATOS_MOCK` cuando la fase F1 (rol del analista) cierre.
  */
 
 import { doc, getDoc, type DocumentData } from 'firebase/firestore';

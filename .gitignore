@@ -32,10 +32,13 @@ serviceAccountKey.json
 coverage/
 *.tsbuildinfo
 
-# --- Logs ---
+# --- Logs y artefactos de pruebas ---
 *.log
 npm-debug.log*
 pnpm-debug.log*
+test-results/
+playwright-report/
+e2e/.cache/
 
 # --- Editores ---
 .vscode/
