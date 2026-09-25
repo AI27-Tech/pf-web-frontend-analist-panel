@@ -2,6 +2,16 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 17:11 — Forzar always-auth en la descarga de GitHub Packages
+
+**Resumen:** tras resolver el secreto, el build de App Hosting seguía dando `401 Unauthorized` al instalar `@ai27-tech/ui`. La causa: pnpm enviaba el token en la petición de metadata pero no en la descarga del tarball (`npm.pkg.github.com/download/...`). Se agregó `always-auth=true` al `.npmrc` para forzar el token en todas las peticiones al host. Se verificó instalando el paquete con el token real (descarga del tarball incluida).
+
+**Cambios:**
+- Se agregaron `//npm.pkg.github.com/:always-auth=true` y `always-auth=true` al `.npmrc` versionado.
+
+**Archivos modificados:**
+- `.npmrc`
+
 ## 2026:09:25 16:49 — Acceso a GitHub Packages en el build de Firebase App Hosting
 
 **Resumen:** el despliegue en Firebase App Hosting fallaba con `401 Unauthorized` al instalar dependencias, porque el build en la nube no tenía credenciales para `@ai27-tech/ui` en GitHub Packages. Se agregó un `.npmrc` versionado sin token (lee la credencial de la variable de entorno `GH_PACKAGES_TOKEN`), un `apphosting.yaml` que inyecta esa variable desde Secret Manager durante el build, y se alineó el workflow de CI al mismo esquema.
