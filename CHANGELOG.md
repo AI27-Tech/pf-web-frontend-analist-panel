@@ -2,6 +2,18 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 17:41 — Eliminar la configuración muerta de App Hosting
+
+**Resumen:** tras migrar el despliegue a Firebase Hosting y eliminar el backend de App Hosting (que fallaba esperando un servidor en `PORT=8080`), se elimina `apphosting.yaml` del repo por quedar sin uso. El `.npmrc` y su expansión del token se conservan porque siguen haciendo falta para instalar `@ai27-tech/ui` en el build local y en CI.
+
+**Cambios:**
+
+- Se eliminó `apphosting.yaml` (config del backend de App Hosting, ya borrado).
+
+**Archivos modificados:**
+
+- `apphosting.yaml` (eliminado)
+
 ## 2026:09:25 17:34 — Migrar el despliegue a Firebase Hosting (SPA estática)
 
 **Resumen:** el build de App Hosting ya compilaba, pero el rollout fallaba porque el contenedor no escuchaba en `PORT=8080`: el panel es una SPA de Vite sin servidor, y App Hosting (pensado para Angular/Next.js) esperaba un proceso servidor. Como el panel es 100% cliente, se migró el despliegue a Firebase Hosting, que sirve archivos estáticos desde CDN sin contenedor. Se agregó el bloque `hosting` a `firebase.json` con `public: dist` y un rewrite de SPA (todas las rutas → `/index.html`) para que el enrutado en cliente de TanStack Router resuelva los enlaces profundos.
