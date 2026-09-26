@@ -18,6 +18,17 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 - `.env.production`
 - `.gitignore`
 
+## 2026:09:25 17:41 — Eliminar la configuración muerta de App Hosting
+
+**Resumen:** tras migrar el despliegue a Firebase Hosting y eliminar el backend de App Hosting (que fallaba esperando un servidor en `PORT=8080`), se elimina `apphosting.yaml` del repo por quedar sin uso. El `.npmrc` y su expansión del token se conservan porque siguen haciendo falta para instalar `@ai27-tech/ui` en el build local y en CI.
+
+**Cambios:**
+
+- Se eliminó `apphosting.yaml` (config del backend de App Hosting, ya borrado).
+
+**Archivos modificados:**
+
+- `apphosting.yaml` (eliminado)
 ## 2026:09:25 17:43 — CI/CD: despliegue automático a Firebase Hosting
 
 **Resumen:** se agregó un workflow de GitHub Actions que compila y despliega el panel a Firebase Hosting (canal live) en cada push a `pf-wfap-m`, recuperando el despliegue automático que tenía App Hosting pero por la vía estática correcta. Usa la acción oficial `FirebaseExtended/action-hosting-deploy` con una cuenta de servicio guardada en el secreto `FIREBASE_SERVICE_ACCOUNT`. De paso se corrigió el workflow de CI, cuyo `pnpm install` también necesitaba `PNPM_CONFIG_NPMRC_AUTH_FILE` para autenticar contra GitHub Packages con pnpm 12.3.4.
