@@ -2,6 +2,22 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 18:02 — Corregir `auth/invalid-api-key`: versionar `.env.production`
+
+**Resumen:** el sitio desplegado cargaba pero fallaba con `FirebaseError: auth/invalid-api-key`. Causa: la config del SDK web (`VITE_FIREBASE_*`) se inyecta en tiempo de build desde `.env`, que es por máquina y no se versiona, así que el build de GitHub Actions compilaba con `apiKey` vacío. Se agregó `.env.production` (versionado) con los valores del SDK web, que Vite carga automáticamente en `vite build`. Estos valores no son secretos: identifican el proyecto y viajan en el bundle del cliente de todos modos; la autorización vive en las reglas de Firestore/Storage.
+
+**Cambios:**
+
+- Se creó `.env.production` con la config del SDK web de Firebase del proyecto `custodio-906e7268`.
+- Se desidignoró `.env.production` en `.gitignore` (junto a `.env.example` y `.env.test`).
+
+**Verificación:** build de producción con el `.env` local apartado (simulando el runner de CI): el `apiKey` queda incrustado en `dist/assets/cliente-*.js`.
+
+**Archivos modificados:**
+
+- `.env.production`
+- `.gitignore`
+
 ## 2026:09:25 17:41 — Eliminar la configuración muerta de App Hosting
 
 **Resumen:** tras migrar el despliegue a Firebase Hosting y eliminar el backend de App Hosting (que fallaba esperando un servidor en `PORT=8080`), se elimina `apphosting.yaml` del repo por quedar sin uso. El `.npmrc` y su expansión del token se conservan porque siguen haciendo falta para instalar `@ai27-tech/ui` en el build local y en CI.
