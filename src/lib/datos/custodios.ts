@@ -15,7 +15,7 @@ import { doc, getDoc, type DocumentData } from 'firebase/firestore';
 
 import { firestore } from '@/lib/firebase/cliente';
 
-import type { Viaje } from './tipos';
+import type { Viaje, Medio } from './tipos';
 
 /** Vista mínima de un custodio que el panel necesita del directorio `usuarios`. */
 export interface Custodio {
@@ -85,5 +85,17 @@ export async function enriquecerConNombres<T extends Pick<Viaje, 'custodioUid'>>
   return viajes.map((viaje) => {
     const nombre = custodios.get(viaje.custodioUid)?.nombre;
     return nombre ? { ...viaje, custodioName: nombre } : { ...viaje };
+  });
+}
+
+/**
+ * Enriquece una lista de medios con el `custodioNombre` resuelto desde `usuarios`.
+ * Similar a enriquecerConNombres pero para el tipo Medio.
+ */
+export async function enriquecerMediosConNombres(medios: readonly Medio[]): Promise<Medio[]> {
+  const custodios = await obtenerCustodios(medios.map((medio) => medio.custodioUid));
+  return medios.map((medio) => {
+    const nombre = custodios.get(medio.custodioUid)?.nombre;
+    return nombre ? { ...medio, custodioNombre: nombre } : { ...medio };
   });
 }
