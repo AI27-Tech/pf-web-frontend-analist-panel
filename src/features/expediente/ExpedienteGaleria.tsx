@@ -5,7 +5,7 @@ import {
   type BadgeConfig,
   type CarouselSection,
 } from '@ai27-tech/ui';
-import { Headphones } from 'lucide-react';
+import { AlertTriangle, Headphones } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -37,6 +37,7 @@ import {
  */
 export interface ExpedienteGaleriaProps {
   medios: Medio[];
+  mediosError?: string | null;
   cargando?: boolean;
 }
 
@@ -75,7 +76,11 @@ function tipoAMedium(tipo: Medio['tipo']): 'IMAGE' | 'AUDIO' {
   return tipo === 'AUDIO' ? 'AUDIO' : 'IMAGE';
 }
 
-export function ExpedienteGaleria({ medios, cargando = false }: ExpedienteGaleriaProps) {
+export function ExpedienteGaleria({
+  medios,
+  mediosError = null,
+  cargando = false,
+}: ExpedienteGaleriaProps) {
   // El visor recorre TODOS los medios del expediente en el orden en que se agrupan; sólo
   // se guarda el índice inicial. `null` = cerrado.
   const [indiceVisor, setIndiceVisor] = useState<number | null>(null);
@@ -134,6 +139,16 @@ export function ExpedienteGaleria({ medios, cargando = false }: ExpedienteGaleri
       })),
     [grupos],
   );
+
+  // Si hay error, mostrar mensaje (después de los hooks)
+  if (mediosError) {
+    return (
+      <div className="border-border rounded-md border border-dashed px-8 py-12 text-center">
+        <AlertTriangle className="text-danger mx-auto mb-3 size-6" aria-hidden="true" />
+        <p className="text-text-muted text-sm">{mediosError}</p>
+      </div>
+    );
+  }
 
   if (!cargando && medios.length === 0) {
     return (
