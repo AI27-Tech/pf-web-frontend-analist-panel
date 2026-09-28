@@ -56,6 +56,7 @@ export interface Medio {
   duracionMs: number | null;
   placas: string;
   custodioUid: string;
+  custodioNombre?: string;
   fechaLocal: string;
 }
 

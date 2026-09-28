@@ -15,14 +15,8 @@ import { useEffect, useState } from 'react';
 import { Headphones } from 'lucide-react';
 
 import { urlOriginal, urlMiniatura } from '@/lib/datos/medios';
-import type { Medio } from '@/lib/datos/tipos';
-import {
-  resolverImagenVisor,
-  imagenProvisional,
-  estadoProvisional,
-  esMuestra,
-  idCortoDe,
-} from './provisional';
+import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
+import { resolverImagenVisor, imagenProvisional, esMuestra, idCortoDe } from './provisional';
 
 export interface GaleriaSectionProps {
   readonly medios: readonly Medio[];
@@ -111,8 +105,14 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       options: [
         { label: 'Todos', value: 'TODO' },
         ...Array.from(new Set(medios.map((m) => m.custodioUid).filter(Boolean)))
-          .sort((a, b) => a.localeCompare(b, 'es'))
-          .map((val) => ({ label: val, value: val })),
+          .map((uid) => {
+            const medio = medios.find((m) => m.custodioUid === uid);
+            return {
+              label: medio?.custodioNombre || uid,
+              value: uid,
+            };
+          })
+          .sort((a, b) => a.label.localeCompare(b.label, 'es')),
       ],
     },
   ];
@@ -137,7 +137,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     )
       return false;
 
-    // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio)
+    // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio por
+    // nombre o UID; el filtro de custodio muestra el nombre, así que la búsqueda
+    // también debe encontrar por nombre y no solo por UID).
     if (searchValue) {
       const searchLower = searchValue.toLowerCase();
       const etiquetasJoined = (medio.etiquetas || []).join(', ').toLowerCase();
@@ -145,6 +147,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
         etiquetasJoined.includes(searchLower) ||
         (medio.comentario?.toLowerCase().includes(searchLower) ?? false) ||
         (medio.placas?.toLowerCase().includes(searchLower) ?? false) ||
+        (medio.custodioNombre?.toLowerCase().includes(searchLower) ?? false) ||
         (medio.custodioUid?.toLowerCase().includes(searchLower) ?? false);
       if (!hayCoincidencia) return false;
     }
@@ -179,42 +182,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const initialVisibleIndex = openMedioId ? medios.findIndex((m) => m.id === openMedioId) : -1;
 
   return (
-    <div style={{ padding: '2rem' }}>
-      {/* Cabezal */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 600, margin: 0 }}>Galería</h1>
-          <Badge variant="escort" pill>
-            AI27 FORENSIC ARCHIVE
-          </Badge>
-        </div>
-        <p
-          style={{
-            margin: '0.5rem 0 0 0',
-            color: 'var(--ui-text-muted, #999)',
-            fontSize: '0.875rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
-        >
-          <span
-            style={{
-              display: 'inline-block',
-              width: '0.5rem',
-              height: '0.5rem',
-              borderRadius: '50%',
-              backgroundColor: 'var(--ui-success, #10b981)',
-            }}
-          />
-          {mediosFiltrados.length.toLocaleString('es-MX')}{' '}
-          {mediosFiltrados.length === 1 ? 'evidencia' : 'evidencias'}{' '}
-          {mediosFiltrados.length === medios.length
-            ? 'registradas'
-            : 'que coinciden con los filtros'}
-        </p>
-      </div>
-
+    <div>
       {/* Barra de filtros */}
       <div style={{ marginBottom: '1rem' }}>
         <FilterBar
@@ -243,16 +211,16 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             renderItem={(medio) => {
               const isAudio = medio.tipo === 'AUDIO';
               const urlMini = urlsMiniatura.get(medio.id);
-              const estado = estadoProvisional(medio);
               const idCorto = idCortoDe(medio);
               const tamanoMB = (medio.bytes / (1024 * 1024)).toFixed(2);
               const hora = `${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`;
+              const etiquetaPrincipal = medio.etiquetas?.[0] || medio.tipo;
 
               return (
                 <ImageCard
                   key={medio.id}
                   src={isAudio ? '' : urlMini || imagenProvisional(medio, 640)}
-                  alt={(medio.etiquetas || [])[0] || 'Evidencia'}
+                  alt={etiquetaPrincipal}
                   title={medio.id}
                   subtitle={`${tamanoMB} MB ${idCorto}`}
                   onClick={() => {
@@ -260,7 +228,16 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                   }}
                   badges={[
                     { label: hora, variant: 'neutral', position: 'left' },
-                    { label: estado.label, variant: estado.variant, position: 'right' },
+                    {
+                      label: etiquetaPrincipal,
+                      variant: isAudio ? 'warning' : 'neutral',
+                      position: 'right',
+                      // La etiqueta de categoría es de longitud variable y desbordaba
+                      // la card. beta.6 permite recortarla con "…" y mostrar el texto
+                      // completo al pasar el cursor, sin perder información.
+                      truncate: true,
+                      tooltip: 'custom',
+                    },
                   ]}
                 >
                   {isAudio && (
@@ -338,11 +315,13 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                 cell: (medio: Medio) => <span>{(medio.bytes / (1024 * 1024)).toFixed(1)} MB</span>,
               },
               {
-                key: 'estado',
-                header: 'Estado',
+                key: 'etiqueta',
+                header: 'Etiqueta',
                 cell: (medio: Medio) => {
-                  const estado = estadoProvisional(medio);
-                  return <Badge variant={estado.variant}>{estado.label}</Badge>;
+                  // La etiqueta REAL del medio (`medio.etiquetas`), no el tipo. Antes esta
+                  // columna se llamaba "Estado" y repetía el tipo, que ya se muestra en la
+                  // columna "Tipo".
+                  return <Badge variant="neutral">{etiquetaVisible(medio)}</Badge>;
                 },
               },
               {
