@@ -2,6 +2,22 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 19:30 — Desbloquear CI y normalizar finales de línea (rama `chore/format-check-ci-fix`)
+
+**Resumen:** `pnpm run format:check` —el primer paso del workflow de CI— volvía a marcar archivos en rojo en cada rama nueva, aun después de correr `pnpm format` y mergear. La causa raíz es de finales de línea: en Windows, `core.autocrlf=true` materializa el árbol de trabajo como CRLF, mientras que Prettier exige LF por defecto (`endOfLine: "lf"`), así que cada checkout fresco reintroducía el rojo. Se agrega `.gitattributes` que fija `eol=lf` para todo el texto, se renormaliza el árbol y se moderniza el hook de pre-commit de husky.
+
+**Cambios:**
+
+- Se agregó `.gitattributes` con `* text=auto eol=lf` (más los binarios marcados como `binary`). Con esto git escribe LF en el árbol de trabajo sin importar `core.autocrlf`, así que Prettier y el runner Linux de CI ven exactamente el mismo contenido que el blob. Es la corrección permanente del rojo recurrente de `format:check`.
+- `.husky/pre-commit` se reduce a una sola línea (`pnpm lint-staged`). Se retiraron el shebang `#!/bin/sh` y la línea `. "$(dirname "$0")/_/husky.sh"`, deprecadas en husky 9 y que en husky 10 hacen fallar el hook.
+- Se renormalizaron los finales de línea del árbol de trabajo a LF (sin cambios de contenido: `git diff --ignore-cr-at-eol` no reporta diferencias reales fuera de los archivos anteriores).
+
+**Archivos modificados:**
+
+- `.gitattributes` (nuevo)
+- `.husky/pre-commit`
+- `CHANGELOG.md`
+
 ## 2026:09:25 18:02 — Corregir `auth/invalid-api-key`: versionar `.env.production`
 
 **Resumen:** el sitio desplegado cargaba pero fallaba con `FirebaseError: auth/invalid-api-key`. Causa: la config del SDK web (`VITE_FIREBASE_*`) se inyecta en tiempo de build desde `.env`, que es por máquina y no se versiona, así que el build de GitHub Actions compilaba con `apiKey` vacío. Se agregó `.env.production` (versionado) con los valores del SDK web, que Vite carga automáticamente en `vite build`. Estos valores no son secretos: identifican el proyecto y viajan en el bundle del cliente de todos modos; la autorización vive en las reglas de Firestore/Storage.
@@ -29,6 +45,7 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 **Archivos modificados:**
 
 - `apphosting.yaml` (eliminado)
+
 ## 2026:09:25 17:43 — CI/CD: despliegue automático a Firebase Hosting
 
 **Resumen:** se agregó un workflow de GitHub Actions que compila y despliega el panel a Firebase Hosting (canal live) en cada push a `pf-wfap-m`, recuperando el despliegue automático que tenía App Hosting pero por la vía estática correcta. Usa la acción oficial `FirebaseExtended/action-hosting-deploy` con una cuenta de servicio guardada en el secreto `FIREBASE_SERVICE_ACCOUNT`. De paso se corrigió el workflow de CI, cuyo `pnpm install` también necesitaba `PNPM_CONFIG_NPMRC_AUTH_FILE` para autenticar contra GitHub Packages con pnpm 12.3.4.

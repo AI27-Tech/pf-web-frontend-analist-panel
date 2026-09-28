@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { AlertTriangle } from 'lucide-react';
 
+import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { GaleriaSection } from '@/features/galeria/GaleriaSection';
-import { SAMPLE_MEDIOS } from '@/features/galeria/provisional';
 import { listarMedios } from '@/lib/datos/medios';
 import { rangoDeAtajo } from '@/lib/formato/fechas';
 
@@ -15,25 +16,52 @@ import { rangoDeAtajo } from '@/lib/formato/fechas';
  * Viajes, para que ambas hablen del mismo corte. Cuando la galería tenga su propio
  * selector de fechas, este rango saldrá de un search param validado.
  *
- * Provisional: si Firebase no devuelve datos —config de desarrollo ficticia o corpus
- * vacío— se cae a `SAMPLE_MEDIOS` para que la pantalla se vea poblada mientras se
- * conecta el backend real. En cuanto haya documentos, ganan los reales.
+ * Diferencia entre estados:
+ * - Error: No se pudo conectar con Firebase o falló la consulta.
+ * - Vacío: La consulta fue exitosa pero no hay medios en el período.
+ * - Con datos: Se devuelven los medios reales.
  */
 export const Route = createFileRoute('/_privado/galeria')({
   loader: async () => {
     const { desde, hasta } = rangoDeAtajo('mes');
     try {
       const medios = await listarMedios({ desde, hasta });
-      return { medios: medios.length > 0 ? medios : SAMPLE_MEDIOS };
+      return { medios, error: null };
     } catch (error) {
       console.error('[Galería] Error al listar medios:', error);
-      return { medios: SAMPLE_MEDIOS };
+      return { medios: [], error: 'No se pudo cargar la galería en este momento.' };
     }
   },
   component: Galeria,
 });
 
 function Galeria() {
-  const { medios } = Route.useLoaderData();
-  return <GaleriaSection medios={medios} />;
+  const { medios, error } = Route.useLoaderData();
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <EncabezadoPagina titulo="Galería" />
+      <div className="flex min-h-0 flex-1 flex-col gap-4 px-8 py-6">
+        {error ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12 text-center">
+            <AlertTriangle className="text-danger size-8" aria-hidden="true" />
+            <p className="text-text-muted text-sm">{error}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="text-accent text-xs font-semibold hover:underline"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : medios.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12 text-center">
+            <p className="text-text-muted text-sm">No hay fotos en este período.</p>
+          </div>
+        ) : (
+          <GaleriaSection medios={medios} />
+        )}
+      </div>
+    </div>
+  );
 }
