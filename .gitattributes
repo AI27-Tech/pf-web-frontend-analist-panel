@@ -1,0 +1,25 @@
+# Normaliza finales de línea de forma consistente entre máquinas.
+#
+# Por qué existe este archivo: en Windows, `core.autocrlf=true` materializa los
+# archivos como CRLF en el árbol de trabajo, mientras que Prettier —con su valor
+# por defecto `endOfLine: "lf"`— exige LF. El resultado era que `pnpm run
+# format:check` marcaba archivos en rojo en cada rama nueva aunque el blob en git
+# estuviera limpio. Al fijar `eol=lf` aquí, git escribe LF en el árbol de trabajo
+# sin importar `core.autocrlf`, así que Prettier y CI ven lo mismo que el blob.
+
+# Todo lo que git detecte como texto se normaliza a LF al hacer commit y al hacer
+# checkout. Esto gana sobre core.autocrlf.
+* text=auto eol=lf
+
+# Archivos binarios: nunca tocar los finales de línea.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
