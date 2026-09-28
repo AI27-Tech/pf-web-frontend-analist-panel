@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { Headphones } from 'lucide-react';
 
 import { urlOriginal, urlMiniatura } from '@/lib/datos/medios';
-import type { Medio } from '@/lib/datos/tipos';
+import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { resolverImagenVisor, imagenProvisional, esMuestra, idCortoDe } from './provisional';
 
 export interface GaleriaSectionProps {
@@ -137,7 +137,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     )
       return false;
 
-    // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio)
+    // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio por
+    // nombre o UID; el filtro de custodio muestra el nombre, así que la búsqueda
+    // también debe encontrar por nombre y no solo por UID).
     if (searchValue) {
       const searchLower = searchValue.toLowerCase();
       const etiquetasJoined = (medio.etiquetas || []).join(', ').toLowerCase();
@@ -145,6 +147,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
         etiquetasJoined.includes(searchLower) ||
         (medio.comentario?.toLowerCase().includes(searchLower) ?? false) ||
         (medio.placas?.toLowerCase().includes(searchLower) ?? false) ||
+        (medio.custodioNombre?.toLowerCase().includes(searchLower) ?? false) ||
         (medio.custodioUid?.toLowerCase().includes(searchLower) ?? false);
       if (!hayCoincidencia) return false;
     }
@@ -229,6 +232,11 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                       label: etiquetaPrincipal,
                       variant: isAudio ? 'warning' : 'neutral',
                       position: 'right',
+                      // La etiqueta de categoría es de longitud variable y desbordaba
+                      // la card. beta.6 permite recortarla con "…" y mostrar el texto
+                      // completo al pasar el cursor, sin perder información.
+                      truncate: true,
+                      tooltip: 'custom',
                     },
                   ]}
                 >
@@ -307,14 +315,13 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                 cell: (medio: Medio) => <span>{(medio.bytes / (1024 * 1024)).toFixed(1)} MB</span>,
               },
               {
-                key: 'estado',
-                header: 'Estado',
+                key: 'etiqueta',
+                header: 'Etiqueta',
                 cell: (medio: Medio) => {
-                  return (
-                    <Badge variant={medio.tipo === 'AUDIO' ? 'warning' : 'neutral'}>
-                      {medio.tipo}
-                    </Badge>
-                  );
+                  // La etiqueta REAL del medio (`medio.etiquetas`), no el tipo. Antes esta
+                  // columna se llamaba "Estado" y repetía el tipo, que ya se muestra en la
+                  // columna "Tipo".
+                  return <Badge variant="neutral">{etiquetaVisible(medio)}</Badge>;
                 },
               },
               {
