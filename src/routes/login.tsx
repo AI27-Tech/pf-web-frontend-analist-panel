@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Eye, EyeOff, Lock } from 'lucide-react';
-import { Button, Card, CardBody, Checkbox, FormField, Input } from '@ai27-tech/ui';
+import { Button, Card, CardBody, FormField, Input } from '@ai27-tech/ui';
 
 import { esperarSesion, iniciarSesion } from '@/lib/datos/sesion';
 
@@ -19,9 +19,6 @@ function Login() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // Estado puramente de UI: no viaja al comando de sesión.
-  const [hardwareToken, setHardwareToken] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -45,9 +42,6 @@ function Login() {
               SEC-ID: OP-27
             </span>
           </div>
-          <p className="text-text-muted mb-10 pb-2 text-xs font-semibold tracking-[0.12em] uppercase">
-            Plataforma de inteligencia y evidencia forense
-          </p>
 
           <form onSubmit={onSubmit} className="flex flex-col gap-7" noValidate>
             <FormField label="Correo corporativo">
@@ -63,7 +57,10 @@ function Login() {
             <div>
               <div className="mb-2 flex items-baseline justify-between gap-4">
                 <span className="text-text text-sm font-semibold">Contraseña</span>
-                <a href="#" className="text-accent text-xs font-semibold hover:underline">
+                <a
+                  href="/recuperar-contrasena"
+                  className="text-accent text-xs font-semibold hover:underline"
+                >
                   ¿Olvidó su clave?
                 </a>
               </div>
@@ -90,12 +87,6 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-
-            <Checkbox
-              label="Verificar estación de trabajo vía token de hardware"
-              checked={hardwareToken}
-              onChange={(e) => setHardwareToken(e.target.checked)}
-            />
 
             {error !== null && (
               <p
