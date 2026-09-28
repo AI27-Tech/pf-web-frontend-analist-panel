@@ -14,7 +14,6 @@ import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { formatearBytes, horaLocal } from '@/lib/formato/tamano';
 import {
   esMuestra,
-  estadoProvisional,
   idCortoDe,
   imagenProvisional,
   resolverImagenVisor,
@@ -207,12 +206,22 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
 
   const urlReal = resuelto && resuelto.id === medio.id ? resuelto.url : null;
   const src = isAudio ? '' : esDeMuestra ? imagenProvisional(medio) : urlReal;
-  const estado = estadoProvisional(medio);
 
-  // Dos sellos sobre la miniatura.
+  // Dos sellos sobre la miniatura: la hora de captura (izquierda) y la etiqueta REAL del
+  // medio (derecha). Antes la derecha usaba `estadoProvisional`, un estado inventado a
+  // partir del id que no corresponde a ningún dato de la imagen; se reemplaza por la
+  // etiqueta real (`etiquetaVisible`). Como la etiqueta es de longitud variable y la
+  // tarjeta es de ancho fijo, se recorta con "…" y se despliega al pasar el cursor.
   const badges: BadgeConfig[] = [
     { label: horaLocal(medio.capturadoEn), variant: 'neutral', position: 'left' },
-    { label: estado.label, variant: estado.variant, position: 'right' },
+    {
+      label: etiquetaVisible(medio),
+      variant: 'neutral',
+      position: 'right',
+      truncate: true,
+      expandOnHover: true,
+      tooltip: 'custom',
+    },
   ];
 
   return (

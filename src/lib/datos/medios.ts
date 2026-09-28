@@ -11,6 +11,7 @@ import {
 import { getDownloadURL, ref } from 'firebase/storage';
 
 import { firestore, storage } from '@/lib/firebase/cliente';
+import { enriquecerMediosConNombres } from './custodios';
 
 import type { FiltrosMedio, Medio } from './tipos';
 
@@ -88,7 +89,10 @@ export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
   restricciones.push(limit(filtros.limite ?? 120));
 
   const resultado = await getDocs(query(collection(firestore, 'medios'), ...restricciones));
-  const medios = resultado.docs.map((documento) => aMedio(documento.id, documento.data()));
+  let medios = resultado.docs.map((documento) => aMedio(documento.id, documento.data()));
+
+  // Enriquecer con nombres de custodios
+  medios = await enriquecerMediosConNombres(medios);
 
   // Ordenar en cliente por createdAtDevice descendente (más reciente primero)
   return medios.sort((a, b) => {
