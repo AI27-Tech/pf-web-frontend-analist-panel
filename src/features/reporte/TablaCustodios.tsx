@@ -14,10 +14,6 @@ export interface TablaCustodiosProps {
   datos: EstadisticaCustodio[];
   sort: SortState;
   onSortChange: (sort: SortState) => void;
-  /** `uid` del custodio seleccionado para el filtro cruzado, o `null`. */
-  seleccionado: string | null;
-  /** Alterna la selección de un custodio (clic en su fila). */
-  onSeleccionar: (uid: string) => void;
 }
 
 /** Total de medios de un custodio: fotos + audios. */
@@ -39,13 +35,7 @@ const columnas: Column<EstadisticaCustodio>[] = [
   },
 ];
 
-export function TablaCustodios({
-  datos,
-  sort,
-  onSortChange,
-  seleccionado,
-  onSeleccionar,
-}: TablaCustodiosProps) {
+export function TablaCustodios({ datos, sort, onSortChange }: TablaCustodiosProps) {
   return (
     <Table
       aria-label="Estadísticas por custodio"
@@ -54,8 +44,6 @@ export function TablaCustodios({
       rowKey={(c) => c.uid}
       sort={sort}
       onSortChange={onSortChange}
-      onRowClick={(c) => onSeleccionar(c.uid)}
-      {...(seleccionado ? { selectedKeys: new Set([seleccionado]) } : {})}
       density="compact"
       emptyState="No hay custodios con actividad en el periodo."
     />

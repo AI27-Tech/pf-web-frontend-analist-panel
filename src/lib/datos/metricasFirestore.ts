@@ -242,6 +242,7 @@ function agruparPorViaje(
       fotos: number;
       audios: number;
       ciclo: CicloViaje;
+      hayNovedad: boolean;
     }
   >();
 
@@ -255,6 +256,7 @@ function agruparPorViaje(
       fotos: 0,
       audios: 0,
       ciclo,
+      hayNovedad: r.hayNovedad,
     });
   }
 
@@ -274,6 +276,7 @@ function agruparPorViaje(
     fotos: v.fotos,
     audios: v.audios,
     ciclo: v.ciclo,
+    hayNovedad: v.hayNovedad,
   }));
 }
 

@@ -120,6 +120,9 @@ export interface FilaViaje {
   fotos: number;
   audios: number;
   ciclo: CicloViaje;
+  /** `true` si el viaje tiene novedad (incidencia). Permite recalcular la tarjeta de
+   *  incidencias cuando el reporte se filtra. */
+  hayNovedad: boolean;
 }
 
 /** Estadísticas de una unidad (placa) en el periodo, para la gráfica «viajes por unidad».

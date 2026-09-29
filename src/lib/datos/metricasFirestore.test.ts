@@ -172,7 +172,15 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
 
   it('agrupa por viaje: un renglón por reporte, con custodios y conteos de medios', async () => {
     encolar(
-      [reporte({ __id: 'v1', custodioUid: 'c1', placas: 'ABC-123', ciclo: 'CERRADO' })],
+      [
+        reporte({
+          __id: 'v1',
+          custodioUid: 'c1',
+          placas: 'ABC-123',
+          ciclo: 'CERRADO',
+          hayNovedad: true,
+        }),
+      ],
       [],
       [
         medio({ reporteId: 'v1', custodioUid: 'c1', tipo: 'FOTO' }),
@@ -191,6 +199,7 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
     expect(fila.fotos).toBe(2);
     expect(fila.audios).toBe(1);
     expect(fila.ciclo).toBe('CERRADO');
+    expect(fila.hayNovedad).toBe(true);
     expect(fila.custodios).toEqual(expect.arrayContaining(['Custodio c1', 'Custodio c2']));
     expect(fila.custodios).toHaveLength(2);
   });

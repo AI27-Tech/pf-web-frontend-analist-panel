@@ -140,6 +140,7 @@ function porViaje(periodo: RangoFechas): FilaViaje[] {
     fotos: viaje.fotos,
     audios: viaje.audios,
     ciclo: viaje.ciclo,
+    hayNovedad: viaje.isUpdated,
   }));
 }
 
