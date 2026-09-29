@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { folioDePeriodo, obtenerMetricas } from '@/lib/datos/metricas';
 import { resolverPeriodo, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
-import { GraficasSection } from './GraficasSection';
+import { GraficasReporteSection } from './GraficasReporteSection';
 import { ReporteHeader } from './ReporteHeader';
+import { ReporteTablas } from './ReporteTablas';
 import { TarjetasEstadistica } from './TarjetasEstadistica';
 import { ReporteCargando, ReporteError, ReporteVacio } from './estados';
 
@@ -45,7 +46,14 @@ export function ReporteSection() {
       {consulta.isSuccess && !sinDatos && (
         <div className="reporte-imprimible space-y-8 px-8 py-6">
           <TarjetasEstadistica estadisticas={consulta.data.estadisticas} />
-          <GraficasSection graficas={consulta.data.graficas} />
+          <GraficasReporteSection
+            porCustodio={consulta.data.porCustodio}
+            porUnidad={consulta.data.porUnidad}
+          />
+          <ReporteTablas
+            porCustodio={consulta.data.porCustodio}
+            porViaje={consulta.data.porViaje}
+          />
         </div>
       )}
     </div>
