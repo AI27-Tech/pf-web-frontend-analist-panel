@@ -1,6 +1,13 @@
 import { Button, Navbar, Sidebar, SidebarItem } from '@ai27-tech/ui';
 import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
-import { Images, User as UserIcon, Route, SquareText, SlidersHorizontal } from 'lucide-react';
+import {
+  Images,
+  User as UserIcon,
+  Route,
+  SquareText,
+  SlidersHorizontal,
+  Activity,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { observarSesion, type UsuarioSesion } from '@/lib/datos/sesion';
@@ -9,6 +16,7 @@ const nav = [
   { to: '/viajes', label: 'Viajes', Icon: Route },
   { to: '/galeria', label: 'Galería', Icon: Images },
   { to: '/reporte', label: 'Reporte', Icon: SquareText },
+  { to: '/sistema', label: 'Sistema', Icon: Activity },
   { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal },
 ] as const;
 
