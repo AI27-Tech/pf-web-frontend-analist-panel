@@ -15,7 +15,7 @@ export interface ViajeCardProps {
 }
 
 export function ViajeCard({ viaje, onAbrir }: ViajeCardProps) {
-  const nombreCustodio = viaje.custodioName ?? viaje.custodioTelefono;
+  const nombreCustodio = viaje.custodioName ?? viaje.custodioCorreo;
 
   return (
     <Card

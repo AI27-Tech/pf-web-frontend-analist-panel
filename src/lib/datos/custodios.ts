@@ -1,7 +1,7 @@
 /**
  * Directorio de custodios: resuelve el NOMBRE visible del custodio a partir de su `uid`.
  *
- * El reporte no trae el nombre —sólo `custodioUid` y `custodioTelefono` (pf-app-custodio
+ * El reporte no trae el nombre —sólo `custodioUid` y `custodioCorreo` (pf-app-custodio
  * §5.1)—; el nombre vive en `usuarios/{uid}.nombre`. El analista tiene permiso de lectura
  * sobre `usuarios` por la rama `esAnalista()` de las reglas (pf-app-custodio/firebase/
  * firestore.rules).
@@ -76,7 +76,7 @@ export async function obtenerCustodios(uids: readonly string[]): Promise<Map<str
  *
  * No muta los viajes de entrada: devuelve copias con `custodioName` puesto cuando el
  * directorio lo conoce. Los viajes sin nombre conocido quedan sin `custodioName` y la UI
- * cae a `custodioTelefono`.
+ * cae a `custodioCorreo`.
  */
 export async function enriquecerConNombres<T extends Pick<Viaje, 'custodioUid'>>(
   viajes: readonly T[],

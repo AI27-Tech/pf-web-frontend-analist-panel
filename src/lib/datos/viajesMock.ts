@@ -16,7 +16,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-01',
     placas: 'YZ-498-LK',
-    custodioTelefono: '+525563320001',
+    custodioCorreo: 'b0001@ai27.com',
     custodioName: 'Cap. Jesús Pérez R.',
     custodioUid: 'custodio-01',
     fechaLocal: '2026-09-01',
@@ -38,7 +38,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-02',
     placas: 'AB-123-CD',
-    custodioTelefono: '+525563320002',
+    custodioCorreo: 'b0002@ai27.com',
     custodioName: 'Mayra García V.',
     custodioUid: 'custodio-02',
     fechaLocal: '2026-09-01',
@@ -60,7 +60,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-03',
     placas: 'CD-778-MN',
-    custodioTelefono: '+525563320003',
+    custodioCorreo: 'b0003@ai27.com',
     custodioName: 'Luis Ramírez O.',
     custodioUid: 'custodio-03',
     fechaLocal: '2026-09-02',
@@ -82,8 +82,8 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-04',
     placas: 'EF-556-PQ',
-    custodioTelefono: '+525563320004',
-    // Sin `custodioName`: ejercita el respaldo al teléfono en el renglón.
+    custodioCorreo: 'b0004@ai27.com',
+    // Sin `custodioName`: ejercita el respaldo al correo en el renglón.
     custodioUid: 'custodio-04',
     fechaLocal: '2026-09-02',
     abiertoEn: new Date('2026-09-02T10:45:00-06:00'),
@@ -104,7 +104,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-05',
     placas: 'GH-334-RS',
-    custodioTelefono: '+525563320005',
+    custodioCorreo: 'b0005@ai27.com',
     custodioName: 'Diana Torres L.',
     custodioUid: 'custodio-05',
     fechaLocal: '2026-09-03',
@@ -126,7 +126,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-06',
     placas: 'IJ-221-TU',
-    custodioTelefono: '+525563320006',
+    custodioCorreo: 'b0006@ai27.com',
     custodioName: 'Ricardo Herrera M.',
     custodioUid: 'custodio-06',
     fechaLocal: '2026-09-03',
@@ -148,7 +148,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-07',
     placas: 'KL-990-VW',
-    custodioTelefono: '+525563320007',
+    custodioCorreo: 'b0007@ai27.com',
     custodioName: 'Paula Navarro S.',
     custodioUid: 'custodio-07',
     fechaLocal: '2026-09-04',
@@ -170,7 +170,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-08',
     placas: 'MN-112-XY',
-    custodioTelefono: '+525563320008',
+    custodioCorreo: 'b0008@ai27.com',
     custodioName: 'Víctor Aguilar T.',
     custodioUid: 'custodio-08',
     fechaLocal: '2026-09-04',
@@ -192,7 +192,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-09',
     placas: 'OP-445-ZA',
-    custodioTelefono: '+525563320009',
+    custodioCorreo: 'b0009@ai27.com',
     custodioName: 'Norma Castro F.',
     custodioUid: 'custodio-09',
     fechaLocal: '2026-09-05',
@@ -215,7 +215,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-10',
     placas: 'QR-667-BC',
-    custodioTelefono: '+525563320010',
+    custodioCorreo: 'b0010@ai27.com',
     custodioName: 'Fernando Jiménez A.',
     custodioUid: 'custodio-10',
     fechaLocal: '2026-09-05',
@@ -237,7 +237,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-11',
     placas: 'ST-889-DE',
-    custodioTelefono: '+525563320011',
+    custodioCorreo: 'b0011@ai27.com',
     custodioName: 'Carmen Vargas H.',
     custodioUid: 'custodio-11',
     fechaLocal: '2026-09-06',
@@ -259,7 +259,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-12',
     placas: 'UV-223-FG',
-    custodioTelefono: '+525563320012',
+    custodioCorreo: 'b0012@ai27.com',
     custodioName: 'Andrea Ortega P.',
     custodioUid: 'custodio-12',
     fechaLocal: '2026-09-06',
@@ -281,7 +281,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-13',
     placas: 'WX-556-HI',
-    custodioTelefono: '+525563320013',
+    custodioCorreo: 'b0013@ai27.com',
     custodioName: 'Elena Reyes G.',
     custodioUid: 'custodio-13',
     fechaLocal: '2026-09-07',
@@ -303,7 +303,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-14',
     placas: 'YZ-778-JK',
-    custodioTelefono: '+525563320014',
+    custodioCorreo: 'b0014@ai27.com',
     custodioName: 'Bruno Moreno C.',
     custodioUid: 'custodio-14',
     fechaLocal: '2026-09-07',
@@ -325,7 +325,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-15',
     placas: 'AB-990-LM',
-    custodioTelefono: '+525563320015',
+    custodioCorreo: 'b0015@ai27.com',
     custodioName: 'Gabriela Flores N.',
     custodioUid: 'custodio-15',
     fechaLocal: '2026-09-08',
@@ -347,7 +347,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-16',
     placas: 'CD-112-NO',
-    custodioTelefono: '+525563320016',
+    custodioCorreo: 'b0016@ai27.com',
     custodioName: 'Héctor Salazar D.',
     custodioUid: 'custodio-16',
     fechaLocal: '2026-09-08',
@@ -369,7 +369,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-17',
     placas: 'EF-334-PQ',
-    custodioTelefono: '+525563320017',
+    custodioCorreo: 'b0017@ai27.com',
     custodioName: 'Yolanda Villanueva R.',
     custodioUid: 'custodio-17',
     fechaLocal: '2026-09-09',
@@ -391,7 +391,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-18',
     placas: 'GH-556-RS',
-    custodioTelefono: '+525563320018',
+    custodioCorreo: 'b0018@ai27.com',
     custodioName: 'Jorge Vázquez E.',
     custodioUid: 'custodio-18',
     fechaLocal: '2026-09-09',
@@ -413,7 +413,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-19',
     placas: 'IJ-778-TU',
-    custodioTelefono: '+525563320019',
+    custodioCorreo: 'b0019@ai27.com',
     custodioName: 'Laura Delgado M.',
     custodioUid: 'custodio-19',
     fechaLocal: '2026-09-10',
@@ -435,7 +435,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-20',
     placas: 'KL-990-VW',
-    custodioTelefono: '+525563320020',
+    custodioCorreo: 'b0020@ai27.com',
     custodioName: 'Marco Rosales I.',
     custodioUid: 'custodio-20',
     fechaLocal: '2026-09-10',
@@ -457,7 +457,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-21',
     placas: 'MN-112-XY',
-    custodioTelefono: '+525563320021',
+    custodioCorreo: 'b0021@ai27.com',
     custodioName: 'Patricia Oliveros Q.',
     custodioUid: 'custodio-21',
     fechaLocal: '2026-09-11',
@@ -479,7 +479,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-22',
     placas: 'OP-445-ZA',
-    custodioTelefono: '+525563320022',
+    custodioCorreo: 'b0022@ai27.com',
     custodioName: 'Tomás Espinoza U.',
     custodioUid: 'custodio-22',
     fechaLocal: '2026-09-11',
@@ -501,7 +501,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-23',
     placas: 'QR-667-BC',
-    custodioTelefono: '+525563320023',
+    custodioCorreo: 'b0023@ai27.com',
     custodioName: 'Wendy Camacho Y.',
     custodioUid: 'custodio-23',
     fechaLocal: '2026-09-12',
@@ -524,7 +524,7 @@ export const viajesEstaticos: Viaje[] = [
   {
     id: 'viaje-24',
     placas: 'ST-889-DE',
-    custodioTelefono: '+525563320024',
+    custodioCorreo: 'b0024@ai27.com',
     custodioName: 'Nadia Quintero Z.',
     custodioUid: 'custodio-24',
     fechaLocal: '2026-09-12',

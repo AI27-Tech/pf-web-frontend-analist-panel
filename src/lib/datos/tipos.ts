@@ -77,7 +77,7 @@ export function etiquetaVisible(medio: Pick<Medio, 'etiquetas'>): string {
 export interface Viaje {
   id: string;
   placas: string;
-  custodioTelefono: string;
+  custodioCorreo: string;
   custodioName?: string;
   custodioUid: string;
   fechaLocal: string;
