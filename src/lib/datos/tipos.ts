@@ -77,7 +77,7 @@ export function etiquetaVisible(medio: Pick<Medio, 'etiquetas'>): string {
 export interface Viaje {
   id: string;
   placas: string;
-  custodioTelefono: string;
+  custodioCorreo: string;
   custodioName?: string;
   custodioUid: string;
   fechaLocal: string;
@@ -102,7 +102,7 @@ export interface Viaje {
  *  periodo. El total de medios (fotos + audios) se calcula en la UI. */
 export interface EstadisticaCustodio {
   uid: string;
-  /** Nombre resuelto desde `usuarios/{uid}`, o teléfono/uid como respaldo. */
+  /** Nombre resuelto desde `usuarios/{uid}`, o correo/uid como respaldo. */
   nombre: string;
   viajes: number;
   fotos: number;

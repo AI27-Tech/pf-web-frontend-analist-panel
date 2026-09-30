@@ -97,7 +97,7 @@ function estadisticas(periodo: RangoFechas): EstadisticasReporte {
  * correo, o el uid. Espeja el fallback de `obtenerNombresCustodios` sin tocar Firestore.
  */
 function nombreCustodioMock(viaje: Viaje): string {
-  return viaje.custodioName ?? viaje.custodioTelefono ?? viaje.custodioUid;
+  return viaje.custodioName ?? viaje.custodioCorreo ?? viaje.custodioUid;
 }
 
 /**

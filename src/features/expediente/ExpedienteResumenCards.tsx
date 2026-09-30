@@ -2,7 +2,6 @@ import { Calendar, Files, Timer, User } from 'lucide-react';
 
 import { TarjetaResumen } from '@/components/TarjetaResumen';
 import { duracionEntre, fechaHoraDeViaje } from '@/lib/formato/fechas';
-import { formatearTelefono } from '@/lib/formato/telefono';
 import type { Viaje } from '@/lib/datos/tipos';
 
 /**
@@ -17,8 +16,9 @@ export interface ExpedienteResumenCardsProps {
 }
 
 export function ExpedienteResumenCards({ viaje }: ExpedienteResumenCardsProps) {
-  const telefonoFormateado = formatearTelefono(viaje.custodioTelefono);
-  const nombreCustodio = viaje.custodioName ?? telefonoFormateado;
+  // La identidad del custodio es su correo (EMAIL_AUTH); ya no se formatea como teléfono.
+  const correoCustodio = viaje.custodioCorreo;
+  const nombreCustodio = viaje.custodioName ?? correoCustodio;
   const enProgreso = viaje.cerradoEn === null;
 
   return (
@@ -48,7 +48,7 @@ export function ExpedienteResumenCards({ viaje }: ExpedienteResumenCardsProps) {
         Icono={User}
         tamanoValor="medio"
         valor={<span className="truncate">{nombreCustodio}</span>}
-        contexto={<span className="truncate">{telefonoFormateado}</span>}
+        contexto={<span className="truncate">{correoCustodio}</span>}
       />
 
       <TarjetaResumen
