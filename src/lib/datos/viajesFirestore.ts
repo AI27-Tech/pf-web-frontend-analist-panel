@@ -50,8 +50,8 @@ function aViaje(id: string, d: DocumentData): Viaje {
   return {
     id,
     placas: d.placas ?? '',
-    // Contrato real: el reporte trae `custodioTelefono` (E.164), no `custodioCorreo`.
-    custodioTelefono: d.custodioTelefono ?? '',
+    // Contrato real (EMAIL_AUTH): el reporte trae `custodioCorreo`, no `custodioTelefono`.
+    custodioCorreo: d.custodioCorreo ?? '',
     // El nombre no vive en el reporte, sino en `usuarios/{uid}.nombre`.
     custodioName: d.custodioName ?? undefined,
     custodioUid: d.custodioUid ?? '',

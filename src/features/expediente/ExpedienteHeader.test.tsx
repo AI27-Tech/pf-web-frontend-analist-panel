@@ -16,7 +16,7 @@ function crearViaje(sobrescribir: Partial<Viaje> = {}): Viaje {
   return {
     id: 'viaje-01',
     placas: 'YZ-498-LK',
-    custodioTelefono: '+525563320001',
+    custodioCorreo: 'b0001@ai27.com',
     custodioName: 'Cap. Jesús Pérez R.',
     custodioUid: 'custodio-01',
     fechaLocal: '2026-09-01',

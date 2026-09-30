@@ -9,7 +9,7 @@ function crearViaje(sobrescribir: Partial<Viaje> = {}): Viaje {
   return {
     id: 'viaje-01',
     placas: 'YZ-498-LK',
-    custodioTelefono: '+525563320001',
+    custodioCorreo: 'b0001@ai27.com',
     custodioName: 'Cap. Jesús Pérez R.',
     custodioUid: 'custodio-01',
     fechaLocal: '2026-09-01',
@@ -46,14 +46,14 @@ describe('ExpedienteResumenCards', () => {
     expect(screen.getByText(/Cerrado/)).toBeInTheDocument();
   });
 
-  it('usa el teléfono del custodio (formateado) cuando no hay custodioName', () => {
-    const viaje = crearViaje({ custodioTelefono: '+525563329999' });
+  it('usa el correo del custodio (sin formatear) cuando no hay custodioName', () => {
+    const viaje = crearViaje({ custodioCorreo: 'b9999@ai27.com' });
     delete viaje.custodioName;
     render(<ExpedienteResumenCards viaje={viaje} />);
 
-    // El nombre respalda al teléfono, así que el teléfono aparece dos veces (título y
-    // subtítulo), y en ambos lugares se muestra agrupado como `+XX (XXX) XXX XXXX`.
-    expect(screen.getAllByText('+52 (556) 332 9999').length).toBeGreaterThan(0);
+    // El correo respalda al nombre, así que aparece dos veces (título y subtítulo), tal
+    // cual, sin formateo de teléfono.
+    expect(screen.getAllByText('b9999@ai27.com').length).toBeGreaterThan(0);
   });
 
   it('muestra el conteo de archivos subidos sin el contexto de esperados', () => {

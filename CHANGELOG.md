@@ -2,6 +2,34 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:28 18:44 — Contrato del custodio por correo (EMAIL_AUTH): `custodioTelefono` → `custodioCorreo`
+
+**Resumen:** la identidad del custodio migró de teléfono (SMS OTP) a correo + contraseña en toda la plataforma. El reporte ahora trae `custodioCorreo` en vez de `custodioTelefono`, así que el panel se alinea al contrato nuevo: se renombra el campo del tipo `Viaje`, el mapeo de Firestore lee `custodioCorreo`, y la UI muestra el correo tal cual donde antes formateaba el teléfono. El teléfono deja de mostrarse (queda solo como dato informativo en `usuarios/{uid}`, que el panel no necesita surfacear), así que el formateo de teléfono se retira por código muerto.
+
+**Cambios:**
+
+- `Viaje.custodioTelefono` → `Viaje.custodioCorreo` en el tipo, el mapeo de Firestore (`aViaje` lee `d.custodioCorreo`) y el mock de desarrollo (24 entradas).
+- `ExpedienteResumenCards` y `ViajeCard`: el respaldo del nombre del custodio es ahora el **correo sin formatear** (un correo no es un teléfono; formatearlo produciría basura). La tarjeta "Custodio asignado" muestra el correo como subtítulo.
+- Se eliminó `src/lib/formato/telefono.ts` y su prueba: su único consumidor era `ExpedienteResumenCards`, y la identidad ya no es un teléfono.
+- Se actualizaron las pruebas de `ExpedienteResumenCards`/`ExpedienteHeader` al contrato nuevo; el caso de respaldo verifica que el correo se muestra sin formatear.
+- Comentarios de `custodios.ts` alineados (`custodioCorreo`, respaldo al correo).
+
+**Verificación:** `npm test` 78/78 (14 archivos), `eslint` limpio en los archivos tocados. `npm run typecheck` reporta 2 errores preexistentes ajenos a este cambio (`ExpedienteGaleria.tsx` y `GaleriaSection.tsx`, `truncate` en `BadgeConfig`), en archivos no tocados por esta tarea.
+
+**Archivos modificados:**
+
+- `src/lib/datos/tipos.ts`
+- `src/lib/datos/viajesFirestore.ts`
+- `src/lib/datos/viajesMock.ts`
+- `src/lib/datos/custodios.ts`
+- `src/features/expediente/ExpedienteResumenCards.tsx`
+- `src/features/expediente/ExpedienteResumenCards.test.tsx`
+- `src/features/expediente/ExpedienteHeader.test.tsx`
+- `src/features/viajes/ViajeCard.tsx`
+- `src/lib/formato/telefono.ts` (eliminado)
+- `src/lib/formato/telefono.test.ts` (eliminado)
+- `CHANGELOG.md`
+
 ## 2026:09:25 19:30 — Desbloquear CI y normalizar finales de línea (rama `chore/format-check-ci-fix`)
 
 **Resumen:** `pnpm run format:check` —el primer paso del workflow de CI— volvía a marcar archivos en rojo en cada rama nueva, aun después de correr `pnpm format` y mergear. La causa raíz es de finales de línea: en Windows, `core.autocrlf=true` materializa el árbol de trabajo como CRLF, mientras que Prettier exige LF por defecto (`endOfLine: "lf"`), así que cada checkout fresco reintroducía el rojo. Se agrega `.gitattributes` que fija `eol=lf` para todo el texto, se renormaliza el árbol y se moderniza el hook de pre-commit de husky.
