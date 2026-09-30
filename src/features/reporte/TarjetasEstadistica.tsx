@@ -1,18 +1,18 @@
-import { Camera, TriangleAlert, Truck } from 'lucide-react';
+import { Camera, ShieldCheck, TriangleAlert, Truck } from 'lucide-react';
 
 import type { EstadisticasReporte } from '@/lib/datos/metricas';
 
 import { TarjetaEstadistica } from './TarjetaEstadistica';
 
 /**
- * La fila de estadísticas de la cabecera del reporte: viajes auditados, incidencias y
- * evidencias fotográficas.
+ * La fila de cuatro estadísticas de la cabecera del reporte: viajes auditados,
+ * incidencias, evidencias fotográficas y efectividad de custodia.
  */
 export function TarjetasEstadistica({ estadisticas }: { estadisticas: EstadisticasReporte }) {
   return (
     <section
       aria-label="Estadísticas generales del periodo"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
     >
       <TarjetaEstadistica
         titulo="Viajes auditados"
@@ -29,6 +29,11 @@ export function TarjetasEstadistica({ estadisticas }: { estadisticas: Estadistic
         titulo="Evidencias fotográficas"
         estadistica={estadisticas.evidenciasFotograficas}
         Icono={Camera}
+      />
+      <TarjetaEstadistica
+        titulo="Efectividad de custodia"
+        estadistica={estadisticas.efectividadCustodia}
+        Icono={ShieldCheck}
       />
     </section>
   );
