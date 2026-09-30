@@ -28,12 +28,26 @@ function GraficaEsqueleto() {
   );
 }
 
-/** Esqueleto de toda la vista. */
+/** Bloque de una tabla en carga. */
+function TablaEsqueleto() {
+  return (
+    <div className="border-border bg-surface animate-pulse rounded-lg border p-4">
+      <div className="bg-surface-high h-3 w-1/4 rounded" />
+      <div className="mt-4 space-y-2">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="bg-surface-high h-6 w-full rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Esqueleto de toda la vista: tres tarjetas, las dos gráficas y las dos tablas. */
 export function ReporteCargando() {
   return (
     <div className="space-y-8 px-8 py-6" aria-busy="true" aria-live="polite">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }, (_, i) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }, (_, i) => (
           <TarjetaEsqueleto key={i} />
         ))}
       </div>
@@ -41,6 +55,8 @@ export function ReporteCargando() {
         <GraficaEsqueleto />
         <GraficaEsqueleto />
       </div>
+      <TablaEsqueleto />
+      <TablaEsqueleto />
     </div>
   );
 }
