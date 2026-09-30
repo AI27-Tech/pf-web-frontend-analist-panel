@@ -2,6 +2,25 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:30 17:35 — Agregar favicon del panel (rama `feat/add-favicon`)
+
+**Resumen:** el panel no tenía favicon; el `index.html` no declaraba ningún ícono. Se agrega el ícono de AI27 (la "e" con las ondas) en `public/favicon.ico` y se referencia desde el `<head>`. Al ser un proyecto Vite, el archivo vive en `public/` y se sirve desde la raíz (`/favicon.ico`).
+
+**Cambios:**
+
+- Se agregó `public/favicon.ico` (el ícono de marca de AI27).
+- `index.html`: se añadió `<link rel="icon" type="image/x-icon" href="/favicon.ico" />` en el `<head>`.
+
+**Verificación:** `pnpm build` compila sin errores; `favicon.ico` se copia a `dist/`. Se comprobó por HTTP que tanto `pnpm dev` como `pnpm preview` sirven `/favicon.ico` con `200 image/x-icon` y que el HTML entrega la etiqueta del ícono intacta. Verificado en el navegador (ventana de incógnito).
+
+**Nota:** el `.ico` contiene una sola imagen de 256×256. Se sirve correctamente; si a futuro se busca máxima compatibilidad de repintado en la pestaña, conviene un PNG grande o un `.ico` multi-tamaño (16/32/48). No bloqueante.
+
+**Archivos modificados:**
+
+- `public/favicon.ico` (agregado)
+- `index.html`
+- `CHANGELOG.md`
+
 ## 2026:09:28 18:44 — Contrato del custodio por correo (EMAIL_AUTH): `custodioTelefono` → `custodioCorreo`
 
 **Resumen:** la identidad del custodio migró de teléfono (SMS OTP) a correo + contraseña en toda la plataforma. El reporte ahora trae `custodioCorreo` en vez de `custodioTelefono`, así que el panel se alinea al contrato nuevo: se renombra el campo del tipo `Viaje`, el mapeo de Firestore lee `custodioCorreo`, y la UI muestra el correo tal cual donde antes formateaba el teléfono. El teléfono deja de mostrarse (queda solo como dato informativo en `usuarios/{uid}`, que el panel no necesita surfacear), así que el formateo de teléfono se retira por código muerto.
