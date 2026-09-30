@@ -16,7 +16,7 @@ import type {
   PuntoCategoria,
   PuntoSerie,
 } from './metricas';
-import type { Viaje } from './tipos';
+import type { EstadisticaCustodio, EstadisticaUnidad, FilaViaje, Viaje } from './tipos';
 import { viajesEstaticos } from './viajesMock';
 import type { RangoFechas } from '@/lib/formato/fechas';
 
@@ -60,16 +60,6 @@ function conNovedad(viajes: Viaje[]): number {
   return viajes.filter((viaje) => viaje.isUpdated).length;
 }
 
-/** Efectividad de custodia sobre los viajes CERRADOS: fracción de cerrados sin novedad.
- *  Se mide sólo sobre viajes terminados, `null` si no hay ninguno cerrado en el periodo.
- */
-function efectividad(viajes: Viaje[]): number | null {
-  const cerrados = viajes.filter((viaje) => viaje.ciclo === 'CERRADO');
-  if (cerrados.length === 0) return null;
-  const limpios = cerrados.filter((viaje) => !viaje.isUpdated).length;
-  return limpios / cerrados.length;
-}
-
 function estadisticas(periodo: RangoFechas): EstadisticasReporte {
   const actuales = viajesDelPeriodo(periodo);
   const previos = viajesDelPeriodo(periodoAnterior(periodo));
@@ -82,9 +72,6 @@ function estadisticas(periodo: RangoFechas): EstadisticasReporte {
 
   const fotosA = totalFotos(actuales);
   const fotosP = totalFotos(previos);
-
-  const efectividadA = efectividad(actuales);
-  const efectividadP = efectividad(previos);
 
   return {
     viajesAuditados: {
@@ -102,12 +89,71 @@ function estadisticas(periodo: RangoFechas): EstadisticasReporte {
       delta: delta(fotosA, fotosP),
       contexto: 'archivos capturados en ruta',
     },
-    efectividadCustodia: {
-      valor: efectividadA === null ? '—' : `${(efectividadA * 100).toFixed(1)}%`,
-      delta: efectividadA === null || efectividadP === null ? null : efectividadA - efectividadP,
-      contexto: 'viajes cerrados sin novedad',
-    },
   };
+}
+
+/**
+ * Nombre visible de un custodio en el mock: `custodioName` si el viaje lo trae, o el
+ * correo, o el uid. Espeja el fallback de `obtenerNombresCustodios` sin tocar Firestore.
+ */
+function nombreCustodioMock(viaje: Viaje): string {
+  return viaje.custodioName ?? viaje.custodioCorreo ?? viaje.custodioUid;
+}
+
+/**
+ * Estadísticas por custodio sobre el arreglo estático. Cada viaje del mock tiene un solo
+ * custodio, y los conteos de fotos/audios salen de `viaje.fotos`/`viaje.audios` (no hay
+ * colección `medios` en desarrollo). Ordenado por total de medios descendente, igual que
+ * el orden por defecto de la tabla.
+ */
+function porCustodio(periodo: RangoFechas): EstadisticaCustodio[] {
+  const viajes = viajesDelPeriodo(periodo);
+  const porUid = new Map<string, EstadisticaCustodio>();
+  for (const viaje of viajes) {
+    const uid = viaje.custodioUid;
+    if (uid === '') continue;
+    const previa = porUid.get(uid);
+    if (previa) {
+      previa.viajes += 1;
+      previa.fotos += viaje.fotos;
+      previa.audios += viaje.audios;
+    } else {
+      porUid.set(uid, {
+        uid,
+        nombre: nombreCustodioMock(viaje),
+        viajes: 1,
+        fotos: viaje.fotos,
+        audios: viaje.audios,
+      });
+    }
+  }
+  return [...porUid.values()].sort((a, b) => b.fotos + b.audios - (a.fotos + a.audios));
+}
+
+/** Registro por viaje sobre el arreglo estático: una fila por viaje del periodo. */
+function porViaje(periodo: RangoFechas): FilaViaje[] {
+  return viajesDelPeriodo(periodo).map((viaje) => ({
+    id: viaje.id,
+    placas: viaje.placas,
+    custodios: [nombreCustodioMock(viaje)],
+    fechaLocal: viaje.fechaLocal,
+    fotos: viaje.fotos,
+    audios: viaje.audios,
+    ciclo: viaje.ciclo,
+    hayNovedad: viaje.isUpdated,
+  }));
+}
+
+/** Viajes por unidad (placa) sobre el arreglo estático, ordenado por viajes descendente. */
+function porUnidad(periodo: RangoFechas): EstadisticaUnidad[] {
+  const porPlaca = new Map<string, number>();
+  for (const viaje of viajesDelPeriodo(periodo)) {
+    if (viaje.placas === '') continue;
+    porPlaca.set(viaje.placas, (porPlaca.get(viaje.placas) ?? 0) + 1);
+  }
+  return [...porPlaca.entries()]
+    .map(([placas, viajes]) => ({ placas, viajes }))
+    .sort((a, b) => b.viajes - a.viajes);
 }
 
 /** Hora del día (0–23) en zona de México a partir de un instante. */
@@ -200,5 +246,8 @@ export function obtenerMetricasMock(periodo: RangoFechas): Promise<Metricas> {
     periodo,
     estadisticas: estadisticas(periodo),
     graficas: graficas(periodo),
+    porCustodio: porCustodio(periodo),
+    porViaje: porViaje(periodo),
+    porUnidad: porUnidad(periodo),
   });
 }
