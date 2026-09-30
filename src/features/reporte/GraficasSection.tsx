@@ -3,8 +3,7 @@ import type { GraficasReporte } from '@/lib/datos/metricas';
 import { GraficaCapturasPorHora, GraficaDescartes, GraficaGbAcumulados } from './graficas/Graficas';
 
 /**
- * Banda de gráficas del apartado Sistema: cobertura, descartes y volumen de evidencia del
- * periodo. Información operativa/técnica, separada del reporte del analista.
+ * Banda de gráficas del reporte.
  */
 export function GraficasSection({ graficas }: { graficas: GraficasReporte }) {
   return (

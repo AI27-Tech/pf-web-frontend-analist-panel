@@ -101,35 +101,9 @@
     width: 100% !important;
   }
 
-  /* Los SVG de las gráficas conservan sus colores de DATO (barras, líneas, sectores)
-   * en el PDF. */
+  /* Los SVG de las gráficas conservan sus colores en el PDF. */
   .reporte-imprimible svg {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
-  }
-
-  /*
-   * El texto de las gráficas (ejes, ticks, leyenda) se pinta con tokens de tema que en
-   * Nocturne (dark-first) son CLAROS; sobre el fondo blanco del PDF quedan ilegibles.
-   * Aquí se fuerza ese texto a un tono oscuro, sin tocar los colores de dato de las
-   * barras/líneas/sectores (que viven en <path>/<rect>, no en <text>).
-   *
-   * `recharts-text` cubre ejes y etiquetas; `recharts-legend-item-text` la leyenda de la
-   * dona. Se apunta al `fill` porque el texto SVG se colorea con `fill`, no con `color`.
-   */
-  .reporte-imprimible .recharts-text,
-  .reporte-imprimible .recharts-cartesian-axis-tick-value,
-  .reporte-imprimible .recharts-cartesian-axis-tick-value tspan {
-    fill: #1a2130 !important;
-  }
-
-  .reporte-imprimible .recharts-legend-item-text {
-    color: #1a2130 !important;
-  }
-
-  /* Rejilla y ejes con un gris que sí contraste sobre blanco. */
-  .reporte-imprimible .recharts-cartesian-grid line,
-  .reporte-imprimible .recharts-cartesian-axis line {
-    stroke: #cbd2dc !important;
   }
 }

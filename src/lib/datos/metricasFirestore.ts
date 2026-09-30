@@ -31,7 +31,6 @@ import {
 
 import { firestore } from '@/lib/firebase/cliente';
 
-import { obtenerNombresCustodios } from './custodios';
 import { folioDePeriodo } from './metricas';
 import type {
   EstadisticasReporte,
@@ -40,7 +39,6 @@ import type {
   PuntoCategoria,
   PuntoSerie,
 } from './metricas';
-import type { CicloViaje, EstadisticaCustodio, EstadisticaUnidad, FilaViaje } from './tipos';
 import type { RangoFechas } from '@/lib/formato/fechas';
 
 const ZONA = 'America/Mexico_City';
@@ -52,13 +50,9 @@ const TOPE = 5000;
 
 /** Forma mínima de un reporte que las métricas necesitan, ya normalizada. */
 interface ReporteLite {
-  id: string;
   ciclo: string;
   hayNovedad: boolean;
   motivoDescarte: string | null;
-  custodioUid: string;
-  placas: string;
-  fechaLocal: string;
 }
 
 /** Forma mínima de un medio que las métricas necesitan, ya normalizada. */
@@ -67,8 +61,6 @@ interface MedioLite {
   fechaLocal: string;
   sizeBytes: number;
   capturadoEn: Date | null;
-  viajeId: string;
-  custodioUid: string;
 }
 
 /** Fracción de cambio entre dos cantidades; `null` si no hay base con la que comparar. */
@@ -103,15 +95,11 @@ function rango(coleccion: string, periodo: RangoFechas): Query {
   );
 }
 
-function aReporteLite(id: string, d: DocumentData): ReporteLite {
+function aReporteLite(d: DocumentData): ReporteLite {
   return {
-    id,
     ciclo: typeof d.ciclo === 'string' ? d.ciclo : 'ACTIVO',
     hayNovedad: d.hayNovedad === true,
     motivoDescarte: typeof d.motivoDescarte === 'string' ? d.motivoDescarte : null,
-    custodioUid: typeof d.custodioUid === 'string' ? d.custodioUid : '',
-    placas: typeof d.placas === 'string' ? d.placas : '',
-    fechaLocal: typeof d.fechaLocal === 'string' ? d.fechaLocal : '',
   };
 }
 
@@ -121,16 +109,12 @@ function aMedioLite(d: DocumentData): MedioLite {
     fechaLocal: typeof d.fechaLocal === 'string' ? d.fechaLocal : '',
     sizeBytes: typeof d.sizeBytes === 'number' ? d.sizeBytes : 0,
     capturadoEn: d.createdAtDevice?.toDate?.() ?? null,
-    // El vínculo al viaje se llama `reporteId` en el contrato del productor, igual que
-    // en `medios.ts` (mapper de la galería/expediente). NO es `viajeId`.
-    viajeId: typeof d.reporteId === 'string' ? d.reporteId : '',
-    custodioUid: typeof d.custodioUid === 'string' ? d.custodioUid : '',
   };
 }
 
 async function traerReportes(periodo: RangoFechas): Promise<ReporteLite[]> {
   const snap = await getDocs(rango('reportes', periodo));
-  return snap.docs.map((doc) => aReporteLite(doc.id, doc.data()));
+  return snap.docs.map((doc) => aReporteLite(doc.data()));
 }
 
 async function traerMedios(periodo: RangoFechas): Promise<MedioLite[]> {
@@ -164,6 +148,17 @@ function estadisticas(
   const fotosA = mediosA.filter((m) => m.tipo === 'FOTO').length;
   const fotosP = mediosP.filter((m) => m.tipo === 'FOTO').length;
 
+  const cerradosA = reportesA.filter((r) => r.ciclo === 'CERRADO');
+  const cerradosP = reportesP.filter((r) => r.ciclo === 'CERRADO');
+  const efectividadA =
+    cerradosA.length === 0
+      ? null
+      : cerradosA.filter((r) => !r.hayNovedad).length / cerradosA.length;
+  const efectividadP =
+    cerradosP.length === 0
+      ? null
+      : cerradosP.filter((r) => !r.hayNovedad).length / cerradosP.length;
+
   return {
     viajesAuditados: {
       valor: enteros.format(auditadosA),
@@ -180,119 +175,12 @@ function estadisticas(
       delta: delta(fotosA, fotosP),
       contexto: 'archivos capturados en ruta',
     },
+    efectividadCustodia: {
+      valor: efectividadA === null ? '—' : `${(efectividadA * 100).toFixed(1)}%`,
+      delta: efectividadA === null || efectividadP === null ? null : efectividadA - efectividadP,
+      contexto: 'viajes cerrados sin novedad',
+    },
   };
-}
-
-/**
- * Estadísticas por custodio: una fila por `custodioUid` que aparezca en los reportes o
- * medios del periodo. Los viajes se cuentan por `custodioUid` del reporte; las fotos y
- * audios por `custodioUid` del medio. El nombre se resuelve una sola vez fuera de aquí.
- */
-function agruparPorCustodio(
-  reportes: ReporteLite[],
-  medios: MedioLite[],
-  nombres: Map<string, string>,
-): EstadisticaCustodio[] {
-  const porUid = new Map<string, { viajes: Set<string>; fotos: number; audios: number }>();
-  const asegurar = (uid: string) => {
-    let entrada = porUid.get(uid);
-    if (!entrada) {
-      entrada = { viajes: new Set(), fotos: 0, audios: 0 };
-      porUid.set(uid, entrada);
-    }
-    return entrada;
-  };
-
-  for (const r of reportes) {
-    if (r.custodioUid === '') continue;
-    asegurar(r.custodioUid).viajes.add(r.id);
-  }
-  for (const m of medios) {
-    if (m.custodioUid === '') continue;
-    const entrada = asegurar(m.custodioUid);
-    if (m.tipo === 'FOTO') entrada.fotos += 1;
-    else if (m.tipo === 'AUDIO') entrada.audios += 1;
-  }
-
-  return [...porUid.entries()].map(([uid, datos]) => ({
-    uid,
-    nombre: nombres.get(uid) ?? uid,
-    viajes: datos.viajes.size,
-    fotos: datos.fotos,
-    audios: datos.audios,
-  }));
-}
-
-/**
- * Registro por viaje: una fila por reporte del periodo. Los medios agregan sus conteos y
- * pueden sumar custodios adicionales (misma placa, distinto custodio en distintos
- * momentos), así que `custodios` es el conjunto de todos los que participaron.
- */
-function agruparPorViaje(
-  reportes: ReporteLite[],
-  medios: MedioLite[],
-  nombres: Map<string, string>,
-): FilaViaje[] {
-  const porViaje = new Map<
-    string,
-    {
-      placas: string;
-      custodios: Set<string>;
-      fechaLocal: string;
-      fotos: number;
-      audios: number;
-      ciclo: CicloViaje;
-      hayNovedad: boolean;
-    }
-  >();
-
-  for (const r of reportes) {
-    const ciclo: CicloViaje =
-      r.ciclo === 'CERRADO' || r.ciclo === 'DESCARTADO' ? r.ciclo : 'ACTIVO';
-    porViaje.set(r.id, {
-      placas: r.placas,
-      custodios: new Set(r.custodioUid === '' ? [] : [r.custodioUid]),
-      fechaLocal: r.fechaLocal,
-      fotos: 0,
-      audios: 0,
-      ciclo,
-      hayNovedad: r.hayNovedad,
-    });
-  }
-
-  for (const m of medios) {
-    const v = porViaje.get(m.viajeId);
-    if (!v) continue;
-    if (m.tipo === 'FOTO') v.fotos += 1;
-    else if (m.tipo === 'AUDIO') v.audios += 1;
-    if (m.custodioUid !== '') v.custodios.add(m.custodioUid);
-  }
-
-  return [...porViaje.entries()].map(([id, v]) => ({
-    id,
-    placas: v.placas,
-    custodios: [...v.custodios].map((uid) => nombres.get(uid) ?? uid),
-    fechaLocal: v.fechaLocal,
-    fotos: v.fotos,
-    audios: v.audios,
-    ciclo: v.ciclo,
-    hayNovedad: v.hayNovedad,
-  }));
-}
-
-/**
- * Viajes por unidad (placa): cuenta cuántos reportes del periodo tiene cada placa.
- * Los reportes sin placa registrada se omiten. Ordenado por número de viajes descendente.
- */
-function agruparPorUnidad(reportes: ReporteLite[]): EstadisticaUnidad[] {
-  const porPlaca = new Map<string, number>();
-  for (const r of reportes) {
-    if (r.placas === '') continue;
-    porPlaca.set(r.placas, (porPlaca.get(r.placas) ?? 0) + 1);
-  }
-  return [...porPlaca.entries()]
-    .map(([placas, viajes]) => ({ placas, viajes }))
-    .sort((a, b) => b.viajes - a.viajes);
 }
 
 /** Descartes agrupados por su motivo, desde los reportes DESCARTADOS del periodo. */
@@ -351,19 +239,10 @@ export async function obtenerMetricasFirestore(periodo: RangoFechas): Promise<Me
     traerMedios(previo),
   ]);
 
-  // Nombres de custodio resueltos UNA sola vez sobre el conjunto de uids del periodo
-  // actual (reportes + medios). `obtenerNombresCustodios` deduplica y siempre devuelve
-  // una cadena (nombre → teléfono → uid), así que ninguna tabla queda con celda vacía.
-  const uids = [...reportesA.map((r) => r.custodioUid), ...mediosA.map((m) => m.custodioUid)];
-  const nombres = await obtenerNombresCustodios(uids);
-
   return {
     folio: folioDePeriodo(periodo),
     periodo,
     estadisticas: estadisticas(reportesA, reportesP, mediosA, mediosP),
     graficas: graficas(reportesA, mediosA),
-    porCustodio: agruparPorCustodio(reportesA, mediosA, nombres),
-    porViaje: agruparPorViaje(reportesA, mediosA, nombres),
-    porUnidad: agruparPorUnidad(reportesA),
   };
 }
