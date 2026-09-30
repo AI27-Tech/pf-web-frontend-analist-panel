@@ -12,12 +12,14 @@ import { ExpedienteResumenCards } from './ExpedienteResumenCards';
 export interface ExpedienteDetalleProps {
   viaje: Viaje;
   medios: Medio[];
+  mediosError?: string | null;
   cargandoMedios?: boolean;
 }
 
 export function ExpedienteDetalle({
   viaje,
   medios,
+  mediosError = null,
   cargandoMedios = false,
 }: ExpedienteDetalleProps) {
   return (
@@ -26,7 +28,7 @@ export function ExpedienteDetalle({
 
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-8 py-6">
         <ExpedienteResumenCards viaje={viaje} />
-        <ExpedienteGaleria medios={medios} cargando={cargandoMedios} />
+        <ExpedienteGaleria medios={medios} mediosError={mediosError} cargando={cargandoMedios} />
       </div>
     </div>
   );

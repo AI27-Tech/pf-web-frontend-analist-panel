@@ -56,6 +56,7 @@ export interface Medio {
   duracionMs: number | null;
   placas: string;
   custodioUid: string;
+  custodioNombre?: string;
   fechaLocal: string;
 }
 
@@ -94,6 +95,41 @@ export interface Viaje {
   etiquetas: string[];
   fotos: number;
   audios: number;
+}
+
+/** Estadísticas de un custodio en el periodo, para la tabla «Estadísticas por custodio»
+ *  del reporte. Una fila por `custodioUid` que aparezca en los reportes o medios del
+ *  periodo. El total de medios (fotos + audios) se calcula en la UI. */
+export interface EstadisticaCustodio {
+  uid: string;
+  /** Nombre resuelto desde `usuarios/{uid}`, o teléfono/uid como respaldo. */
+  nombre: string;
+  viajes: number;
+  fotos: number;
+  audios: number;
+}
+
+/** Fila de la tabla «Registro por viaje» del reporte: un viaje del periodo con sus
+ *  conteos de medios y los custodios que participaron. */
+export interface FilaViaje {
+  id: string;
+  placas: string;
+  /** Nombres resueltos de los custodios que participaron en el viaje. */
+  custodios: string[];
+  fechaLocal: string;
+  fotos: number;
+  audios: number;
+  ciclo: CicloViaje;
+  /** `true` si el viaje tiene novedad (incidencia). Permite recalcular la tarjeta de
+   *  incidencias cuando el reporte se filtra. */
+  hayNovedad: boolean;
+}
+
+/** Estadísticas de una unidad (placa) en el periodo, para la gráfica «viajes por unidad».
+ *  Una entrada por placa distinta que aparezca en los reportes del periodo. */
+export interface EstadisticaUnidad {
+  placas: string;
+  viajes: number;
 }
 
 /** Categoría de una etiqueta del catálogo (pf-app-custodio §5.1). */

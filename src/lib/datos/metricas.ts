@@ -7,6 +7,7 @@
  */
 
 import { obtenerMetricasMock } from './metricasMock';
+import type { EstadisticaCustodio, EstadisticaUnidad, FilaViaje } from './tipos';
 import type { RangoFechas } from '@/lib/formato/fechas';
 
 const usarMock = import.meta.env.VITE_DATOS_MOCK === 'true';
@@ -23,12 +24,11 @@ export interface Estadistica {
   contexto: string;
 }
 
-/** Las cuatro estadísticas de la cabecera. */
+/** Las estadísticas de la cabecera del reporte. */
 export interface EstadisticasReporte {
   viajesAuditados: Estadistica;
   incidenciasRegistradas: Estadistica;
   evidenciasFotograficas: Estadistica;
-  efectividadCustodia: Estadistica;
 }
 
 /** Un punto de una serie categórica (barras, pastel). */
@@ -60,6 +60,12 @@ export interface Metricas {
   periodo: RangoFechas;
   estadisticas: EstadisticasReporte;
   graficas: GraficasReporte;
+  /** Desglose por custodio: una fila por `custodioUid` del periodo. */
+  porCustodio: EstadisticaCustodio[];
+  /** Registro por viaje: una fila por viaje del periodo. */
+  porViaje: FilaViaje[];
+  /** Desglose por unidad (placa): una entrada por placa distinta del periodo. */
+  porUnidad: EstadisticaUnidad[];
 }
 
 export function obtenerMetricas(periodo: RangoFechas): Promise<Metricas> {

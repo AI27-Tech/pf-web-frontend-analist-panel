@@ -2,6 +2,122 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:09:25 19:30 — Desbloquear CI y normalizar finales de línea (rama `chore/format-check-ci-fix`)
+
+**Resumen:** `pnpm run format:check` —el primer paso del workflow de CI— volvía a marcar archivos en rojo en cada rama nueva, aun después de correr `pnpm format` y mergear. La causa raíz es de finales de línea: en Windows, `core.autocrlf=true` materializa el árbol de trabajo como CRLF, mientras que Prettier exige LF por defecto (`endOfLine: "lf"`), así que cada checkout fresco reintroducía el rojo. Se agrega `.gitattributes` que fija `eol=lf` para todo el texto, se renormaliza el árbol y se moderniza el hook de pre-commit de husky.
+
+**Cambios:**
+
+- Se agregó `.gitattributes` con `* text=auto eol=lf` (más los binarios marcados como `binary`). Con esto git escribe LF en el árbol de trabajo sin importar `core.autocrlf`, así que Prettier y el runner Linux de CI ven exactamente el mismo contenido que el blob. Es la corrección permanente del rojo recurrente de `format:check`.
+- `.husky/pre-commit` se reduce a una sola línea (`pnpm lint-staged`). Se retiraron el shebang `#!/bin/sh` y la línea `. "$(dirname "$0")/_/husky.sh"`, deprecadas en husky 9 y que en husky 10 hacen fallar el hook.
+- Se renormalizaron los finales de línea del árbol de trabajo a LF (sin cambios de contenido: `git diff --ignore-cr-at-eol` no reporta diferencias reales fuera de los archivos anteriores).
+
+**Archivos modificados:**
+
+- `.gitattributes` (nuevo)
+- `.husky/pre-commit`
+- `CHANGELOG.md`
+
+## 2026:09:25 18:02 — Corregir `auth/invalid-api-key`: versionar `.env.production`
+
+**Resumen:** el sitio desplegado cargaba pero fallaba con `FirebaseError: auth/invalid-api-key`. Causa: la config del SDK web (`VITE_FIREBASE_*`) se inyecta en tiempo de build desde `.env`, que es por máquina y no se versiona, así que el build de GitHub Actions compilaba con `apiKey` vacío. Se agregó `.env.production` (versionado) con los valores del SDK web, que Vite carga automáticamente en `vite build`. Estos valores no son secretos: identifican el proyecto y viajan en el bundle del cliente de todos modos; la autorización vive en las reglas de Firestore/Storage.
+
+**Cambios:**
+
+- Se creó `.env.production` con la config del SDK web de Firebase del proyecto `custodio-906e7268`.
+- Se desidignoró `.env.production` en `.gitignore` (junto a `.env.example` y `.env.test`).
+
+**Verificación:** build de producción con el `.env` local apartado (simulando el runner de CI): el `apiKey` queda incrustado en `dist/assets/cliente-*.js`.
+
+**Archivos modificados:**
+
+- `.env.production`
+- `.gitignore`
+
+## 2026:09:25 17:41 — Eliminar la configuración muerta de App Hosting
+
+**Resumen:** tras migrar el despliegue a Firebase Hosting y eliminar el backend de App Hosting (que fallaba esperando un servidor en `PORT=8080`), se elimina `apphosting.yaml` del repo por quedar sin uso. El `.npmrc` y su expansión del token se conservan porque siguen haciendo falta para instalar `@ai27-tech/ui` en el build local y en CI.
+
+**Cambios:**
+
+- Se eliminó `apphosting.yaml` (config del backend de App Hosting, ya borrado).
+
+**Archivos modificados:**
+
+- `apphosting.yaml` (eliminado)
+
+## 2026:09:25 17:43 — CI/CD: despliegue automático a Firebase Hosting
+
+**Resumen:** se agregó un workflow de GitHub Actions que compila y despliega el panel a Firebase Hosting (canal live) en cada push a `pf-wfap-m`, recuperando el despliegue automático que tenía App Hosting pero por la vía estática correcta. Usa la acción oficial `FirebaseExtended/action-hosting-deploy` con una cuenta de servicio guardada en el secreto `FIREBASE_SERVICE_ACCOUNT`. De paso se corrigió el workflow de CI, cuyo `pnpm install` también necesitaba `PNPM_CONFIG_NPMRC_AUTH_FILE` para autenticar contra GitHub Packages con pnpm 12.3.4.
+
+**Cambios:**
+
+- Se creó `.github/workflows/deploy.yml`: install (con auth de GitHub Packages) → build → deploy a Hosting canal live del proyecto `custodio-906e7268`.
+- Se agregó `PNPM_CONFIG_NPMRC_AUTH_FILE=.npmrc` al paso de instalación de `.github/workflows/ci.yml`.
+
+**Archivos modificados:**
+
+- `.github/workflows/deploy.yml`
+- `.github/workflows/ci.yml`
+
+## 2026:09:25 17:34 — Migrar el despliegue a Firebase Hosting (SPA estática)
+
+**Resumen:** el build de App Hosting ya compilaba, pero el rollout fallaba porque el contenedor no escuchaba en `PORT=8080`: el panel es una SPA de Vite sin servidor, y App Hosting (pensado para Angular/Next.js) esperaba un proceso servidor. Como el panel es 100% cliente, se migró el despliegue a Firebase Hosting, que sirve archivos estáticos desde CDN sin contenedor. Se agregó el bloque `hosting` a `firebase.json` con `public: dist` y un rewrite de SPA (todas las rutas → `/index.html`) para que el enrutado en cliente de TanStack Router resuelva los enlaces profundos.
+
+**Cambios:**
+
+- Se agregó el bloque `hosting` a `firebase.json`: `public: "dist"`, `ignore` estándar y rewrite `**` → `/index.html`.
+
+**Verificación:** build local con pnpm 12.3.4 correcto; probado con el emulador de Hosting: `/` y rutas profundas como `/viajes/abc123` devuelven `index.html` (200), y los assets se sirven como archivo con su MIME correcto.
+
+**Archivos modificados:**
+
+- `firebase.json`
+
+## 2026:09:25 17:30 — Causa raíz del 401 en el build: pnpm ignora ${VAR} en el .npmrc
+
+**Resumen:** se identificó y corrigió la verdadera causa del `401 Unauthorized` al instalar `@ai27-tech/ui` en el build de App Hosting. Desde pnpm v11.5.3 (el repo usa 12.3.4), pnpm **no expande `${...}` en las líneas de credencial del `.npmrc` del proyecto** por seguridad (GHSA-3qhv-2rgh-x77r), así que el token se ignoraba en silencio y la petición viajaba sin autenticación. Se agregó la variable `PNPM_CONFIG_NPMRC_AUTH_FILE=.npmrc` en `apphosting.yaml`, que indica a pnpm que trate el `.npmrc` del repo como archivo de auth de confianza y vuelva a expandir el token. Verificado localmente con pnpm 12.3.4: sin la variable el install da 401; con ella instala correctamente.
+
+**Cambios:**
+
+- Se agregó `PNPM_CONFIG_NPMRC_AUTH_FILE=.npmrc` (availability BUILD) en `apphosting.yaml`.
+- Se revirtieron las líneas `always-auth` del `.npmrc` (no aplicaban a este problema); el archivo vuelve a su forma mínima con la expansión de `${GH_PACKAGES_TOKEN}`.
+
+**Archivos modificados:**
+
+- `apphosting.yaml`
+- `.npmrc`
+
+## 2026:09:25 17:11 — Forzar always-auth en la descarga de GitHub Packages
+
+**Resumen:** tras resolver el secreto, el build de App Hosting seguía dando `401 Unauthorized` al instalar `@ai27-tech/ui`. La causa: pnpm enviaba el token en la petición de metadata pero no en la descarga del tarball (`npm.pkg.github.com/download/...`). Se agregó `always-auth=true` al `.npmrc` para forzar el token en todas las peticiones al host. Se verificó instalando el paquete con el token real (descarga del tarball incluida).
+
+**Cambios:**
+
+- Se agregaron `//npm.pkg.github.com/:always-auth=true` y `always-auth=true` al `.npmrc` versionado.
+
+**Archivos modificados:**
+
+- `.npmrc`
+
+## 2026:09:25 16:49 — Acceso a GitHub Packages en el build de Firebase App Hosting
+
+**Resumen:** el despliegue en Firebase App Hosting fallaba con `401 Unauthorized` al instalar dependencias, porque el build en la nube no tenía credenciales para `@ai27-tech/ui` en GitHub Packages. Se agregó un `.npmrc` versionado sin token (lee la credencial de la variable de entorno `GH_PACKAGES_TOKEN`), un `apphosting.yaml` que inyecta esa variable desde Secret Manager durante el build, y se alineó el workflow de CI al mismo esquema.
+
+**Cambios:**
+
+- Se creó `apphosting.yaml` con la configuración de App Hosting: expone `GH_PACKAGES_TOKEN` (desde el secreto homónimo en Secret Manager) como variable de entorno disponible en el build.
+- Se creó un `.npmrc` versionado que apunta el scope `@ai27-tech` a `https://npm.pkg.github.com` y lee el token de `${GH_PACKAGES_TOKEN}`. No contiene el token literal, por eso es seguro versionarlo.
+- Se ajustó `.gitignore` para forzar la inclusión del `.npmrc` versionado (`.npmrc` seguido de `!.npmrc`), manteniendo la protección contra un token literal.
+- Se simplificó el workflow de CI: en lugar de construir el `.npmrc` a mano, `pnpm install` recibe `GH_PACKAGES_TOKEN` como variable de entorno y usa el `.npmrc` del repo.
+
+**Archivos modificados:**
+
+- `apphosting.yaml`
+- `.npmrc`
+- `.gitignore`
+- `.github/workflows/ci.yml`
+
 ## 2026:09:25 16:27 — Correcciones de UI (rama `chore/ui-bugs`)
 
 **Resumen:** dos correcciones de interfaz. La pestaña «Viajes» del menú lateral se apagaba al entrar al detalle de un viaje, y el visor de la galería abría el archivo equivocado cuando había más de una página de resultados. La rama corrige ambos y deja el archivo de la galería con el formato de Prettier.

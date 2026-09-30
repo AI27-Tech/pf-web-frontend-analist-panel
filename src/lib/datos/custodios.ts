@@ -15,7 +15,7 @@ import { doc, getDoc, type DocumentData } from 'firebase/firestore';
 
 import { firestore } from '@/lib/firebase/cliente';
 
-import type { Viaje } from './tipos';
+import type { Viaje, Medio } from './tipos';
 
 /** Vista mínima de un custodio que el panel necesita del directorio `usuarios`. */
 export interface Custodio {
@@ -72,6 +72,26 @@ export async function obtenerCustodios(uids: readonly string[]): Promise<Map<str
 }
 
 /**
+ * Resuelve un mapa `uid → nombre visible` para un conjunto de custodios.
+ *
+ * A diferencia de `obtenerCustodios`, aquí SIEMPRE hay una cadena para cada uid: si el
+ * documento no trae `nombre`, cae al `telefono`, y si tampoco hay teléfono, al propio
+ * `uid`. Así las tablas del reporte nunca muestran una celda vacía en la columna de
+ * custodio (criterio de aceptación #5 de la HU).
+ */
+export async function obtenerNombresCustodios(
+  uids: readonly string[],
+): Promise<Map<string, string>> {
+  const custodios = await obtenerCustodios(uids);
+  const mapa = new Map<string, string>();
+  for (const uid of new Set(uids.filter((u) => u.length > 0))) {
+    const c = custodios.get(uid);
+    mapa.set(uid, c?.nombre ?? c?.telefono ?? uid);
+  }
+  return mapa;
+}
+
+/**
  * Enriquece una lista de viajes con el `custodioName` resuelto desde `usuarios`.
  *
  * No muta los viajes de entrada: devuelve copias con `custodioName` puesto cuando el
@@ -85,5 +105,17 @@ export async function enriquecerConNombres<T extends Pick<Viaje, 'custodioUid'>>
   return viajes.map((viaje) => {
     const nombre = custodios.get(viaje.custodioUid)?.nombre;
     return nombre ? { ...viaje, custodioName: nombre } : { ...viaje };
+  });
+}
+
+/**
+ * Enriquece una lista de medios con el `custodioNombre` resuelto desde `usuarios`.
+ * Similar a enriquecerConNombres pero para el tipo Medio.
+ */
+export async function enriquecerMediosConNombres(medios: readonly Medio[]): Promise<Medio[]> {
+  const custodios = await obtenerCustodios(medios.map((medio) => medio.custodioUid));
+  return medios.map((medio) => {
+    const nombre = custodios.get(medio.custodioUid)?.nombre;
+    return nombre ? { ...medio, custodioNombre: nombre } : { ...medio };
   });
 }

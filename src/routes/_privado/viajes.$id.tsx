@@ -7,7 +7,6 @@ import { obtenerViaje } from '@/lib/datos/viajes';
 
 import { ExpedienteDetalle } from '@/features/expediente/ExpedienteDetalle';
 import { ExpedienteDetalleSkeleton } from '@/features/expediente/ExpedienteDetalleSkeleton';
-import { MEDIOS_MUESTRA_EXPEDIENTE } from '@/features/expediente/provisional';
 
 export const Route = createFileRoute('/_privado/viajes/$id')({
   component: Pantalla_Expediente,
@@ -26,9 +25,14 @@ function Pantalla_Expediente() {
     queryFn: async () => {
       try {
         const medios = await listarMediosDelViaje(id);
-        return medios.length > 0 ? medios : [...MEDIOS_MUESTRA_EXPEDIENTE];
-      } catch {
-        return [...MEDIOS_MUESTRA_EXPEDIENTE];
+        return { medios, error: null };
+      } catch (error) {
+        console.error('[Expediente] Error al listar medios del viaje:', error);
+        const errorMsg =
+          error instanceof Error
+            ? error.message
+            : 'No se pudieron cargar los medios de este viaje.';
+        return { medios: [], error: errorMsg };
       }
     },
     enabled: consultaViaje.data != null,
@@ -57,7 +61,8 @@ function Pantalla_Expediente() {
   return (
     <ExpedienteDetalle
       viaje={consultaViaje.data}
-      medios={consultaMedios.data ?? []}
+      medios={consultaMedios.data?.medios ?? []}
+      mediosError={consultaMedios.data?.error ?? null}
       cargandoMedios={consultaMedios.isPending}
     />
   );

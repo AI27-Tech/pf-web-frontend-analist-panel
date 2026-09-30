@@ -19,13 +19,13 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-      - name: Configure npm registry for GitHub Packages
-        run: |
-          echo "@ai27-tech:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GH_PACKAGES_TOKEN }}" >> .npmrc
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+          # pnpm >= 11.5.3 (usamos 12.3.4) no expande ${...} en el .npmrc del
+          # proyecto por seguridad; esta variable restaura la expansión del token.
+          PNPM_CONFIG_NPMRC_AUTH_FILE: .npmrc
 
       - name: Format check
         run: pnpm run format:check
