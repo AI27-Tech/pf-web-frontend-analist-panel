@@ -72,6 +72,26 @@ export async function obtenerCustodios(uids: readonly string[]): Promise<Map<str
 }
 
 /**
+ * Resuelve un mapa `uid → nombre visible` para un conjunto de custodios.
+ *
+ * A diferencia de `obtenerCustodios`, aquí SIEMPRE hay una cadena para cada uid: si el
+ * documento no trae `nombre`, cae al `telefono` que exponga el directorio, y si tampoco
+ * hay, al propio `uid`. Así las tablas del reporte nunca muestran una celda vacía en la
+ * columna de custodio.
+ */
+export async function obtenerNombresCustodios(
+  uids: readonly string[],
+): Promise<Map<string, string>> {
+  const custodios = await obtenerCustodios(uids);
+  const mapa = new Map<string, string>();
+  for (const uid of new Set(uids.filter((u) => u.length > 0))) {
+    const c = custodios.get(uid);
+    mapa.set(uid, c?.nombre ?? c?.telefono ?? uid);
+  }
+  return mapa;
+}
+
+/**
  * Enriquece una lista de viajes con el `custodioName` resuelto desde `usuarios`.
  *
  * No muta los viajes de entrada: devuelve copias con `custodioName` puesto cuando el
