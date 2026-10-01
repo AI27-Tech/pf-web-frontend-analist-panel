@@ -38,16 +38,16 @@ const columnas: Column<FilaViaje>[] = [
   },
   {
     key: 'placas',
-    header: 'Placas',
+    header: 'Número económico',
     sortable: true,
     cell: (v) => <span className="text-text font-mono font-semibold">{v.placas}</span>,
   },
   {
     key: 'custodios',
-    header: 'Custodio(s)',
+    header: 'Unidad(es)',
     cell: (v) =>
       v.custodios.length === 0 ? (
-        <span className="text-text-muted text-xs">Sin custodio</span>
+        <span className="text-text-muted text-xs">Sin unidad</span>
       ) : (
         <div className="flex flex-wrap gap-1">
           {v.custodios.map((nombre) => (

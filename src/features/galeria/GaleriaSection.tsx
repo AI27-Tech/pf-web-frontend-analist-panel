@@ -106,7 +106,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
     {
       key: 'placa',
-      label: 'Unidad',
+      label: 'Número económico',
       options: [
         { label: 'Todas', value: 'TODO' },
         ...Array.from(new Set(medios.map((m) => m.placas).filter(Boolean)))
@@ -116,7 +116,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
     {
       key: 'custodio',
-      label: 'Custodio',
+      label: 'Unidad',
       options: [
         { label: 'Todos', value: 'TODO' },
         ...Array.from(new Set(medios.map((m) => m.custodioUid).filter(Boolean)))
@@ -248,7 +248,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           showClear={Object.keys(filterValues).length > 0 || searchValue.length > 0}
           searchValue={searchValue}
           onSearchChange={setSearchValue}
-          searchPlaceholder="Buscar en etiqueta, comentario, unidad o custodio..."
+          searchPlaceholder="Buscar en etiqueta, comentario, número económico o unidad..."
           showFilterCount={true}
           showActiveFilterChips={true}
           enableViewToggle={true}
@@ -439,8 +439,8 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
               },
               {
                 key: 'placas',
-                header: 'Unidad',
-                cell: (medio: Medio) => <span>{medio.placas || 'S/UNIDAD'}</span>,
+                header: 'Número económico',
+                cell: (medio: Medio) => <span>{medio.placas || 'S/N.E.'}</span>,
               },
             ]}
             density="compact"

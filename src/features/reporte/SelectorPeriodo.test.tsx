@@ -9,14 +9,17 @@ import { SelectorPeriodo } from './SelectorPeriodo';
 describe('SelectorPeriodo', () => {
   it('marca el atajo activo con aria-pressed', () => {
     render(<SelectorPeriodo seleccion={{ atajo: 'mes' }} onChange={() => {}} />);
-    expect(screen.getByRole('button', { name: 'Mes' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Este mes' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('notifica el atajo elegido', async () => {
     const onChange = vi.fn();
     render(<SelectorPeriodo seleccion={{ atajo: 'mes' }} onChange={onChange} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Semana' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Esta semana' }));
     expect(onChange).toHaveBeenCalledWith({ atajo: 'semana' });
   });
 
