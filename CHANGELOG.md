@@ -2,6 +2,27 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:10:01 — Implementación de filtrado por fechas en galería
+
+**Resumen:** Se implementó filtrado por fechas en la galería del panel analista, integrado dentro de la barra de filtros existente. Por defecto muestra todas las evidencias sin filtro, resolviendo el problema crítico donde al primer día del mes no aparecían evidencias en la galería.
+
+**Cambios:**
+
+- **src/features/galeria/GaleriaSection.tsx**: Se integró filtrado por fechas dentro de la `FilterBar` existente con nuevo filtro "Período" (opciones: "Todos", "Hoy", "Esta semana", "Este mes", "Rango personalizado"). Cuando se selecciona "Rango personalizado", aparecen controles de fecha `desde` y `hasta`. Se reutiliza la función `rangoDeAtajo()` para los atajos predefinidos.
+- **src/routes/\_privado/galeria.tsx**: El loader ahora carga TODOS los medios por defecto (sin filtro de fechas), pasando `desde: ''` y `hasta: ''` a `listarMedios()`.
+- **src/lib/datos/medios.ts**: La función `listarMedios()` ahora solo aplica filtros de fecha cuando los valores no están vacíos (`filtros.desde && filtros.desde.trim() !== ''`), permitiendo el comportamiento "sin filtro".
+- **src/features/galeria/GaleriaFilters.tsx**: Eliminado (componente separado que se creó inicialmente pero se integró finalmente dentro de `GaleriaSection.tsx`).
+
+**Verificación:** `pnpm run typecheck` limpio en archivos modificados, `pnpm run lint` sin errores, `pnpm run format:check` correcto, `pnpm run test` todas las pruebas pasan.
+
+**Archivos modificados:**
+
+- `src/features/galeria/GaleriaSection.tsx`
+- `src/routes/_privado/galeria.tsx`
+- `src/lib/datos/medios.ts`
+- `src/features/galeria/GaleriaFilters.tsx` (eliminado)
+- `CHANGELOG.md`
+
 ## 2026:09:30 17:35 — Agregar favicon del panel (rama `feat/add-favicon`)
 
 **Resumen:** el panel no tenía favicon; el `index.html` no declaraba ningún ícono. Se agrega el ícono de AI27 (la "e" con las ondas) en `public/favicon.ico` y se referencia desde el `<head>`. Al ser un proyecto Vite, el archivo vive en `public/` y se sirve desde la raíz (`/favicon.ico`).

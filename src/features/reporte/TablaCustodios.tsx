@@ -3,7 +3,7 @@ import { Table, type Column, type SortState } from '@ai27-tech/ui';
 import type { EstadisticaCustodio } from '@/lib/datos/tipos';
 
 /**
- * Tabla «Estadísticas por custodio»: una fila por custodio del periodo, con sus conteos
+ * Tabla «Estadísticas por unidad»: una fila por unidad del periodo, con sus conteos
  * de viajes, fotos, audios y el total de medios (calculado aquí). Ordenable por cualquier
  * columna; el orden por defecto (total de medios descendente) lo decide `ReporteTablas`.
  *
@@ -22,7 +22,7 @@ function totalMedios(c: EstadisticaCustodio): number {
 }
 
 const columnas: Column<EstadisticaCustodio>[] = [
-  { key: 'nombre', header: 'Custodio', accessor: 'nombre', sortable: true },
+  { key: 'nombre', header: 'Unidad', accessor: 'nombre', sortable: true },
   { key: 'viajes', header: 'Viajes', accessor: 'viajes', align: 'right', sortable: true },
   { key: 'fotos', header: 'Fotos', accessor: 'fotos', align: 'right', sortable: true },
   { key: 'audios', header: 'Audios', accessor: 'audios', align: 'right', sortable: true },
@@ -38,14 +38,14 @@ const columnas: Column<EstadisticaCustodio>[] = [
 export function TablaCustodios({ datos, sort, onSortChange }: TablaCustodiosProps) {
   return (
     <Table
-      aria-label="Estadísticas por custodio"
+      aria-label="Estadísticas por unidad"
       columns={columnas}
       data={datos}
       rowKey={(c) => c.uid}
       sort={sort}
       onSortChange={onSortChange}
       density="compact"
-      emptyState="No hay custodios con actividad en el periodo."
+      emptyState="No hay unidades con actividad en el periodo."
     />
   );
 }

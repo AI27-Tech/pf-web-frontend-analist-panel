@@ -38,10 +38,15 @@ export function ReporteFiltros({
     <FilterBar
       searchValue={filtro.texto}
       onSearchChange={(texto) => onFiltroChange({ ...filtro, texto })}
-      searchPlaceholder="Buscar por custodio o placa…"
+      searchPlaceholder="Buscar por unidad o número económico…"
       filters={[
-        { key: 'custodio', label: 'Custodio', placeholder: 'Todos', options: opcionesCustodio },
-        { key: 'unidad', label: 'Unidad', placeholder: 'Todas', options: opcionesUnidad },
+        { key: 'custodio', label: 'Unidad', placeholder: 'Todas', options: opcionesCustodio },
+        {
+          key: 'unidad',
+          label: 'Número económico',
+          placeholder: 'Todos',
+          options: opcionesUnidad,
+        },
       ]}
       filterValues={{
         custodio: filtro.custodio ?? '',

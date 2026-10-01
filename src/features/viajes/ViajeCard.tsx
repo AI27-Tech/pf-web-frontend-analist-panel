@@ -55,7 +55,7 @@ export function ViajeCard({ viaje, onAbrir }: ViajeCardProps) {
           </span>
           <span className="flex items-center gap-1.5">
             <User className="size-4" aria-hidden="true" />
-            Custodio: <span className="text-text font-semibold">{nombreCustodio}</span>
+            Unidad: <span className="text-text font-semibold">{nombreCustodio}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <Files className="size-4" aria-hidden="true" />

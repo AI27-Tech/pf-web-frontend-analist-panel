@@ -4,17 +4,12 @@ import { AlertTriangle } from 'lucide-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { GaleriaSection } from '@/features/galeria/GaleriaSection';
 import { listarMedios } from '@/lib/datos/medios';
-import { rangoDeAtajo } from '@/lib/formato/fechas';
 
 /**
  * Galería: archivos ENTRE viajes, para responder «todas las fotos de tal etiqueta en tal
  * periodo». El loader es la frontera de datos (misma regla que el resto del panel): trae
- * el corpus del periodo por defecto y `GaleriaSection` lo refina en cliente por etiqueta
- * y tipo, y abre el visor.
- *
- * El periodo por defecto es el mes en curso, el mismo atajo que usa la pantalla de
- * Viajes, para que ambas hablen del mismo corte. Cuando la galería tenga su propio
- * selector de fechas, este rango saldrá de un search param validado.
+ * TODOS los medios por defecto y `GaleriaSection` lo refina en cliente por fecha,
+ * etiqueta y tipo, y abre el visor.
  *
  * Diferencia entre estados:
  * - Error: No se pudo conectar con Firebase o falló la consulta.
@@ -23,9 +18,9 @@ import { rangoDeAtajo } from '@/lib/formato/fechas';
  */
 export const Route = createFileRoute('/_privado/galeria')({
   loader: async () => {
-    const { desde, hasta } = rangoDeAtajo('mes');
     try {
-      const medios = await listarMedios({ desde, hasta });
+      // Cargar TODOS los medios sin filtro de fechas por defecto
+      const medios = await listarMedios({ desde: '', hasta: '' });
       return { medios, error: null };
     } catch (error) {
       console.error('[Galería] Error al listar medios:', error);
@@ -56,7 +51,7 @@ function Galeria() {
           </div>
         ) : medios.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12 text-center">
-            <p className="text-text-muted text-sm">No hay fotos en este período.</p>
+            <p className="text-text-muted text-sm">No hay fotos en la galería.</p>
           </div>
         ) : (
           <GaleriaSection medios={medios} />

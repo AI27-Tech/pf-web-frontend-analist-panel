@@ -197,19 +197,19 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
           </>
         )}
 
-        <FormField label="Placa">
+        <FormField label="Número económico">
           <Input
             type="text"
-            placeholder="Todas las placas"
+            placeholder="Todos los números económicos"
             value={placasTexto}
             onChange={(evento) => manejarCambioPlacas(evento.target.value)}
           />
         </FormField>
 
-        <FormField label="Custodio">
+        <FormField label="Unidad">
           <Input
             type="text"
-            placeholder="Todos los custodios"
+            placeholder="Todas las unidades"
             value={custodioTexto}
             onChange={(evento) => manejarCambioCustodio(evento.target.value)}
           />

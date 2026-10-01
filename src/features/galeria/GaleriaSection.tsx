@@ -17,6 +17,7 @@ import { Headphones } from 'lucide-react';
 import { urlOriginal, urlMiniatura } from '@/lib/datos/medios';
 import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { resolverImagenVisor, imagenProvisional, esMuestra, idCortoDe } from './provisional';
+import { rangoDeAtajo, type Atajo } from '@/lib/formato/fechas';
 
 export interface GaleriaSectionProps {
   readonly medios: readonly Medio[];
@@ -33,6 +34,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(INITIAL_PAGE_SIZE);
   const [searchValue, setSearchValue] = useState('');
+  // Estados para filtros de fecha
+  const [rangoDesde, setRangoDesde] = useState<string>('');
+  const [rangoHasta, setRangoHasta] = useState<string>('');
 
   // Cargar URLs de miniaturas reales en paralelo (solo para FOTOs)
   useEffect(() => {
@@ -71,6 +75,17 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   // Definir los filtros
   const filters: FilterDefinition[] = [
     {
+      key: 'periodo',
+      label: 'Período',
+      options: [
+        { label: 'Todos', value: 'todos' },
+        { label: 'Hoy', value: 'hoy' },
+        { label: 'Esta semana', value: 'semana' },
+        { label: 'Este mes', value: 'mes' },
+        { label: 'Rango personalizado', value: 'rango' },
+      ],
+    },
+    {
       key: 'tipo',
       label: 'Tipo de evidencia',
       options: [
@@ -91,7 +106,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
     {
       key: 'placa',
-      label: 'Unidad',
+      label: 'Número económico',
       options: [
         { label: 'Todas', value: 'TODO' },
         ...Array.from(new Set(medios.map((m) => m.placas).filter(Boolean)))
@@ -101,7 +116,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
     {
       key: 'custodio',
-      label: 'Custodio',
+      label: 'Unidad',
       options: [
         { label: 'Todos', value: 'TODO' },
         ...Array.from(new Set(medios.map((m) => m.custodioUid).filter(Boolean)))
@@ -117,8 +132,37 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
   ];
 
+  // Función para verificar si una fecha está dentro del rango
+  const fechaDentroDeRango = (fecha: Date, desde: string, hasta: string): boolean => {
+    if (!desde || !hasta) return true; // Si no hay rango, pasar todo
+    const fechaIso = fecha.toISOString();
+    const fechaStr = fechaIso.split('T')[0];
+    return fechaStr ? fechaStr >= desde && fechaStr <= hasta : false;
+  };
+
   // Determina si un medio cumple con los filtros y búsqueda
   const matchesFiltersAndSearch = (medio: Medio): boolean => {
+    // Aplicar filtro de fecha
+    const periodo = filterValues.periodo;
+    if (periodo) {
+      if (periodo === 'todos') {
+        // Todos los medios
+      } else if (periodo === 'rango') {
+        // Rango personalizado
+        if (rangoDesde && rangoHasta) {
+          if (!fechaDentroDeRango(medio.capturadoEn, rangoDesde, rangoHasta)) {
+            return false;
+          }
+        }
+      } else {
+        // Atajo (hoy, semana, mes)
+        const { desde, hasta } = rangoDeAtajo(periodo as Atajo);
+        if (!fechaDentroDeRango(medio.capturadoEn, desde, hasta)) {
+          return false;
+        }
+      }
+    }
+
     // Aplicar filtros
     if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo)
       return false;
@@ -163,6 +207,13 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const mediosPaginados = mediosFiltrados.slice(inicioGrid, inicioGrid + pageSize);
 
   const handleFilterChange = (key: string, value: string) => {
+    if (key === 'periodo') {
+      // Si cambia de rango a otro, limpiar los valores de rango
+      if (filterValues.periodo === 'rango' && value !== 'rango') {
+        setRangoDesde('');
+        setRangoHasta('');
+      }
+    }
     setFilterValues((prev) => ({ ...prev, [key]: value }));
     setPage(1); // Reiniciar a página 1
   };
@@ -170,6 +221,8 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const handleClearFilters = () => {
     setFilterValues({});
     setSearchValue('');
+    setRangoDesde('');
+    setRangoHasta('');
     setPage(1);
   };
 
@@ -180,6 +233,8 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
 
   // Calcular el índice inicial del Visor basado en el ID abierto
   const initialVisibleIndex = openMedioId ? medios.findIndex((m) => m.id === openMedioId) : -1;
+
+  const muestraRangoPersonalizado = filterValues.periodo === 'rango';
 
   return (
     <div>
@@ -193,13 +248,62 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           showClear={Object.keys(filterValues).length > 0 || searchValue.length > 0}
           searchValue={searchValue}
           onSearchChange={setSearchValue}
-          searchPlaceholder="Buscar en etiqueta, comentario, unidad o custodio..."
+          searchPlaceholder="Buscar en etiqueta, comentario, número económico o unidad..."
           showFilterCount={true}
           showActiveFilterChips={true}
           enableViewToggle={true}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
         />
+
+        {/* Controles de rango personalizado (solo cuando se selecciona "rango") */}
+        {muestraRangoPersonalizado && (
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
+                Desde
+              </label>
+              <input
+                type="date"
+                value={rangoDesde}
+                onChange={(e) => {
+                  setRangoDesde(e.target.value);
+                  setPage(1);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
+                Hasta
+              </label>
+              <input
+                type="date"
+                value={rangoHasta}
+                onChange={(e) => {
+                  setRangoHasta(e.target.value);
+                  setPage(1);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                }}
+              />
+            </div>
+            {rangoDesde && rangoHasta && (
+              <div style={{ color: '#666', fontSize: '0.875rem' }}>
+                Mostrando: {rangoDesde} a {rangoHasta}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Contenido: Galería */}
@@ -335,8 +439,8 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
               },
               {
                 key: 'placas',
-                header: 'Unidad',
-                cell: (medio: Medio) => <span>{medio.placas || 'S/UNIDAD'}</span>,
+                header: 'Número económico',
+                cell: (medio: Medio) => <span>{medio.placas || 'S/N.E.'}</span>,
               },
             ]}
             density="compact"
