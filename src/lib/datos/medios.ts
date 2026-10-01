@@ -74,10 +74,15 @@ export async function listarMediosDelViaje(viajeId: string): Promise<Medio[]> {
  * https://console.firebase.google.com/v1/r/project/custodio-906e7268/firestore/indexes
  */
 export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
-  const restricciones: QueryConstraint[] = [
-    where('fechaLocal', '>=', filtros.desde),
-    where('fechaLocal', '<=', filtros.hasta),
-  ];
+  const restricciones: QueryConstraint[] = [];
+
+  // Solo agregar filtro de fecha si los valores no están vacíos
+  if (filtros.desde && filtros.desde.trim() !== '') {
+    restricciones.push(where('fechaLocal', '>=', filtros.desde));
+  }
+  if (filtros.hasta && filtros.hasta.trim() !== '') {
+    restricciones.push(where('fechaLocal', '<=', filtros.hasta));
+  }
 
   if (filtros.tipo) restricciones.push(where('tipo', '==', filtros.tipo));
   // `etiquetas` es un array: la pertenencia se consulta con `array-contains`, no con `==`.
