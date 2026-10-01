@@ -2,6 +2,28 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:10:01 11:14 — Retiro del etiquetado en galería y expediente (docs/PLAN_RETIRO_ETIQUETADO.md)
+
+**Resumen:** la app `pf-app-custodio` retira el etiquetado y los `medios` llegan con `etiquetas` vacías. El panel filtraba por etiqueta en la galería y agrupaba por etiqueta en el expediente, dos puntos que se quedaban sin señal. Se retira esa UI dejando el código **comentado, no borrado**, y mostrando todo sin categoría. El contrato de lectura (`Medio.etiquetas`, `Viaje.etiquetas`, `FiltrosViaje.etiqueta`, `FiltrosMedio.etiqueta`, `etiquetaVisible`) se conserva inerte para reactivar descomentando, sin reconstruir tipos ni fuentes.
+
+**Cambios:**
+
+- `src/features/galeria/GaleriaSection.tsx`: se comentó la definición del filtro `'etiqueta'` ("Categoría") y la rama `filterValues.etiqueta` de `matchesFiltersAndSearch`. Se conservan los filtros de tipo, número económico y unidad, la búsqueda y el respaldo del badge (`etiquetas?.[0] || tipo`).
+- `src/features/expediente/ExpedienteGaleria.tsx`: se comentó `agruparPorEtiqueta` (y la interfaz `GrupoEtiqueta`); el expediente pasa a una sola sección plana "Evidencias" con el conteo real de medios del viaje, conservando el visor. El sello derecho de la tarjeta cae al `tipo` del medio (antes `etiquetaVisible`); se retiraron las props `truncate`/`expandOnHover`/`tooltip` de ese badge.
+- `src/lib/datos/tipos.ts`: notas de retiro inerte en `etiquetaVisible`, `FiltrosViaje.etiqueta` y `FiltrosMedio.etiqueta`. No se borró nada del contrato.
+- `src/features/expediente/ExpedienteGaleria.test.tsx`: las aserciones de agrupación por etiqueta (`[01] salida`, `Sin etiqueta`) se reemplazaron por aserciones de sección única "Evidencias" con conteo real.
+- Novedad e incidencias quedan **deliberadamente intactas** (decisión C del plan §6): el filtro de novedad y el cálculo de incidencias quedan inertes, no se tocan.
+
+**Verificación:** `eslint .` limpio; `vitest run` 97/97; `vite build` compila sin errores. `tsc --build` reporta 2 errores **preexistentes** (`truncate` no existe en `BadgeConfig`/`BadgeProps` con los typings de `@ai27-tech/ui@0.2.0-beta.6`) en `GaleriaSection.tsx` (badge del grid, fuera del alcance de este cambio) y `TablaViajes.tsx`; eran 3 antes de este cambio y bajaron a 2 al retirar el badge con `truncate` del expediente. Ninguno fue introducido por esta tarea.
+
+**Archivos modificados:**
+
+- `src/features/galeria/GaleriaSection.tsx`
+- `src/features/expediente/ExpedienteGaleria.tsx`
+- `src/features/expediente/ExpedienteGaleria.test.tsx`
+- `src/lib/datos/tipos.ts`
+- `CHANGELOG.md`
+
 ## 2026:10:01 — Implementación de filtrado por fechas en galería
 
 **Resumen:** Se implementó filtrado por fechas en la galería del panel analista, integrado dentro de la barra de filtros existente. Por defecto muestra todas las evidencias sin filtro, resolviendo el problema crítico donde al primer día del mes no aparecían evidencias en la galería.

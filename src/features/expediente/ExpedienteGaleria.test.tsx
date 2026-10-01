@@ -47,7 +47,7 @@ describe('ExpedienteGaleria', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('agrupa los medios por etiqueta y numera cada sección en orden de aparición', () => {
+  it('presenta todos los medios en una sola sección «Evidencias», sin agrupar por etiqueta', () => {
     const medios = [
       crearMedio({ id: 'muestra-1', etiquetas: ['salida'] }),
       crearMedio({ id: 'muestra-2', etiquetas: ['salida'] }),
@@ -56,14 +56,16 @@ describe('ExpedienteGaleria', () => {
 
     render(<ExpedienteGaleria medios={medios} />);
 
-    expect(screen.getByText(/\[01\]\s*salida/i)).toBeInTheDocument();
-    expect(screen.getByText(/\[02\]\s*incidencia/i)).toBeInTheDocument();
+    // Una sola sección plana, sin encabezados numerados por etiqueta.
+    expect(screen.getByText('Evidencias')).toBeInTheDocument();
+    expect(screen.queryByText(/\[01\]/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\[02\]/)).not.toBeInTheDocument();
   });
 
-  it('muestra el conteo real de evidencias por grupo, sin inventar ubicación ni alertas', () => {
+  it('muestra el conteo real de evidencias del viaje en la sección única', () => {
     const medios = [
       crearMedio({ id: 'muestra-1', etiquetas: ['salida'] }),
-      crearMedio({ id: 'muestra-2', etiquetas: ['salida'] }),
+      crearMedio({ id: 'muestra-2', etiquetas: ['incidencia'] }),
     ];
 
     render(<ExpedienteGaleria medios={medios} />);
@@ -71,10 +73,12 @@ describe('ExpedienteGaleria', () => {
     expect(screen.getByText('2 evidencias')).toBeInTheDocument();
   });
 
-  it('agrupa los medios sin etiqueta bajo «Sin etiqueta»', () => {
+  it('muestra los medios sin etiqueta en la misma sección única, sin «Sin etiqueta»', () => {
     render(<ExpedienteGaleria medios={[crearMedio({ id: 'muestra-1', etiquetas: [] })]} />);
 
-    expect(screen.getByText(/\[01\]\s*Sin etiqueta/i)).toBeInTheDocument();
+    expect(screen.getByText('Evidencias')).toBeInTheDocument();
+    expect(screen.queryByText(/Sin etiqueta/i)).not.toBeInTheDocument();
+    expect(screen.getByText('1 evidencia')).toBeInTheDocument();
   });
 
   it('renderiza una tarjeta por cada medio con su hora y placas', () => {
