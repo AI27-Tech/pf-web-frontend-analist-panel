@@ -6,6 +6,7 @@ import {
   limit,
   orderBy,
   query,
+  startAfter,
   where,
   type DocumentData,
   type QueryConstraint,
@@ -15,6 +16,12 @@ import { firestore } from '@/lib/firebase/cliente';
 
 import { enriquecerConNombres } from './custodios';
 import type { FiltrosViaje, Viaje, ViajesPage } from './tipos';
+
+/**
+ * Cursor opaco para paginación con Firestore.
+ * En V1 se serializa como base64 del JSON del último documento.
+ */
+export type PaginationCursor = string | null;
 
 /**
  * Conteo de fotos y audios de un viaje, respetando que `resumenMedios` es un SNAPSHOT
@@ -66,7 +73,7 @@ function aViaje(id: string, d: DocumentData): Viaje {
     subida: d.subida ?? 'PENDIENTE',
     completo: d.completo === true,
     mediosEsperados: d.mediosEsperados ?? 0,
-    estados: [],
+    estados: Array.isArray(d.estados) ? d.estados : [],
     etiquetas: d.etiquetas ?? [],
     fotos,
     audios,
@@ -75,8 +82,19 @@ function aViaje(id: string, d: DocumentData): Viaje {
 
 /**
  * Lista viajes para la pantalla principal, contra Firestore.
+ *
+ * Implementa paginación con cursor: el `cursor` del cliente es el punto de inicio
+ * de la búsqueda (que siempre es el ÚLTIMO documento de la página anterior).
+ * Se trae `pageSize + 1` para saber si hay más páginas; si se obtienen N+1 registros,
+ * la página tiene N (completa) y existe la siguiente.
+ *
+ * El `total` se calcula haciendo una consulta separada con los mismos filtros y sin
+ * limit, para obtener el conteo exacto que satisface los criterios.
  */
-export async function listarViajesFirestore(filtros: FiltrosViaje): Promise<ViajesPage> {
+export async function listarViajesFirestore(
+  filtros: FiltrosViaje,
+  cursor?: PaginationCursor,
+): Promise<ViajesPage> {
   const restricciones: QueryConstraint[] = [
     where('fechaLocal', '>=', filtros.desde),
     where('fechaLocal', '<=', filtros.hasta),
@@ -87,16 +105,53 @@ export async function listarViajesFirestore(filtros: FiltrosViaje): Promise<Viaj
   if (filtros.isUpdated !== undefined)
     restricciones.push(where('hayNovedad', '==', filtros.isUpdated));
 
-  restricciones.push(orderBy('fechaLocal', 'desc'), limit(filtros.pageSize));
+  restricciones.push(orderBy('fechaLocal', 'desc'));
 
-  const resultado = await getDocs(query(collection(firestore, 'reportes'), ...restricciones));
-  const viajes = resultado.docs.map((documento) => aViaje(documento.id, documento.data()));
+  // Calcular el total de viajes que satisfacen el filtro (sin limit)
+  const totalQuery = query(collection(firestore, 'reportes'), ...restricciones);
+  const totalDocs = await getDocs(totalQuery);
+  const total = totalDocs.size;
 
+  // Paginación con cursor
+  const queryConstraints = [...restricciones];
+
+  if (cursor) {
+    // Deserializar el cursor (base64 del JSON del ID del último documento anterior)
+    try {
+      const cursorId = atob(cursor);
+      const lastDocSnapshot = totalDocs.docs.find((doc) => doc.id === cursorId);
+      if (lastDocSnapshot) {
+        queryConstraints.push(startAfter(lastDocSnapshot));
+      }
+    } catch {
+      // Cursor inválido, reiniciar desde el principio
+      console.warn('Cursor inválido, reiniciando desde el principio');
+    }
+  }
+
+  // Traer pageSize + 1 para saber si hay siguiente página
+  queryConstraints.push(limit(filtros.pageSize + 1));
+
+  const resultado = await getDocs(query(collection(firestore, 'reportes'), ...queryConstraints));
+  const hasNextPage = resultado.docs.length > filtros.pageSize;
+  const pageViajesArray = resultado.docs.slice(0, filtros.pageSize);
+
+  const viajes = pageViajesArray.map((documento) => aViaje(documento.id, documento.data()));
   const enriquecidos = await enriquecerConNombres(viajes);
+
+  // Generar cursor para la siguiente página
+  let nextCursor: PaginationCursor = null;
+  if (hasNextPage && pageViajesArray.length > 0) {
+    const lastDoc = pageViajesArray[pageViajesArray.length - 1];
+    if (lastDoc) {
+      nextCursor = btoa(lastDoc.id);
+    }
+  }
 
   return {
     viajes: enriquecidos,
-    total: enriquecidos.length,
+    total,
+    nextCursor,
   };
 }
 

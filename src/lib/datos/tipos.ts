@@ -173,10 +173,12 @@ export interface FiltrosViaje {
 }
 
 /** Una página de resultados más el total que satisface los filtros. El total es lo
- *  que `Pagination` necesita para saber cuántas páginas hay. */
+ *  que `Pagination` necesita para saber cuántas páginas hay. El `nextCursor` es el punto
+ *  de inicio para la siguiente página (cursor-based pagination). */
 export interface ViajesPage {
   viajes: Viaje[];
   total: number;
+  nextCursor?: string | null;
 }
 
 /** Filtros de la galería: archivos entre viajes acotados por periodo, etiqueta y tipo.

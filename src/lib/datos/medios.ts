@@ -90,8 +90,7 @@ export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
   if (filtros.placas) restricciones.push(where('placas', '==', filtros.placas));
   if (filtros.custodioUid) restricciones.push(where('custodioUid', '==', filtros.custodioUid));
 
-  // Ordenar por capturadoEn descendente (más reciente primero) en Firestore
-  restricciones.push(orderBy('capturadoEn', 'desc'));
+  // Sin orderBy en la consulta (evita exigir índice). Ordenamos en memoria en el cliente.
   restricciones.push(limit(filtros.limite ?? 120));
 
   const resultado = await getDocs(query(collection(firestore, 'medios'), ...restricciones));
@@ -100,7 +99,12 @@ export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
   // Enriquecer con nombres de custodios
   medios = await enriquecerMediosConNombres(medios);
 
-  return medios;
+  // Ordenar en cliente por createdAtDevice descendente (más reciente primero)
+  return medios.sort((a, b) => {
+    const timeA = a.capturadoEn.getTime();
+    const timeB = b.capturadoEn.getTime();
+    return timeB - timeA; // Descendente
+  });
 }
 
 /**
