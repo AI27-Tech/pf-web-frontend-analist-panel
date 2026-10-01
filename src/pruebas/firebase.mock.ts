@@ -79,5 +79,31 @@ vi.mock('firebase/storage', () => {
       type: 'storage-mock',
     })),
     connectStorageEmulator: vi.fn(),
+    ref: vi.fn(() => ({
+      fullPath: 'mocked/path',
+    })),
+    getDownloadURL: vi.fn(() =>
+      Promise.resolve(
+        'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect fill="%23f0f0f0" width="320" height="240"/></svg>',
+      ),
+    ),
+  };
+});
+
+/**
+ * Mockear el hook useResolvedMedia
+ */
+vi.mock('@/lib/hooks/useResolvedMedia', () => {
+  return {
+    useResolvedMedia: vi.fn((medio: unknown) => {
+      const medioObj = medio as { id?: string } | undefined;
+      return {
+        id: medioObj?.id ?? 'test-id',
+        miniatura:
+          'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect fill="%23e0e0e0" width="320" height="240"/></svg>',
+        original:
+          'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect fill="%23f0f0f0" width="800" height="600"/></svg>',
+      };
+    }),
   };
 });
