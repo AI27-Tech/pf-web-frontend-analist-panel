@@ -47,7 +47,8 @@ const ZONA = 'America/Mexico_City';
 const enteros = new Intl.NumberFormat('es-MX');
 
 /** Tope de documentos por consulta. Acota el costo y evita traer un corpus enorme al
- *  navegador; para un periodo mensual de este panel queda muy por encima de lo real. */
+ *  navegador; para un periodo mensual de este panel queda muy por encima de lo real.
+ *  Se trae TOPE+1 para detectar si hay más registros allá del límite. */
 const TOPE = 5000;
 
 /** Forma mínima de un reporte que las métricas necesitan, ya normalizada. */
@@ -92,6 +93,8 @@ function periodoAnterior(periodo: RangoFechas): RangoFechas {
 
 /**
  * Consulta base por rango de `fechaLocal`.
+ * Trae TOPE+1 documentos para detectar si hay más registros allá del límite.
+ * Las funciones llamadoras descartan el +1 si existe.
  */
 function rango(coleccion: string, periodo: RangoFechas): Query {
   return query(
@@ -99,7 +102,7 @@ function rango(coleccion: string, periodo: RangoFechas): Query {
     where('fechaLocal', '>=', periodo.desde),
     where('fechaLocal', '<=', periodo.hasta),
     orderBy('fechaLocal', 'asc'),
-    limit(TOPE),
+    limit(TOPE + 1),
   );
 }
 
@@ -130,12 +133,24 @@ function aMedioLite(d: DocumentData): MedioLite {
 
 async function traerReportes(periodo: RangoFechas): Promise<ReporteLite[]> {
   const snap = await getDocs(rango('reportes', periodo));
-  return snap.docs.map((doc) => aReporteLite(doc.id, doc.data()));
+  const docs = snap.docs.slice(0, TOPE); // Descartar el +1 si existe
+  if (snap.docs.length > TOPE) {
+    console.warn(
+      `[Métricas] Hay más de ${TOPE} reportes en el periodo ${periodo.desde} a ${periodo.hasta}. Se devuelven solo los primeros ${TOPE}.`,
+    );
+  }
+  return docs.map((doc) => aReporteLite(doc.id, doc.data()));
 }
 
 async function traerMedios(periodo: RangoFechas): Promise<MedioLite[]> {
   const snap = await getDocs(rango('medios', periodo));
-  return snap.docs.map((doc) => aMedioLite(doc.data()));
+  const docs = snap.docs.slice(0, TOPE); // Descartar el +1 si existe
+  if (snap.docs.length > TOPE) {
+    console.warn(
+      `[Métricas] Hay más de ${TOPE} medios en el periodo ${periodo.desde} a ${periodo.hasta}. Se devuelven solo los primeros ${TOPE}.`,
+    );
+  }
+  return docs.map((doc) => aMedioLite(doc.data()));
 }
 
 /** Hora del día (0–23) en zona de México a partir de un instante. */
