@@ -68,6 +68,13 @@ export interface Medio {
  * miniatura, agrupación del expediente) muestran una sola. Centralizar la elección aquí
  * evita esparcir `etiquetas[0]` por toda la interfaz y da un texto consistente cuando el
  * array viene vacío.
+ *
+ * RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): la UI de etiqueta está
+ * retirada —la app custodio dejó de enviar `etiquetas` (llegan vacías)—, pero este
+ * contrato de lectura (`Medio.etiquetas`, `Viaje.etiquetas`, `FiltrosViaje.etiqueta`,
+ * `FiltrosMedio.etiqueta` y esta función) se CONSERVA inerte, no se borra, para poder
+ * reactivar el filtro de la galería y la agrupación del expediente descomentando, sin
+ * reconstruir tipos ni fuentes cuando la etiqueta vuelva.
  */
 export function etiquetaVisible(medio: Pick<Medio, 'etiquetas'>): string {
   return medio.etiquetas[0] ?? 'Sin etiqueta';
@@ -155,7 +162,9 @@ export interface FiltrosViaje {
   /** Coincidencia parcial sobre `custodioName`. */
   custodioName?: string;
   custodioUid?: string;
-  /** Se satisface por PERTENENCIA en `Viaje.etiquetas`, no por igualdad. */
+  /** Se satisface por PERTENENCIA en `Viaje.etiquetas`, no por igualdad.
+   *  RETIRO DE ETIQUETADO (docs/PLAN_RETIRO_ETIQUETADO.md): la UI que lo usaba está
+   *  retirada; el campo se conserva inerte para reactivación. */
   etiqueta?: string;
   isUpdated?: boolean;
   /** Base 1, como `Pagination` de la librería. */
@@ -176,6 +185,8 @@ export interface FiltrosMedio {
   desde: string;
   hasta: string;
   tipo?: TipoMedio;
+  /** RETIRO DE ETIQUETADO (docs/PLAN_RETIRO_ETIQUETADO.md): filtro de categoría retirado
+   *  de la UI; el campo se conserva inerte para reactivación. */
   etiqueta?: string;
   placas?: string;
   custodioUid?: string;

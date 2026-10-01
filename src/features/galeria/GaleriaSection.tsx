@@ -94,16 +94,19 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
         { label: 'Audios', value: 'AUDIO' },
       ],
     },
-    {
-      key: 'etiqueta',
-      label: 'Categoría',
-      options: [
-        { label: 'Todas', value: 'TODO' },
-        ...Array.from(new Set(medios.flatMap((m) => m.etiquetas || []).filter(Boolean)))
-          .sort((a, b) => a.localeCompare(b, 'es'))
-          .map((val) => ({ label: val, value: val })),
-      ],
-    },
+    // RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): la app custodio dejó de
+    // enviar `etiquetas` (llegan vacías), así que el filtro de categoría se queda sin señal.
+    // Se comenta —no se borra— para reactivarlo descomentando cuando la etiqueta vuelva.
+    // {
+    //   key: 'etiqueta',
+    //   label: 'Categoría',
+    //   options: [
+    //     { label: 'Todas', value: 'TODO' },
+    //     ...Array.from(new Set(medios.flatMap((m) => m.etiquetas || []).filter(Boolean)))
+    //       .sort((a, b) => a.localeCompare(b, 'es'))
+    //       .map((val) => ({ label: val, value: val })),
+    //   ],
+    // },
     {
       key: 'placa',
       label: 'Número económico',
@@ -166,12 +169,14 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     // Aplicar filtros
     if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo)
       return false;
-    if (
-      filterValues.etiqueta &&
-      filterValues.etiqueta !== 'TODO' &&
-      !(medio.etiquetas || []).includes(filterValues.etiqueta)
-    )
-      return false;
+    // RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): sin señal de etiqueta no se
+    // filtra por categoría. Se comenta —no se borra— junto con la definición del filtro.
+    // if (
+    //   filterValues.etiqueta &&
+    //   filterValues.etiqueta !== 'TODO' &&
+    //   !(medio.etiquetas || []).includes(filterValues.etiqueta)
+    // )
+    //   return false;
     if (filterValues.placa && filterValues.placa !== 'TODO' && medio.placas !== filterValues.placa)
       return false;
     if (
