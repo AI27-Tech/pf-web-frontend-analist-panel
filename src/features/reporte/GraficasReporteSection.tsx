@@ -40,10 +40,10 @@ export function GraficasReporteSection({
         </span>
         <div>
           <h2 id="graficas-reporte-titulo" className="text-text text-sm font-semibold">
-            Custodios y unidades
+            Unidades y números económicos
           </h2>
           <p className="text-text-muted text-xs">
-            Evidencia por custodio y viajes por unidad. Haz clic en una barra para filtrar.
+            Evidencia por unidad y viajes por número económico. Haz clic en una barra para filtrar.
           </p>
         </div>
       </div>

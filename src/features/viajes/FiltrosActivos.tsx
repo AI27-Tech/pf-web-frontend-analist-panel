@@ -50,16 +50,16 @@ export function FiltrosActivos({
 
       {filtros.placas !== undefined && (
         <ChipFiltro
-          rotulo={`Placa: ${filtros.placas}`}
-          ariaLabel="Quitar filtro de placa"
+          rotulo={`Número económico: ${filtros.placas}`}
+          ariaLabel="Quitar filtro de número económico"
           onQuitar={() => onQuitarFiltro('placas')}
         />
       )}
 
       {filtros.custodioName !== undefined && (
         <ChipFiltro
-          rotulo={`Custodio: ${filtros.custodioName}`}
-          ariaLabel="Quitar filtro de custodio"
+          rotulo={`Unidad: ${filtros.custodioName}`}
+          ariaLabel="Quitar filtro de unidad"
           onQuitar={() => onQuitarFiltro('custodioName')}
         />
       )}

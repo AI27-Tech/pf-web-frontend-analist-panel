@@ -66,7 +66,7 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
           {fileName(medio)}
         </span>
         <span className="text-text-muted cifras-tabulares truncate font-mono text-[11px]">
-          {medio.placas || 'S/UNIDAD'} · {formatearBytes(medio.bytes)}
+          {medio.placas || 'S/N.E.'} · {formatearBytes(medio.bytes)}
         </span>
       </div>
     </button>

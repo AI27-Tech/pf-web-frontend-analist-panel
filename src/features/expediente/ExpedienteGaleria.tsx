@@ -40,28 +40,33 @@ export interface ExpedienteGaleriaProps {
   cargando?: boolean;
 }
 
-interface GrupoEtiqueta {
-  etiqueta: string;
-  medios: Medio[];
-}
+// Forma de un grupo por etiqueta. Inerte junto con `agruparPorEtiqueta` (ver arriba).
+// interface GrupoEtiqueta {
+//   etiqueta: string;
+//   medios: Medio[];
+// }
 
-function agruparPorEtiqueta(medios: Medio[]): GrupoEtiqueta[] {
-  const orden: string[] = [];
-  const porEtiqueta = new Map<string, Medio[]>();
-
-  for (const medio of medios) {
-    // Un medio puede llevar varias etiquetas; el expediente lo agrupa por su etiqueta
-    // visible (la primera), que es el mismo criterio de una sola sección que ya usaba.
-    const clave = etiquetaVisible(medio);
-    if (!porEtiqueta.has(clave)) {
-      orden.push(clave);
-      porEtiqueta.set(clave, []);
-    }
-    porEtiqueta.get(clave)!.push(medio);
-  }
-
-  return orden.map((etiqueta) => ({ etiqueta, medios: porEtiqueta.get(etiqueta)! }));
-}
+// RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): la app custodio dejó de enviar
+// `etiquetas` (llegan vacías), así que agrupar por etiqueta ya no tiene señal. El expediente
+// pasa a una sola sección plana («Evidencias»). Se conserva comentado —no se borra— para
+// reactivar la agrupación descomentando cuando la etiqueta vuelva.
+// function agruparPorEtiqueta(medios: Medio[]): GrupoEtiqueta[] {
+//   const orden: string[] = [];
+//   const porEtiqueta = new Map<string, Medio[]>();
+//
+//   for (const medio of medios) {
+//     // Un medio puede llevar varias etiquetas; el expediente lo agrupa por su etiqueta
+//     // visible (la primera), que es el mismo criterio de una sola sección que ya usaba.
+//     const clave = etiquetaVisible(medio);
+//     if (!porEtiqueta.has(clave)) {
+//       orden.push(clave);
+//       porEtiqueta.set(clave, []);
+//     }
+//     porEtiqueta.get(clave)!.push(medio);
+//   }
+//
+//   return orden.map((etiqueta) => ({ etiqueta, medios: porEtiqueta.get(etiqueta)! }));
+// }
 
 /**
  * Forma del medio que consume el `Visor` de la librería, derivada de sus propias props
@@ -80,15 +85,13 @@ export function ExpedienteGaleria({
   mediosError = null,
   cargando = false,
 }: ExpedienteGaleriaProps) {
-  // El visor recorre TODOS los medios del expediente en el orden en que se agrupan; sólo
-  // se guarda el índice inicial. `null` = cerrado.
+  // El visor recorre TODOS los medios del expediente en el orden recibido; sólo se guarda
+  // el índice inicial. `null` = cerrado.
   const [indiceVisor, setIndiceVisor] = useState<number | null>(null);
 
-  const grupos = useMemo(() => agruparPorEtiqueta(medios), [medios]);
-
-  // Los medios aplanados en el orden de las secciones: es la lista que ve el visor y sobre
-  // la que se calcula el índice inicial al abrir una tarjeta.
-  const mediosVisor = useMemo(() => grupos.flatMap((g) => g.medios), [grupos]);
+  // RETIRO DE ETIQUETADO: antes se agrupaban los medios por etiqueta y el visor recorría la
+  // lista aplanada de grupos. Sin señal de etiqueta, el visor recorre `medios` directamente.
+  const mediosVisor = medios;
 
   const mediums: MedioVisor[] = useMemo(
     () =>
@@ -120,23 +123,26 @@ export function ExpedienteGaleria({
     [porId],
   );
 
+  // RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): una sola sección plana
+  // «Evidencias» con el conteo real de medios del viaje, en vez de una sección por etiqueta.
   const sections: CarouselSection<Medio>[] = useMemo(
-    () =>
-      grupos.map((grupo, indiceGrupo) => ({
+    () => [
+      {
         title: (
           <span className="font-mono text-xs font-semibold tracking-widest uppercase">
-            [{String(indiceGrupo + 1).padStart(2, '0')}] {grupo.etiqueta}
+            Evidencias
           </span>
         ),
         badge: (
           <span className="text-text-muted text-xs">
-            {grupo.medios.length} {grupo.medios.length === 1 ? 'evidencia' : 'evidencias'}
+            {medios.length} {medios.length === 1 ? 'evidencia' : 'evidencias'}
           </span>
         ),
-        items: grupo.medios,
+        items: medios,
         visibleItems: 6,
-      })),
-    [grupos],
+      },
+    ],
+    [medios],
   );
 
   // Si hay error, mostrar mensaje (después de los hooks)
@@ -207,27 +213,22 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
   const urlReal = resuelto && resuelto.id === medio.id ? resuelto.url : null;
   const src = isAudio ? '' : esDeMuestra ? imagenProvisional(medio) : urlReal;
 
-  // Dos sellos sobre la miniatura: la hora de captura (izquierda) y la etiqueta REAL del
-  // medio (derecha). Antes la derecha usaba `estadoProvisional`, un estado inventado a
-  // partir del id que no corresponde a ningún dato de la imagen; se reemplaza por la
-  // etiqueta real (`etiquetaVisible`). Como la etiqueta es de longitud variable y la
-  // tarjeta es de ancho fijo, se recorta con "…" y se despliega al pasar el cursor.
+  // Dos sellos sobre la miniatura: la hora de captura (izquierda) y el tipo del medio
+  // (derecha). RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): el sello derecho
+  // usaba la etiqueta real (`etiquetaVisible`); sin señal de etiqueta cae al tipo (FOTO/AUDIO).
   const badges: BadgeConfig[] = [
     { label: horaLocal(medio.capturadoEn), variant: 'neutral', position: 'left' },
     {
-      label: etiquetaVisible(medio),
+      label: medio.tipo,
       variant: 'neutral',
       position: 'right',
-      truncate: true,
-      expandOnHover: true,
-      tooltip: 'custom',
     },
   ];
 
   return (
     <ImageCard
       src={src ?? ''}
-      alt={medio.comentario ?? etiquetaVisible(medio)}
+      alt={medio.comentario ?? medio.tipo}
       title={<span className="font-mono text-xs">{nombreArchivo(medio)}</span>}
       subtitle={
         <span className="cifras-tabulares flex items-center gap-2 font-mono">

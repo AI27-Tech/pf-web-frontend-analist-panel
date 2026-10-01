@@ -1,7 +1,7 @@
 import { esRangoValido, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
 /**
- * Atajos de periodo del reporte: Hoy, Semana, Mes y Rango. Al elegir Rango aparecen dos
+ * Atajos de periodo del reporte: Hoy, Esta semana, Este mes y Rango. Al elegir Rango aparecen dos
  * campos de fecha; los tres atajos son cálculos de calendario (ver `lib/formato/fechas`).
  */
 
@@ -12,8 +12,8 @@ export interface SelectorPeriodoProps {
 
 const ATAJOS = [
   { id: 'hoy', label: 'Hoy' },
-  { id: 'semana', label: 'Semana' },
-  { id: 'mes', label: 'Mes' },
+  { id: 'semana', label: 'Esta semana' },
+  { id: 'mes', label: 'Este mes' },
   { id: 'rango', label: 'Rango' },
 ] as const;
 
