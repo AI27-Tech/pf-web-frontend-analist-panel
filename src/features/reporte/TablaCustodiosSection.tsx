@@ -23,9 +23,9 @@ export function TablaCustodiosSection({ porCustodio }: { porCustodio: Estadistic
         </span>
         <div>
           <h2 id="custodios-titulo" className="text-text text-sm font-semibold">
-            Estadísticas por custodio
+            Estadísticas por unidad
           </h2>
-          <p className="text-text-muted text-xs">Actividad de cada custodio en el periodo.</p>
+          <p className="text-text-muted text-xs">Actividad de cada unidad en el periodo.</p>
         </div>
       </div>
 

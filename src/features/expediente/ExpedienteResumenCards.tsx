@@ -44,7 +44,7 @@ export function ExpedienteResumenCards({ viaje }: ExpedienteResumenCardsProps) {
       />
 
       <TarjetaResumen
-        titulo="Custodio asignado"
+        titulo="Unidad asignada"
         Icono={User}
         tamanoValor="medio"
         valor={<span className="truncate">{nombreCustodio}</span>}

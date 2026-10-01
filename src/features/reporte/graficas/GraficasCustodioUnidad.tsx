@@ -76,11 +76,11 @@ export function GraficaFotosAudiosCustodio({
 
   return (
     <PanelGrafica
-      titulo="Evidencia por custodio"
+      titulo="Evidencia por unidad"
       subtitulo="Fotos y audios capturados, top 10. Haz clic para filtrar."
     >
       {top.length === 0 ? (
-        <GraficaVacia mensaje="No hay custodios con actividad en el periodo." />
+        <GraficaVacia mensaje="No hay unidades con actividad en el periodo." />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={top} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -147,11 +147,11 @@ export function GraficaViajesPorUnidad({ datos, seleccion, onSeleccionar }: Graf
 
   return (
     <PanelGrafica
-      titulo="Viajes por unidad"
-      subtitulo="Placas con más viajes, top 10. Haz clic para filtrar."
+      titulo="Viajes por número económico"
+      subtitulo="Números económicos con más viajes, top 10. Haz clic para filtrar."
     >
       {top.length === 0 ? (
-        <GraficaVacia mensaje="No hay unidades con viajes en el periodo." />
+        <GraficaVacia mensaje="No hay números económicos con viajes en el periodo." />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={top} layout="vertical" margin={{ left: 8, right: 16 }}>
