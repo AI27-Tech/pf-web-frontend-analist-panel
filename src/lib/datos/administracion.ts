@@ -57,10 +57,13 @@ export async function crearSolicitudCustodio(datos: {
     throw new Error('El teléfono debe ser +52 seguido de 10 dígitos');
   }
 
-  // Generar correo y contraseña según patrón del script
+  // Generar correo y contraseña según el patrón del CSV de provisión
+  // (custodios.example.csv): correo `b<num>@ai27.com`, contraseña `Bravo-<num>-ai27`.
+  // El correo lleva la 'b'; la contraseña lleva SOLO el número, sin la 'b'.
   const idUnidadMinuscula = idUnidadLimpio.toLowerCase();
+  const numero = idUnidadMinuscula.replace(/^b/, ''); // quita la 'b' inicial
   const correo = `${idUnidadMinuscula}@ai27.com`;
-  const contrasena = `Bravo-${idUnidadMinuscula}-ai27`;
+  const contrasena = `Bravo-${numero}-ai27`;
   const nombre = idUnidadLimpio.toUpperCase();
 
   // Enviar a Firestore (delegada a layer de Firebase)

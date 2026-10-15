@@ -9,7 +9,6 @@ import {
   doc,
   onSnapshot,
   query,
-  orderBy,
   limit,
   Timestamp,
   serverTimestamp,
@@ -91,11 +90,14 @@ export function actualizarSolicitudesEnTiempoReal(
       return;
     }
 
-    // Crear query: solicitudes del usuario, ordenadas por fecha reciente, límite 50
+    // Crear query: solicitudes del usuario (límite 50).
+    //
+    // El orden por fecha NO se pide a Firestore a propósito: combinar `where` por un
+    // campo con `orderBy` por otro exige un índice compuesto en producción. Para esta
+    // lista pequeña (máx. 50) ordenamos en el cliente, evitando mantener un índice.
     const q = query(
       collection(firestore, 'solicitudes_custodios'),
       where('solicitadoPor', '==', usuario.uid),
-      orderBy('solicitadoEn', 'desc'),
       limit(50),
     );
 
@@ -117,6 +119,9 @@ export function actualizarSolicitudesEnTiempoReal(
           resultado: data.resultado || undefined,
         } as SolicitudCustodioFirebase;
       });
+
+      // Orden por fecha de solicitud, más reciente primero (en el cliente).
+      solicitudes.sort((a, b) => b.solicitadoEn.getTime() - a.solicitadoEn.getTime());
 
       callback(solicitudes);
     });

@@ -1,10 +1,4 @@
-import {
-  ImageCard,
-  ImageCarousel,
-  Visor,
-  type BadgeConfig,
-  type CarouselSection,
-} from '@ai27-tech/ui';
+import { ImageCard, ImageGrid, Visor, type BadgeConfig } from '@ai27-tech/ui';
 import { AlertTriangle, Headphones } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -20,12 +14,13 @@ import {
 } from '@/features/galeria/provisional';
 
 /**
- * Agrupa los medios de un viaje por `etiqueta` y los presenta con el `ImageCarousel` de
- * la librería, una sección por grupo.
+ * Presenta los medios de un viaje como una GRILLA (`ImageGrid` de la librería), no en
+ * carrusel: todas las evidencias se ven de golpe en una rejilla paginable, que es como el
+ * analista revisa un expediente. Es la misma `ImageGrid` de @ai27-tech/ui que usa la
+ * galería, para que ambas vistas compartan la misma rejilla como fuente de verdad.
  *
- * Sólo se muestran datos reales: el mockup dibuja una ubicación y un conteo de alertas
- * por sección que no existen en `Medio`, así que el título del grupo lleva la etiqueta
- * y el conteo real de archivos, y nada más.
+ * Sólo se muestran datos reales: no hay sección por etiqueta (ver RETIRO DE ETIQUETADO),
+ * así que la rejilla es plana sobre `medios`.
  *
  * Miniaturas: para un medio de muestra (`esMuestra`, ver `features/galeria/provisional`)
  * se usa el SVG local determinista, igual que en la galería; para uno real se resuelve
@@ -123,28 +118,6 @@ export function ExpedienteGaleria({
     [porId],
   );
 
-  // RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): una sola sección plana
-  // «Evidencias» con el conteo real de medios del viaje, en vez de una sección por etiqueta.
-  const sections: CarouselSection<Medio>[] = useMemo(
-    () => [
-      {
-        title: (
-          <span className="font-mono text-xs font-semibold tracking-widest uppercase">
-            Evidencias
-          </span>
-        ),
-        badge: (
-          <span className="text-text-muted text-xs">
-            {medios.length} {medios.length === 1 ? 'evidencia' : 'evidencias'}
-          </span>
-        ),
-        items: medios,
-        visibleItems: 6,
-      },
-    ],
-    [medios],
-  );
-
   // Si hay error, mostrar mensaje (después de los hooks)
   if (mediosError) {
     return (
@@ -165,15 +138,36 @@ export function ExpedienteGaleria({
 
   return (
     <div className="flex flex-col gap-6">
-      <ImageCarousel
-        sections={sections}
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-xs font-semibold tracking-widest uppercase">
+          Evidencias
+        </span>
+        <span className="text-text-muted text-xs">
+          {medios.length} {medios.length === 1 ? 'evidencia' : 'evidencias'}
+        </span>
+      </div>
+
+      <ImageGrid
+        items={medios}
+        columns={6}
         gap="0.75rem"
+        // Paginación de la propia `ImageGrid`: un expediente con muchas evidencias no se
+        // dibuja en una rejilla interminable. 24 por página = 4 filas completas de 6
+        // columnas. El `Visor` sigue recibiendo TODOS los medios del viaje (`mediums`) y
+        // el índice se calcula contra la lista completa (`mediosVisor.indexOf`), así que
+        // abrir una foto de cualquier página deja recorrer el viaje entero, no solo la
+        // página visible.
+        enablePagination
+        itemsPerPage={24}
+        // Sin `emptyMessage`: el caso «sin medios y sin cargar» ya lo cubre el bloque de
+        // vacío de arriba (que no se muestra mientras `cargando`). Dárselo también a la
+        // rejilla haría que apareciera el texto de vacío durante la carga.
         renderItem={(medio: Medio) => (
-          // Ancho fijo por tarjeta para que la tira muestre varias miniaturas por fila y
-          // se desplace, en lugar de estirar una sola. `flex: none` impide que encojan.
-          <div className="w-44 flex-none">
-            <MedioCard medio={medio} onAbrir={() => setIndiceVisor(mediosVisor.indexOf(medio))} />
-          </div>
+          <MedioCard
+            key={medio.id}
+            medio={medio}
+            onAbrir={() => setIndiceVisor(mediosVisor.indexOf(medio))}
+          />
         )}
       />
 

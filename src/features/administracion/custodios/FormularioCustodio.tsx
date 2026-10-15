@@ -16,7 +16,7 @@ type EstadoFormulario = 'reposo' | 'enviando' | 'exito' | 'error';
  *
  * Genera automáticamente:
  * - Correo: b2688@ai27.com
- * - Contraseña: Bravo-b2688-ai27
+ * - Contraseña: Bravo-2688-ai27
  * - Nombre: B2688
  */
 export function FormularioCustodio() {
@@ -146,8 +146,8 @@ export function FormularioCustodio() {
                 <span className="font-semibold">Correo:</span> {idUnidad.toLowerCase()}@ai27.com
               </p>
               <p>
-                <span className="font-semibold">Contraseña:</span> Bravo-{idUnidad.toLowerCase()}
-                -ai27
+                <span className="font-semibold">Contraseña:</span> Bravo-
+                {idUnidad.toLowerCase().replace(/^b/, '')}-ai27
               </p>
               <p>
                 <span className="font-semibold">Nombre:</span> {idUnidad.toUpperCase()}
