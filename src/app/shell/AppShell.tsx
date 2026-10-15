@@ -7,6 +7,7 @@ import {
   SquareText,
   SlidersHorizontal,
   Activity,
+  Settings,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -17,6 +18,7 @@ const nav = [
   { to: '/galeria', label: 'Galería', Icon: Images },
   { to: '/reporte', label: 'Reporte', Icon: SquareText },
   { to: '/sistema', label: 'Sistema', Icon: Activity },
+  { to: '/administracion', label: 'Administración', Icon: Settings },
   { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal },
 ] as const;
 
