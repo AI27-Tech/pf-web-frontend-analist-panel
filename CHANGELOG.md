@@ -2,6 +2,37 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:10:15 — Pestaña «Administración»: alta de custodios desde el panel (rama `feature/add-unidad`)
+
+**Resumen:** nueva pestaña «Administración» para que el analista dé de alta custodios desde la interfaz, en lugar de ejecutar scripts manuales. El panel escribe una solicitud en `solicitudes_custodios` y la Cloud Function `procesarSolicitudCustodio` (en `pf-infra-firebase`, Admin SDK) la procesa: crea la cuenta de Auth, el directorio `usuarios/{uid}` y la allowlist `correos_autorizados/{email}`. El panel escucha el resultado en tiempo real y mantiene el botón cargando hasta que la solicitud se resuelve (COMPLETADO o ERROR). El analista solo captura el ID de unidad (`B####`) y el teléfono; el correo (`b####@ai27.com`), la contraseña inicial (`Bravo-####-ai27`) y el nombre (`B####`) se derivan del patrón del CSV de provisión.
+
+**Cambios:**
+
+- `src/features/administracion/AdministracionSection.tsx`: pantalla con el formulario y la lista de solicitudes recientes, en dos columnas.
+- `src/features/administracion/custodios/FormularioCustodio.tsx`: formulario de alta. Captura ID de unidad (`B` + 4 dígitos, con máscara) y teléfono (10 dígitos, prefijo `+52` fijo como adorno del input). Muestra en vivo el correo, contraseña y nombre derivados. Deshabilita el envío hasta que ambos campos son válidos.
+- `src/features/administracion/custodios/ListaSolicitudes.tsx`: lista en tiempo real del estado de las solicitudes (PENDIENTE / COMPLETADO / ERROR), con skeleton de carga y estado vacío diferenciado.
+- `src/lib/datos/administracion.ts`: capa de dominio. Valida el ID de unidad y el teléfono (E.164), deriva correo/contraseña/nombre, crea la solicitud y espera su resolución con timeout.
+- `src/lib/firebase/administracion.ts`: capa de acceso a Firestore. Crea la solicitud, escucha en tiempo real (filtrada por `solicitadoPor` y ordenada en el cliente para no requerir índice compuesto) y espera la resolución de un documento concreto.
+- `src/routes/_privado/administracion.tsx`: ruta de la pestaña.
+- `src/app/shell/AppShell.tsx`: entrada «Administración» en el menú lateral.
+
+**Verificación:** `eslint .` limpio; `tsr generate && tsc --build` sin errores nuevos. Flujo end-to-end verificado contra el Emulator Suite y contra producción (tras desplegar reglas de `solicitudes_custodios` y la Cloud Function): la solicitud pasa de PENDIENTE a COMPLETADO y se crean `usuarios/{uid}` y `correos_autorizados/{email}`.
+
+**Archivos modificados:**
+
+- `src/features/administracion/AdministracionSection.tsx` (nuevo)
+- `src/features/administracion/index.ts` (nuevo)
+- `src/features/administracion/custodios/FormularioCustodio.tsx` (nuevo)
+- `src/features/administracion/custodios/ListaSolicitudes.tsx` (nuevo)
+- `src/features/administracion/custodios/index.ts` (nuevo)
+- `src/lib/datos/administracion.ts` (nuevo)
+- `src/lib/firebase/administracion.ts` (nuevo)
+- `src/routes/_privado/administracion.tsx` (nuevo)
+- `src/app/shell/AppShell.tsx`
+- `CHANGELOG.md`
+
+---
+
 ## 2026:10:01 17:55 — Inyección de dependencias para resolución de URLs de media (Refactoring de arquitectura)
 
 **Resumen:** Se refactorizó la resolución de URLs de media desde Firebase Storage, desacoplando los componentes de la dependencia directa a Firebase. Se creó un hook personalizado `useResolvedMedia` que encapsula toda la lógica asíncrona de carga de URLs. Esto mejora testabilidad, reutilización y mantenibilidad del código.

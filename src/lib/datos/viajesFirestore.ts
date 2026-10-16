@@ -3,10 +3,8 @@ import {
   doc,
   getDoc,
   getDocs,
-  limit,
   orderBy,
   query,
-  startAfter,
   where,
   type DocumentData,
   type QueryConstraint,
@@ -16,12 +14,7 @@ import { firestore } from '@/lib/firebase/cliente';
 
 import { enriquecerConNombres } from './custodios';
 import type { FiltrosViaje, Viaje, ViajesPage } from './tipos';
-
-/**
- * Cursor opaco para paginación con Firestore.
- * En V1 se serializa como base64 del JSON del último documento.
- */
-export type PaginationCursor = string | null;
+import { queryViajes } from './viajesQuery';
 
 /**
  * Conteo de fotos y audios de un viaje, respetando que `resumenMedios` es un SNAPSHOT
@@ -83,76 +76,38 @@ function aViaje(id: string, d: DocumentData): Viaje {
 /**
  * Lista viajes para la pantalla principal, contra Firestore.
  *
- * Implementa paginación con cursor: el `cursor` del cliente es el punto de inicio
- * de la búsqueda (que siempre es el ÚLTIMO documento de la página anterior).
- * Se trae `pageSize + 1` para saber si hay más páginas; si se obtienen N+1 registros,
- * la página tiene N (completa) y existe la siguiente.
+ * Sólo el RANGO DE FECHAS se resuelve en Firestore (es el recorte grande y es el único
+ * criterio por el que la colección está indexada de forma barata). El resto de los
+ * filtros —coincidencia parcial de `placas`, coincidencia parcial de `custodioName`,
+ * pertenencia de `etiqueta`, `isUpdated`—, el orden, el `total` y el corte de la página
+ * se aplican EN MEMORIA con la MISMA función pura `queryViajes` que usa el mock.
  *
- * El `total` se calcula haciendo una consulta separada con los mismos filtros y sin
- * limit, para obtener el conteo exacto que satisface los criterios.
+ * Antes esta función hacía su propia consulta divergente: `placas` por igualdad exacta
+ * (así que una placa parcial no devolvía nada), nunca aplicaba `custodioName` ni
+ * `etiqueta` (los filtros de Unidad y Etiqueta no hacían nada en producción) y devolvía
+ * `total = página`, que rompía la paginación. Reusar `queryViajes` hace que la pantalla
+ * se comporte igual contra Firestore que contra el mock, con una sola fuente de verdad.
+ *
+ * Nota: el filtrado por fecha ya recorta el universo; `queryViajes` opera sobre esa
+ * ventana. Si una ventana de fechas creciera más allá de lo razonable, el recorte
+ * tendría que paginarse en servidor, pero eso excede el alcance V1 (lectura acotada por
+ * periodo).
  */
-export async function listarViajesFirestore(
-  filtros: FiltrosViaje,
-  cursor?: PaginationCursor,
-): Promise<ViajesPage> {
+export async function listarViajesFirestore(filtros: FiltrosViaje): Promise<ViajesPage> {
   const restricciones: QueryConstraint[] = [
     where('fechaLocal', '>=', filtros.desde),
     where('fechaLocal', '<=', filtros.hasta),
+    orderBy('fechaLocal', 'desc'),
   ];
 
-  if (filtros.placas) restricciones.push(where('placas', '==', filtros.placas));
-  if (filtros.custodioUid) restricciones.push(where('custodioUid', '==', filtros.custodioUid));
-  if (filtros.isUpdated !== undefined)
-    restricciones.push(where('hayNovedad', '==', filtros.isUpdated));
+  const resultado = await getDocs(query(collection(firestore, 'reportes'), ...restricciones));
+  const viajes = resultado.docs.map((documento) => aViaje(documento.id, documento.data()));
 
-  restricciones.push(orderBy('fechaLocal', 'desc'));
-
-  // Calcular el total de viajes que satisfacen el filtro (sin limit)
-  const totalQuery = query(collection(firestore, 'reportes'), ...restricciones);
-  const totalDocs = await getDocs(totalQuery);
-  const total = totalDocs.size;
-
-  // Paginación con cursor
-  const queryConstraints = [...restricciones];
-
-  if (cursor) {
-    // Deserializar el cursor (base64 del JSON del ID del último documento anterior)
-    try {
-      const cursorId = atob(cursor);
-      const lastDocSnapshot = totalDocs.docs.find((doc) => doc.id === cursorId);
-      if (lastDocSnapshot) {
-        queryConstraints.push(startAfter(lastDocSnapshot));
-      }
-    } catch {
-      // Cursor inválido, reiniciar desde el principio
-      console.warn('Cursor inválido, reiniciando desde el principio');
-    }
-  }
-
-  // Traer pageSize + 1 para saber si hay siguiente página
-  queryConstraints.push(limit(filtros.pageSize + 1));
-
-  const resultado = await getDocs(query(collection(firestore, 'reportes'), ...queryConstraints));
-  const hasNextPage = resultado.docs.length > filtros.pageSize;
-  const pageViajesArray = resultado.docs.slice(0, filtros.pageSize);
-
-  const viajes = pageViajesArray.map((documento) => aViaje(documento.id, documento.data()));
   const enriquecidos = await enriquecerConNombres(viajes);
 
-  // Generar cursor para la siguiente página
-  let nextCursor: PaginationCursor = null;
-  if (hasNextPage && pageViajesArray.length > 0) {
-    const lastDoc = pageViajesArray[pageViajesArray.length - 1];
-    if (lastDoc) {
-      nextCursor = btoa(lastDoc.id);
-    }
-  }
-
-  return {
-    viajes: enriquecidos,
-    total,
-    nextCursor,
-  };
+  // `queryViajes` reaplica el rango de fechas (inocuo, ya está dentro) y resuelve el resto
+  // de filtros, el orden y la paginación con `total` correcto.
+  return queryViajes(enriquecidos, filtros);
 }
 
 export async function obtenerViajeFirestore(id: string): Promise<Viaje | null> {

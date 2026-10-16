@@ -18,6 +18,7 @@ import { useResolvedMedia } from '@/lib/hooks/useResolvedMedia';
 import { urlOriginal } from '@/lib/datos/medios';
 import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { rangoDeAtajo, type Atajo } from '@/lib/formato/fechas';
+import { horaLocal } from '@/lib/formato/tamano';
 
 export interface GaleriaSectionProps {
   readonly medios: readonly Medio[];
@@ -104,12 +105,19 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
   ];
 
-  // Función para verificar si una fecha está dentro del rango
-  const fechaDentroDeRango = (fecha: Date, desde: string, hasta: string): boolean => {
+  // Verifica si un medio cae dentro del rango `desde`/`hasta` (ambos `YYYY-MM-DD`).
+  //
+  // Se compara contra `medio.fechaLocal` —la fecha local de México que escribe el
+  // productor— y NO contra `capturadoEn.toISOString()`. `toISOString()` da la fecha en
+  // UTC: una foto tomada hoy por la tarde en México cae en el día UTC siguiente y una de
+  // la madrugada en el anterior, que es exactamente por qué «Hoy» mostraba fotos del día
+  // de ayer. `fechaLocal` es la misma cadena que usan la pantalla de Viajes y la consulta
+  // del backend, así que las tres comparten el rango sin depender de la zona de quien
+  // consulta (ver `lib/formato/fechas.ts` y `lib/datos/medios.ts`).
+  const medioDentroDeRango = (medio: Medio, desde: string, hasta: string): boolean => {
     if (!desde || !hasta) return true; // Si no hay rango, pasar todo
-    const fechaIso = fecha.toISOString();
-    const fechaStr = fechaIso.split('T')[0];
-    return fechaStr ? fechaStr >= desde && fechaStr <= hasta : false;
+    if (!medio.fechaLocal) return false;
+    return medio.fechaLocal >= desde && medio.fechaLocal <= hasta;
   };
 
   // Determina si un medio cumple con los filtros y búsqueda
@@ -122,14 +130,14 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       } else if (periodo === 'rango') {
         // Rango personalizado
         if (rangoDesde && rangoHasta) {
-          if (!fechaDentroDeRango(medio.capturadoEn, rangoDesde, rangoHasta)) {
+          if (!medioDentroDeRango(medio, rangoDesde, rangoHasta)) {
             return false;
           }
         }
       } else {
         // Atajo (hoy, semana, mes)
         const { desde, hasta } = rangoDeAtajo(periodo as Atajo);
-        if (!fechaDentroDeRango(medio.capturadoEn, desde, hasta)) {
+        if (!medioDentroDeRango(medio, desde, hasta)) {
           return false;
         }
       }
@@ -312,8 +320,13 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
               {
                 key: 'capturadoEn',
                 header: 'Fecha/Hora',
+                // Fecha local de México (`fechaLocal`, la misma por la que se filtra) + hora
+                // en zona de México (`horaLocal`). Antes mostraba sólo la hora del navegador,
+                // que podía caer en otro día que el del filtro.
                 cell: (medio: Medio) => (
-                  <span>{medio.capturadoEn.toLocaleTimeString('es-MX')}</span>
+                  <span className="cifras-tabulares">
+                    {medio.fechaLocal} {horaLocal(medio.capturadoEn)}
+                  </span>
                 ),
               },
               {
@@ -402,7 +415,14 @@ function MiniaturaTarjeta({ medio, onAbrir }: { medio: Medio; onAbrir: () => voi
   const isAudio = medio.tipo === 'AUDIO';
   const { miniatura } = useResolvedMedia(medio);
   const tamanoMB = (medio.bytes / (1024 * 1024)).toFixed(2);
-  const hora = `${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`;
+  // Hora en zona de México (`horaLocal`), no la del navegador: así el sello coincide con
+  // el día por el que se filtra (`fechaLocal`). Antes se calculaba con `getHours()`, que
+  // usa la zona del navegador y podía caer en otro día.
+  const hora = horaLocal(medio.capturadoEn);
+  // Id corto del medio: el primer segmento del id real. Sustituye al `idCortoDe` que
+  // vivía en `provisional.ts` (retirado en etapa 6), que era un hash sintético para datos
+  // de muestra; con medios reales el prefijo del id es un identificador legible.
+  const idCorto = medio.id.slice(0, 8);
   const etiquetaPrincipal = medio.etiquetas?.[0] || medio.tipo;
 
   return (
@@ -410,7 +430,7 @@ function MiniaturaTarjeta({ medio, onAbrir }: { medio: Medio; onAbrir: () => voi
       src={isAudio ? '' : (miniatura ?? '')}
       alt={etiquetaPrincipal}
       title={medio.id}
-      subtitle={`${tamanoMB} MB`}
+      subtitle={`${tamanoMB} MB ${idCorto}`}
       onClick={onAbrir}
       badges={[
         { label: hora, variant: 'neutral', position: 'left' },
