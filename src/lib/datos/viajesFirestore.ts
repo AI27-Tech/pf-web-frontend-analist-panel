@@ -66,7 +66,7 @@ function aViaje(id: string, d: DocumentData): Viaje {
     subida: d.subida ?? 'PENDIENTE',
     completo: d.completo === true,
     mediosEsperados: d.mediosEsperados ?? 0,
-    estados: [],
+    estados: Array.isArray(d.estados) ? d.estados : [],
     etiquetas: d.etiquetas ?? [],
     fotos,
     audios,

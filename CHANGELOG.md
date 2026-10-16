@@ -31,6 +31,58 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 - `src/app/shell/AppShell.tsx`
 - `CHANGELOG.md`
 
+---
+
+## 2026:10:01 17:55 — Inyección de dependencias para resolución de URLs de media (Refactoring de arquitectura)
+
+**Resumen:** Se refactorizó la resolución de URLs de media desde Firebase Storage, desacoplando los componentes de la dependencia directa a Firebase. Se creó un hook personalizado `useResolvedMedia` que encapsula toda la lógica asíncrona de carga de URLs. Esto mejora testabilidad, reutilización y mantenibilidad del código.
+
+**Problema inicial:** Los componentes `MedioCard` (expediente) y `Miniatura` (galería) llamaban directamente a `urlMiniatura()` y `urlOriginal()` en `useEffect`, creando acoplamiento fuerte a Firebase Storage. Esto hacía que los tests dependieran de un mock completo de Firebase, y cualquier cambio de proveedor de storage requeriría actualizar múltiples lugares.
+
+**Cambios:**
+
+- **src/lib/hooks/useResolvedMedia.ts**: Nuevo hook que encapsula la lógica de resolución de URLs. Retorna un objeto `{ id, miniatura, original }` donde las URLs son `null` mientras se cargan y `string` cuando se resuelven exitosamente. El hook maneja el ciclo de vida completo (cleanup de requests en vuelo, dependencias correctas).
+
+- **src/features/expediente/ExpedienteGaleria.tsx**:
+  - Refactorizado `MedioCard` para usar `useResolvedMedia` en lugar de `useState` + `useEffect` + `urlMiniatura()` directo.
+  - Removidas importaciones de `urlMiniatura`; conservada `urlOriginal` en `resolveUrl` (llamada cuando el usuario abre el visor).
+  - El componente ahora solo renderiza; la carga de URLs ocurre en el hook.
+
+- **src/features/galeria/GaleriaSection.tsx**:
+  - Eliminado `useEffect` global que cargaba todas las URLs en paralelo en un mapa compartido (`urlsMiniatura`).
+  - Creado componente interno `MiniaturaTarjeta` que usa `useResolvedMedia` para cargar su propia URL bajo demanda.
+  - Actualizada la tabla de lista (vista de lista) para usar el hook también.
+  - La galería ahora carga URLs de forma distribuida conforme se renderizan las tarjetas, en lugar de en bloque al montar.
+
+- **src/pruebas/firebase.mock.ts**:
+  - Agregadas exportaciones de `ref` y `getDownloadURL` en el mock de `firebase/storage`.
+  - Nuevo mock del hook `useResolvedMedia` que retorna URLs de data URI (`data:image/svg+xml,...`) instantáneamente, sin delays.
+
+**Beneficios:**
+
+- **Testabilidad:** Los tests no necesitan mockeador Firebase completo. Solo mockeador el hook `useResolvedMedia`, que es una interfaz simple: `{ id, miniatura, original }`.
+- **Reutilización:** Cualquier componente que necesite resolver URLs de media puede usar el hook sin depender de Firebase.
+- **Mantenibilidad:** Si se cambia de Firebase a S3 (u otro proveedor), solo se modifica `urlMiniatura` y `urlOriginal` en `src/lib/datos/medios.ts`. Los componentes y tests no cambian.
+- **Performance:** Las URLs se cargan bajo demanda conforme se renderiza cada tarjeta, no en bloque.
+- **Separación de responsabilidades:** Los componentes tienen una única responsabilidad (renderizar); la carga de URLs vive en el hook.
+
+**Verificación:**
+
+- `npm test`: 97/97 tests pasan (16 archivos de test sin fallos).
+- Los 4 tests de `ExpedienteGaleria.test.tsx` que fallaban antes (`presenta todos los medios en una sola sección`, `muestra el conteo real`, `muestra los medios sin etiqueta`, `renderiza una tarjeta por cada medio`) ahora pasan.
+- `eslint .`: sin errores.
+- `vite build`: compila sin errores.
+
+**Archivos modificados:**
+
+- `src/lib/hooks/useResolvedMedia.ts` (nuevo)
+- `src/features/expediente/ExpedienteGaleria.tsx`
+- `src/features/galeria/GaleriaSection.tsx`
+- `src/pruebas/firebase.mock.ts`
+- `CHANGELOG.md`
+
+---
+
 ## 2026:10:01 11:14 — Retiro del etiquetado en galería y expediente (docs/PLAN_RETIRO_ETIQUETADO.md)
 
 **Resumen:** la app `pf-app-custodio` retira el etiquetado y los `medios` llegan con `etiquetas` vacías. El panel filtraba por etiqueta en la galería y agrupaba por etiqueta en el expediente, dos puntos que se quedaban sin señal. Se retira esa UI dejando el código **comentado, no borrado**, y mostrando todo sin categoría. El contrato de lectura (`Medio.etiquetas`, `Viaje.etiquetas`, `FiltrosViaje.etiqueta`, `FiltrosMedio.etiqueta`, `etiquetaVisible`) se conserva inerte para reactivar descomentando, sin reconstruir tipos ni fuentes.

@@ -1,6 +1,10 @@
 import { FirebaseError } from 'firebase/app';
 
 /**
+ * NOTA: Este módulo está definido pero no se usa en rutas en V1.
+ * Se conserva para uso futuro cuando las rutas implemente manejo centralizado de errores.
+ * Actualmente solo se prueba en errores.test.ts.
+ *
  * Categorización de errores de datos en términos de negocio y operación.
  * Permite que las pantallas distingan entre fallos de autorización, índices faltantes,
  * conectividad y otros, mostrando mensajes útiles sin exponer códigos del SDK.

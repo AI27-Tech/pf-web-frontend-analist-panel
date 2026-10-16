@@ -1,17 +1,12 @@
 import { ImageCard, ImageGrid, Visor, type BadgeConfig } from '@ai27-tech/ui';
 import { AlertTriangle, Headphones } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-import { urlMiniatura, urlOriginal } from '@/lib/datos/medios';
+import { useResolvedMedia } from '@/lib/hooks/useResolvedMedia';
+import { urlOriginal } from '@/lib/datos/medios';
 import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
 import { formatearBytes, horaLocal } from '@/lib/formato/tamano';
-import {
-  esMuestra,
-  idCortoDe,
-  imagenProvisional,
-  resolverImagenVisor,
-} from '@/features/galeria/provisional';
 
 /**
  * Presenta los medios de un viaje como una GRILLA (`ImageGrid` de la librería), no en
@@ -107,13 +102,15 @@ export function ExpedienteGaleria({
     return mapa;
   }, [mediosVisor]);
 
-  // `resolveUrl` debe ser estable entre renders (lo pide la librería): depende sólo del
-  // índice por id. Recupera el `Medio` y delega en `resolverImagenVisor`.
+  // `resolveUrl` debe ser estable entre renders (lo pide la librería): depende sólo de
+  // la capacidad de resolver URLs. Recupera el `Medio` y usa `urlOriginal` directamente
+  // (el hook `useResolvedMedia` se ejecuta en `MedioCard` cuando se renderiza; aquí
+  // el visor solo necesita pedir la URL cuando el usuario abre la galería).
   const resolveUrl = useCallback(
     (medium: MedioVisor): Promise<string> | string => {
       const medio = porId.get(medium.id);
       if (!medio) return '';
-      return resolverImagenVisor(medio, urlOriginal);
+      return urlOriginal(medio);
     },
     [porId],
   );
@@ -184,28 +181,14 @@ export function ExpedienteGaleria({
 }
 
 function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
-  const esDeMuestra = esMuestra(medio);
   // Un audio no tiene miniatura: se muestra el ícono de audífonos, igual que en la
   // galería (`features/galeria`), en vez de una tarjeta con imagen vacía.
   const isAudio = medio.tipo === 'AUDIO';
-  // Guarda el par {id, url} en vez de sólo la url: así, al cambiar de medio, la url
-  // vieja no se muestra un instante de más mientras se resuelve la nueva.
-  const [resuelto, setResuelto] = useState<{ id: string; url: string } | null>(null);
 
-  useEffect(() => {
-    // Para audios no se resuelve miniatura: se pinta el ícono.
-    if (esDeMuestra || isAudio) return;
-    let vivo = true;
-    void urlMiniatura(medio).then((url) => {
-      if (vivo) setResuelto({ id: medio.id, url });
-    });
-    return () => {
-      vivo = false;
-    };
-  }, [medio, esDeMuestra, isAudio]);
+  // Resolver URLs vía hook (desacoplado de Firebase Storage)
+  const { miniatura } = useResolvedMedia(medio);
 
-  const urlReal = resuelto && resuelto.id === medio.id ? resuelto.url : null;
-  const src = isAudio ? '' : esDeMuestra ? imagenProvisional(medio) : urlReal;
+  const src = isAudio ? '' : (miniatura ?? '');
 
   // Dos sellos sobre la miniatura: la hora de captura (izquierda) y el tipo del medio
   // (derecha). RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): el sello derecho
@@ -227,7 +210,6 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
       subtitle={
         <span className="cifras-tabulares flex items-center gap-2 font-mono">
           {formatearBytes(medio.bytes)}
-          <span className="text-text-placeholder">{idCortoDe(medio)}</span>
         </span>
       }
       badges={badges}
