@@ -2,6 +2,87 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:10:15 — Pestaña «Administración»: alta de custodios desde el panel (rama `feature/add-unidad`)
+
+**Resumen:** nueva pestaña «Administración» para que el analista dé de alta custodios desde la interfaz, en lugar de ejecutar scripts manuales. El panel escribe una solicitud en `solicitudes_custodios` y la Cloud Function `procesarSolicitudCustodio` (en `pf-infra-firebase`, Admin SDK) la procesa: crea la cuenta de Auth, el directorio `usuarios/{uid}` y la allowlist `correos_autorizados/{email}`. El panel escucha el resultado en tiempo real y mantiene el botón cargando hasta que la solicitud se resuelve (COMPLETADO o ERROR). El analista solo captura el ID de unidad (`B####`) y el teléfono; el correo (`b####@ai27.com`), la contraseña inicial (`Bravo-####-ai27`) y el nombre (`B####`) se derivan del patrón del CSV de provisión.
+
+**Cambios:**
+
+- `src/features/administracion/AdministracionSection.tsx`: pantalla con el formulario y la lista de solicitudes recientes, en dos columnas.
+- `src/features/administracion/custodios/FormularioCustodio.tsx`: formulario de alta. Captura ID de unidad (`B` + 4 dígitos, con máscara) y teléfono (10 dígitos, prefijo `+52` fijo como adorno del input). Muestra en vivo el correo, contraseña y nombre derivados. Deshabilita el envío hasta que ambos campos son válidos.
+- `src/features/administracion/custodios/ListaSolicitudes.tsx`: lista en tiempo real del estado de las solicitudes (PENDIENTE / COMPLETADO / ERROR), con skeleton de carga y estado vacío diferenciado.
+- `src/lib/datos/administracion.ts`: capa de dominio. Valida el ID de unidad y el teléfono (E.164), deriva correo/contraseña/nombre, crea la solicitud y espera su resolución con timeout.
+- `src/lib/firebase/administracion.ts`: capa de acceso a Firestore. Crea la solicitud, escucha en tiempo real (filtrada por `solicitadoPor` y ordenada en el cliente para no requerir índice compuesto) y espera la resolución de un documento concreto.
+- `src/routes/_privado/administracion.tsx`: ruta de la pestaña.
+- `src/app/shell/AppShell.tsx`: entrada «Administración» en el menú lateral.
+
+**Verificación:** `eslint .` limpio; `tsr generate && tsc --build` sin errores nuevos. Flujo end-to-end verificado contra el Emulator Suite y contra producción (tras desplegar reglas de `solicitudes_custodios` y la Cloud Function): la solicitud pasa de PENDIENTE a COMPLETADO y se crean `usuarios/{uid}` y `correos_autorizados/{email}`.
+
+**Archivos modificados:**
+
+- `src/features/administracion/AdministracionSection.tsx` (nuevo)
+- `src/features/administracion/index.ts` (nuevo)
+- `src/features/administracion/custodios/FormularioCustodio.tsx` (nuevo)
+- `src/features/administracion/custodios/ListaSolicitudes.tsx` (nuevo)
+- `src/features/administracion/custodios/index.ts` (nuevo)
+- `src/lib/datos/administracion.ts` (nuevo)
+- `src/lib/firebase/administracion.ts` (nuevo)
+- `src/routes/_privado/administracion.tsx` (nuevo)
+- `src/app/shell/AppShell.tsx`
+- `CHANGELOG.md`
+
+---
+
+## 2026:10:01 17:55 — Inyección de dependencias para resolución de URLs de media (Refactoring de arquitectura)
+
+**Resumen:** Se refactorizó la resolución de URLs de media desde Firebase Storage, desacoplando los componentes de la dependencia directa a Firebase. Se creó un hook personalizado `useResolvedMedia` que encapsula toda la lógica asíncrona de carga de URLs. Esto mejora testabilidad, reutilización y mantenibilidad del código.
+
+**Problema inicial:** Los componentes `MedioCard` (expediente) y `Miniatura` (galería) llamaban directamente a `urlMiniatura()` y `urlOriginal()` en `useEffect`, creando acoplamiento fuerte a Firebase Storage. Esto hacía que los tests dependieran de un mock completo de Firebase, y cualquier cambio de proveedor de storage requeriría actualizar múltiples lugares.
+
+**Cambios:**
+
+- **src/lib/hooks/useResolvedMedia.ts**: Nuevo hook que encapsula la lógica de resolución de URLs. Retorna un objeto `{ id, miniatura, original }` donde las URLs son `null` mientras se cargan y `string` cuando se resuelven exitosamente. El hook maneja el ciclo de vida completo (cleanup de requests en vuelo, dependencias correctas).
+
+- **src/features/expediente/ExpedienteGaleria.tsx**:
+  - Refactorizado `MedioCard` para usar `useResolvedMedia` en lugar de `useState` + `useEffect` + `urlMiniatura()` directo.
+  - Removidas importaciones de `urlMiniatura`; conservada `urlOriginal` en `resolveUrl` (llamada cuando el usuario abre el visor).
+  - El componente ahora solo renderiza; la carga de URLs ocurre en el hook.
+
+- **src/features/galeria/GaleriaSection.tsx**:
+  - Eliminado `useEffect` global que cargaba todas las URLs en paralelo en un mapa compartido (`urlsMiniatura`).
+  - Creado componente interno `MiniaturaTarjeta` que usa `useResolvedMedia` para cargar su propia URL bajo demanda.
+  - Actualizada la tabla de lista (vista de lista) para usar el hook también.
+  - La galería ahora carga URLs de forma distribuida conforme se renderizan las tarjetas, en lugar de en bloque al montar.
+
+- **src/pruebas/firebase.mock.ts**:
+  - Agregadas exportaciones de `ref` y `getDownloadURL` en el mock de `firebase/storage`.
+  - Nuevo mock del hook `useResolvedMedia` que retorna URLs de data URI (`data:image/svg+xml,...`) instantáneamente, sin delays.
+
+**Beneficios:**
+
+- **Testabilidad:** Los tests no necesitan mockeador Firebase completo. Solo mockeador el hook `useResolvedMedia`, que es una interfaz simple: `{ id, miniatura, original }`.
+- **Reutilización:** Cualquier componente que necesite resolver URLs de media puede usar el hook sin depender de Firebase.
+- **Mantenibilidad:** Si se cambia de Firebase a S3 (u otro proveedor), solo se modifica `urlMiniatura` y `urlOriginal` en `src/lib/datos/medios.ts`. Los componentes y tests no cambian.
+- **Performance:** Las URLs se cargan bajo demanda conforme se renderiza cada tarjeta, no en bloque.
+- **Separación de responsabilidades:** Los componentes tienen una única responsabilidad (renderizar); la carga de URLs vive en el hook.
+
+**Verificación:**
+
+- `npm test`: 97/97 tests pasan (16 archivos de test sin fallos).
+- Los 4 tests de `ExpedienteGaleria.test.tsx` que fallaban antes (`presenta todos los medios en una sola sección`, `muestra el conteo real`, `muestra los medios sin etiqueta`, `renderiza una tarjeta por cada medio`) ahora pasan.
+- `eslint .`: sin errores.
+- `vite build`: compila sin errores.
+
+**Archivos modificados:**
+
+- `src/lib/hooks/useResolvedMedia.ts` (nuevo)
+- `src/features/expediente/ExpedienteGaleria.tsx`
+- `src/features/galeria/GaleriaSection.tsx`
+- `src/pruebas/firebase.mock.ts`
+- `CHANGELOG.md`
+
+---
+
 ## 2026:10:01 11:14 — Retiro del etiquetado en galería y expediente (docs/PLAN_RETIRO_ETIQUETADO.md)
 
 **Resumen:** la app `pf-app-custodio` retira el etiquetado y los `medios` llegan con `etiquetas` vacías. El panel filtraba por etiqueta en la galería y agrupaba por etiqueta en el expediente, dos puntos que se quedaban sin señal. Se retira esa UI dejando el código **comentado, no borrado**, y mostrando todo sin categoría. El contrato de lectura (`Medio.etiquetas`, `Viaje.etiquetas`, `FiltrosViaje.etiqueta`, `FiltrosMedio.etiqueta`, `etiquetaVisible`) se conserva inerte para reactivar descomentando, sin reconstruir tipos ni fuentes.

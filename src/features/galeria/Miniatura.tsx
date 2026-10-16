@@ -1,8 +1,8 @@
-import { Badge } from '@ai27-tech/ui';
 import { Headphones } from 'lucide-react';
+import React from 'react';
 import type { Medio } from '@/lib/datos/tipos';
 import { formatearBytes, horaLocal } from '@/lib/formato/tamano';
-import { estadoProvisional, imagenProvisional } from './provisional';
+import { urlMiniatura } from '@/lib/datos/medios';
 /**
  * Una celda de la rejilla de la galería: la evidencia como tarjeta.
  *
@@ -26,8 +26,18 @@ function fileName(medio: Medio): string {
   return segment || (medio.etiquetas || [])[0] || 'SIN_NOMBRE';
 }
 export function Miniatura({ medio, onOpen }: MiniaturaProps) {
-  const estado = estadoProvisional(medio);
   const isAudio = medio.tipo === 'AUDIO';
+  const [miniUrl, setMiniUrl] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (isAudio) return;
+    urlMiniatura(medio)
+      .then(setMiniUrl)
+      .catch((e) => {
+        console.warn(`Error cargando miniatura de ${medio.id}:`, e);
+      });
+  }, [medio, isAudio]);
+
   return (
     <button
       type="button"
@@ -35,7 +45,7 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
       aria-label={`Abrir ${fileName(medio)}`}
       className="group border-border bg-surface hover:border-accent focus-visible:ring-accent flex flex-col overflow-hidden rounded-md border text-left transition-colors focus:outline-none focus-visible:ring-2"
     >
-      {/* Lienzo cuadrado: imagen, con la hora y el estado superpuestos en las esquinas. */}
+      {/* Lienzo cuadrado: imagen, con la hora superpuesta en la esquina superior izquierda. */}
       <div className="bg-canvas relative aspect-square overflow-hidden">
         {isAudio ? (
           <div className="text-text-muted flex h-full w-full items-center justify-center">
@@ -43,7 +53,7 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
           </div>
         ) : (
           <img
-            src={imagenProvisional(medio)}
+            src={miniUrl}
             alt={medio.comentario ?? (medio.etiquetas || [])[0] ?? 'Evidencia'}
             loading="lazy"
             draggable={false}
@@ -54,10 +64,6 @@ export function Miniatura({ medio, onOpen }: MiniaturaProps) {
             bailen entre celdas. */}
         <span className="cifras-tabulares absolute top-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-white">
           {horaLocal(medio.capturadoEn)}
-        </span>
-        {/* Sello de estado, esquina superior derecha. */}
-        <span className="absolute top-1.5 right-1.5">
-          <Badge variant={estado.variant}>{estado.label}</Badge>
         </span>
       </div>
       {/* Pie de la celda: nombre del archivo y, debajo, unidad y peso. */}

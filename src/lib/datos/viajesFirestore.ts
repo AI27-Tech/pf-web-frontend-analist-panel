@@ -3,7 +3,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  limit,
   orderBy,
   query,
   where,
@@ -15,6 +14,7 @@ import { firestore } from '@/lib/firebase/cliente';
 
 import { enriquecerConNombres } from './custodios';
 import type { FiltrosViaje, Viaje, ViajesPage } from './tipos';
+import { queryViajes } from './viajesQuery';
 
 /**
  * Conteo de fotos y audios de un viaje, respetando que `resumenMedios` es un SNAPSHOT
@@ -66,7 +66,7 @@ function aViaje(id: string, d: DocumentData): Viaje {
     subida: d.subida ?? 'PENDIENTE',
     completo: d.completo === true,
     mediosEsperados: d.mediosEsperados ?? 0,
-    estados: [],
+    estados: Array.isArray(d.estados) ? d.estados : [],
     etiquetas: d.etiquetas ?? [],
     fotos,
     audios,
@@ -75,29 +75,39 @@ function aViaje(id: string, d: DocumentData): Viaje {
 
 /**
  * Lista viajes para la pantalla principal, contra Firestore.
+ *
+ * Sólo el RANGO DE FECHAS se resuelve en Firestore (es el recorte grande y es el único
+ * criterio por el que la colección está indexada de forma barata). El resto de los
+ * filtros —coincidencia parcial de `placas`, coincidencia parcial de `custodioName`,
+ * pertenencia de `etiqueta`, `isUpdated`—, el orden, el `total` y el corte de la página
+ * se aplican EN MEMORIA con la MISMA función pura `queryViajes` que usa el mock.
+ *
+ * Antes esta función hacía su propia consulta divergente: `placas` por igualdad exacta
+ * (así que una placa parcial no devolvía nada), nunca aplicaba `custodioName` ni
+ * `etiqueta` (los filtros de Unidad y Etiqueta no hacían nada en producción) y devolvía
+ * `total = página`, que rompía la paginación. Reusar `queryViajes` hace que la pantalla
+ * se comporte igual contra Firestore que contra el mock, con una sola fuente de verdad.
+ *
+ * Nota: el filtrado por fecha ya recorta el universo; `queryViajes` opera sobre esa
+ * ventana. Si una ventana de fechas creciera más allá de lo razonable, el recorte
+ * tendría que paginarse en servidor, pero eso excede el alcance V1 (lectura acotada por
+ * periodo).
  */
 export async function listarViajesFirestore(filtros: FiltrosViaje): Promise<ViajesPage> {
   const restricciones: QueryConstraint[] = [
     where('fechaLocal', '>=', filtros.desde),
     where('fechaLocal', '<=', filtros.hasta),
+    orderBy('fechaLocal', 'desc'),
   ];
-
-  if (filtros.placas) restricciones.push(where('placas', '==', filtros.placas));
-  if (filtros.custodioUid) restricciones.push(where('custodioUid', '==', filtros.custodioUid));
-  if (filtros.isUpdated !== undefined)
-    restricciones.push(where('hayNovedad', '==', filtros.isUpdated));
-
-  restricciones.push(orderBy('fechaLocal', 'desc'), limit(filtros.pageSize));
 
   const resultado = await getDocs(query(collection(firestore, 'reportes'), ...restricciones));
   const viajes = resultado.docs.map((documento) => aViaje(documento.id, documento.data()));
 
   const enriquecidos = await enriquecerConNombres(viajes);
 
-  return {
-    viajes: enriquecidos,
-    total: enriquecidos.length,
-  };
+  // `queryViajes` reaplica el rango de fechas (inocuo, ya está dentro) y resuelve el resto
+  // de filtros, el orden y la paginación con `total` correcto.
+  return queryViajes(enriquecidos, filtros);
 }
 
 export async function obtenerViajeFirestore(id: string): Promise<Viaje | null> {
