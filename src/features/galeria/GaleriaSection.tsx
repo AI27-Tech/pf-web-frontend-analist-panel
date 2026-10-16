@@ -11,13 +11,14 @@
 
 import { ImageGrid, ImageCard, Visor, Badge, FilterBar, Pagination, Table } from '@ai27-tech/ui';
 import type { FilterDefinition, FilterValues } from '@ai27-tech/ui';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Headphones } from 'lucide-react';
 
-import { urlOriginal, urlMiniatura } from '@/lib/datos/medios';
+import { useResolvedMedia } from '@/lib/hooks/useResolvedMedia';
+import { urlOriginal } from '@/lib/datos/medios';
 import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
-import { resolverImagenVisor, imagenProvisional, esMuestra, idCortoDe } from './provisional';
 import { rangoDeAtajo, type Atajo } from '@/lib/formato/fechas';
+import { horaLocal } from '@/lib/formato/tamano';
 
 export interface GaleriaSectionProps {
   readonly medios: readonly Medio[];
@@ -28,7 +29,6 @@ const INITIAL_PAGE_SIZE = 25;
 
 export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const [openMedioId, setOpenMedioId] = useState<string | null>(null);
-  const [urlsMiniatura, setUrlsMiniatura] = useState<Map<string, string>>(new Map());
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
@@ -39,38 +39,8 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   const [rangoHasta, setRangoHasta] = useState<string>('');
 
   // Cargar URLs de miniaturas reales en paralelo (solo para FOTOs)
-  useEffect(() => {
-    const cargarMiniaturasReales = async () => {
-      const urls = new Map<string, string>();
-      await Promise.all(
-        medios.map(async (medio) => {
-          // Para audios, no cargar URL: mostrar ícono
-          if (medio.tipo === 'AUDIO') {
-            urls.set(medio.id, ''); // Vacío indica "mostrar ícono"
-            return;
-          }
-
-          try {
-            // Para medios de muestra, usar imagen provisional
-            if (esMuestra(medio)) {
-              urls.set(medio.id, imagenProvisional(medio));
-            } else {
-              // Para fotos reales, obtener URL de Storage
-              const url = await urlMiniatura(medio);
-              urls.set(medio.id, url);
-            }
-          } catch (error) {
-            console.warn(`[Galería] Error cargando miniatura de ${medio.id}:`, error);
-            // Fallback a provisional en caso de error
-            urls.set(medio.id, imagenProvisional(medio));
-          }
-        }),
-      );
-      setUrlsMiniatura(urls);
-    };
-
-    cargarMiniaturasReales();
-  }, [medios]);
+  // REFACTOR: Ya no es necesario este useEffect global. Cada Miniatura que se renderiza
+  // usa el hook useResolvedMedia para cargar su propia URL bajo demanda.
 
   // Definir los filtros
   const filters: FilterDefinition[] = [
@@ -135,12 +105,19 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
   ];
 
-  // Función para verificar si una fecha está dentro del rango
-  const fechaDentroDeRango = (fecha: Date, desde: string, hasta: string): boolean => {
+  // Verifica si un medio cae dentro del rango `desde`/`hasta` (ambos `YYYY-MM-DD`).
+  //
+  // Se compara contra `medio.fechaLocal` —la fecha local de México que escribe el
+  // productor— y NO contra `capturadoEn.toISOString()`. `toISOString()` da la fecha en
+  // UTC: una foto tomada hoy por la tarde en México cae en el día UTC siguiente y una de
+  // la madrugada en el anterior, que es exactamente por qué «Hoy» mostraba fotos del día
+  // de ayer. `fechaLocal` es la misma cadena que usan la pantalla de Viajes y la consulta
+  // del backend, así que las tres comparten el rango sin depender de la zona de quien
+  // consulta (ver `lib/formato/fechas.ts` y `lib/datos/medios.ts`).
+  const medioDentroDeRango = (medio: Medio, desde: string, hasta: string): boolean => {
     if (!desde || !hasta) return true; // Si no hay rango, pasar todo
-    const fechaIso = fecha.toISOString();
-    const fechaStr = fechaIso.split('T')[0];
-    return fechaStr ? fechaStr >= desde && fechaStr <= hasta : false;
+    if (!medio.fechaLocal) return false;
+    return medio.fechaLocal >= desde && medio.fechaLocal <= hasta;
   };
 
   // Determina si un medio cumple con los filtros y búsqueda
@@ -153,14 +130,14 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       } else if (periodo === 'rango') {
         // Rango personalizado
         if (rangoDesde && rangoHasta) {
-          if (!fechaDentroDeRango(medio.capturadoEn, rangoDesde, rangoHasta)) {
+          if (!medioDentroDeRango(medio, rangoDesde, rangoHasta)) {
             return false;
           }
         }
       } else {
         // Atajo (hoy, semana, mes)
         const { desde, hasta } = rangoDeAtajo(periodo as Atajo);
-        if (!fechaDentroDeRango(medio.capturadoEn, desde, hasta)) {
+        if (!medioDentroDeRango(medio, desde, hasta)) {
           return false;
         }
       }
@@ -317,53 +294,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           {/* Grid de imágenes */}
           <ImageGrid
             items={mediosPaginados}
-            renderItem={(medio) => {
-              const isAudio = medio.tipo === 'AUDIO';
-              const urlMini = urlsMiniatura.get(medio.id);
-              const idCorto = idCortoDe(medio);
-              const tamanoMB = (medio.bytes / (1024 * 1024)).toFixed(2);
-              const hora = `${medio.capturadoEn.getHours().toString().padStart(2, '0')}:${medio.capturadoEn.getMinutes().toString().padStart(2, '0')}`;
-              const etiquetaPrincipal = medio.etiquetas?.[0] || medio.tipo;
-
-              return (
-                <ImageCard
-                  key={medio.id}
-                  src={isAudio ? '' : urlMini || imagenProvisional(medio, 640)}
-                  alt={etiquetaPrincipal}
-                  title={medio.id}
-                  subtitle={`${tamanoMB} MB ${idCorto}`}
-                  onClick={() => {
-                    setOpenMedioId(medio.id);
-                  }}
-                  badges={[
-                    { label: hora, variant: 'neutral', position: 'left' },
-                    {
-                      label: etiquetaPrincipal,
-                      variant: isAudio ? 'warning' : 'neutral',
-                      position: 'right',
-                      // La etiqueta de categoría es de longitud variable y desbordaba
-                      // la card. beta.6 permite recortarla con "…" y mostrar el texto
-                      // completo al pasar el cursor, sin perder información.
-                      truncate: true,
-                      tooltip: 'custom',
-                    },
-                  ]}
-                >
-                  {isAudio && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                      }}
-                    >
-                      <Headphones size={48} strokeWidth={1.5} color="rgba(255,255,255,0.7)" />
-                    </div>
-                  )}
-                </ImageCard>
-              );
-            }}
+            renderItem={(medio) => (
+              <MiniaturaTarjeta medio={medio} onAbrir={() => setOpenMedioId(medio.id)} />
+            )}
             columns={6}
             gap="1rem"
             emptyMessage={
@@ -382,40 +315,18 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
                 header: '',
                 align: 'center',
                 width: '48px',
-                cell: (medio: Medio) => {
-                  const isAudio = medio.tipo === 'AUDIO';
-                  const urlMini = urlsMiniatura.get(medio.id);
-                  return isAudio ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '40px',
-                        height: '40px',
-                      }}
-                    >
-                      <Headphones size={20} strokeWidth={1.5} color="currentColor" />
-                    </div>
-                  ) : (
-                    <img
-                      src={urlMini || imagenProvisional(medio, 80)}
-                      alt={(medio.etiquetas || [])[0] || 'Evidencia'}
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        objectFit: 'cover',
-                        borderRadius: '3px',
-                      }}
-                    />
-                  );
-                },
+                cell: (medio: Medio) => <MiniaturaTablaSql medio={medio} />,
               },
               {
                 key: 'capturadoEn',
                 header: 'Fecha/Hora',
+                // Fecha local de México (`fechaLocal`, la misma por la que se filtra) + hora
+                // en zona de México (`horaLocal`). Antes mostraba sólo la hora del navegador,
+                // que podía caer en otro día que el del filtro.
                 cell: (medio: Medio) => (
-                  <span>{medio.capturadoEn.toLocaleTimeString('es-MX')}</span>
+                  <span className="cifras-tabulares">
+                    {medio.fechaLocal} {horaLocal(medio.capturadoEn)}
+                  </span>
                 ),
               },
               {
@@ -488,10 +399,100 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           onClose={() => setOpenMedioId(null)}
           resolveUrl={(medium) => {
             const medio = medios.find((m) => m.id === medium.id);
-            return medio ? resolverImagenVisor(medio, urlOriginal) : '';
+            return medio ? urlOriginal(medio) : '';
           }}
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Componente para renderizar una miniatura de un medio en la galería.
+ * Usa useResolvedMedia para cargar la URL de forma desacoplada de Firebase.
+ */
+function MiniaturaTarjeta({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
+  const isAudio = medio.tipo === 'AUDIO';
+  const { miniatura } = useResolvedMedia(medio);
+  const tamanoMB = (medio.bytes / (1024 * 1024)).toFixed(2);
+  // Hora en zona de México (`horaLocal`), no la del navegador: así el sello coincide con
+  // el día por el que se filtra (`fechaLocal`). Antes se calculaba con `getHours()`, que
+  // usa la zona del navegador y podía caer en otro día.
+  const hora = horaLocal(medio.capturadoEn);
+  // Id corto del medio: el primer segmento del id real. Sustituye al `idCortoDe` que
+  // vivía en `provisional.ts` (retirado en etapa 6), que era un hash sintético para datos
+  // de muestra; con medios reales el prefijo del id es un identificador legible.
+  const idCorto = medio.id.slice(0, 8);
+  const etiquetaPrincipal = medio.etiquetas?.[0] || medio.tipo;
+
+  return (
+    <ImageCard
+      src={isAudio ? '' : (miniatura ?? '')}
+      alt={etiquetaPrincipal}
+      title={medio.id}
+      subtitle={`${tamanoMB} MB ${idCorto}`}
+      onClick={onAbrir}
+      badges={[
+        { label: hora, variant: 'neutral', position: 'left' },
+        {
+          label: etiquetaPrincipal,
+          variant: isAudio ? 'warning' : 'neutral',
+          position: 'right',
+          truncate: true,
+          tooltip: 'custom',
+        },
+      ]}
+    >
+      {isAudio && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+          }}
+        >
+          <Headphones size={48} strokeWidth={1.5} color="rgba(255,255,255,0.7)" />
+        </div>
+      )}
+    </ImageCard>
+  );
+}
+
+/**
+ * Componente para renderizar una miniatura en la vista de tabla (lista).
+ * Necesario porque los callbacks de celda de Table no pueden ser hooks.
+ */
+function MiniaturaTablaSql({ medio }: { medio: Medio }) {
+  const isAudio = medio.tipo === 'AUDIO';
+  const { miniatura } = useResolvedMedia(medio);
+
+  if (isAudio) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '40px',
+          height: '40px',
+        }}
+      >
+        <Headphones size={20} strokeWidth={1.5} color="currentColor" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={miniatura ?? ''}
+      alt={(medio.etiquetas || [])[0] || 'Evidencia'}
+      style={{
+        width: '40px',
+        height: '40px',
+        objectFit: 'cover',
+        borderRadius: '3px',
+      }}
+    />
   );
 }

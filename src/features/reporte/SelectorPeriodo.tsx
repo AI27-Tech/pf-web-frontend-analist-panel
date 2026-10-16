@@ -1,4 +1,4 @@
-import { esRangoValido, type SeleccionPeriodo } from '@/lib/formato/fechas';
+import { esRangoValido, fechaLocalDe, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
 /**
  * Atajos de periodo del reporte: Hoy, Esta semana, Este mes y Rango. Al elegir Rango aparecen dos
@@ -17,9 +17,12 @@ const ATAJOS = [
   { id: 'rango', label: 'Rango' },
 ] as const;
 
-/** Hoy en zona local, como valor por defecto de los campos al abrir Rango. */
+/** Hoy en zona de México, como valor por defecto de los campos al abrir Rango.
+ *  Usa `fechaLocalDe` y NO `toISOString()`: este último da el día en UTC, que después de
+ *  las 18:00 hora de México ya es el día siguiente, y abriría el rango en una fecha que
+ *  no es «hoy» para el analista. */
 function hoyISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return fechaLocalDe(new Date());
 }
 
 export function SelectorPeriodo({ seleccion, onChange }: SelectorPeriodoProps) {
