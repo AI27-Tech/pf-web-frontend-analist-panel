@@ -1,5 +1,5 @@
 import { Badge, Button } from '@ai27-tech/ui';
-import { Printer } from 'lucide-react';
+import { Download, Printer } from 'lucide-react';
 
 import type { SeleccionPeriodo } from '@/lib/formato/fechas';
 
@@ -15,6 +15,8 @@ export interface ReporteHeaderProps {
   onPeriodoChange: (seleccion: SeleccionPeriodo) => void;
   /** Dispara la impresión. */
   onImprimir?: () => void;
+  /** Descarga el registro por viaje en CSV. */
+  onExportarCsv?: (() => void) | undefined;
 }
 
 export function ReporteHeader({
@@ -22,6 +24,7 @@ export function ReporteHeader({
   seleccion,
   onPeriodoChange,
   onImprimir,
+  onExportarCsv,
 }: ReporteHeaderProps) {
   function imprimir(): void {
     (onImprimir ?? (() => window.print()))();
@@ -57,6 +60,15 @@ export function ReporteHeader({
           startIcon={<Printer size={16} strokeWidth={1.75} />}
         >
           Imprimir
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={onExportarCsv}
+          disabled={!onExportarCsv}
+          startIcon={<Download size={16} strokeWidth={1.75} />}
+        >
+          Exportar CSV
         </Button>
       </div>
     </header>

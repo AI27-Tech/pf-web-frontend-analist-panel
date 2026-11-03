@@ -12,6 +12,7 @@ import { TablaCustodiosSection } from './TablaCustodiosSection';
 import { TablaViajesSection } from './TablaViajesSection';
 import { TarjetasEstadistica } from './TarjetasEstadistica';
 import { ReporteCargando, ReporteError, ReporteVacio } from './estados';
+import { BOM_UTF8, descargarArchivo, nombreArchivoCsv, viajesACsv } from './exportarCsv';
 import {
   FILTRO_VACIO,
   estadisticasDeViajes,
@@ -58,6 +59,20 @@ export function ReporteSection() {
     [datos, filtro],
   );
 
+  // Exporta exactamente lo que muestra «Registro por viaje». Sólo se ofrece cuando la
+  // consulta terminó y hay datos; en cualquier otro estado el botón queda deshabilitado.
+  const puedeExportar = consulta.isSuccess && !sinDatos;
+  function exportarCsv(): void {
+    // `filtro.custodio` es un uid; el nombre se resuelve igual que en `filtrarViajes`.
+    const nombreCustodio =
+      datos?.porCustodio.find((c) => c.uid === filtro.custodio)?.nombre ?? null;
+    descargarArchivo(
+      nombreArchivoCsv(rango, filtro, nombreCustodio),
+      BOM_UTF8 + viajesACsv(viajesFiltrados),
+      'text/csv;charset=utf-8',
+    );
+  }
+
   // Tarjetas: globales por defecto; recalculadas sobre la selección cuando hay filtro.
   const estadisticas = useMemo(() => {
     if (!datos) return null;
@@ -69,6 +84,7 @@ export function ReporteSection() {
       <ReporteHeader
         folio={folio}
         seleccion={periodo}
+        onExportarCsv={puedeExportar ? exportarCsv : undefined}
         onPeriodoChange={(seleccion) => {
           // Cambiar de periodo limpia el filtro: un custodio o placa del periodo anterior
           // puede no existir en el nuevo.
