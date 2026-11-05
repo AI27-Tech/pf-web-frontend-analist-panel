@@ -37,7 +37,7 @@ export function ReporteHeader({
         <div className="flex items-center gap-3">
           <h1 className="text-text text-2xl font-semibold tracking-tight">Reporte</h1>
           <Badge variant="escort" pill>
-            AI27 FORENSIC AUDIT
+            AI27 DATA ANALISIS
           </Badge>
         </div>
         <div className="mt-2 flex items-center gap-3">
