@@ -10,12 +10,6 @@ import type { RangoFechas } from '@/lib/formato/fechas';
 
 import type { FiltroReporte } from './filtros';
 
-/**
- * Marca de orden de bytes UTF-8. Excel la usa para detectar la codificación; sin ella
- * interpreta el archivo como ANSI y rompe los acentos.
- */
-export const BOM_UTF8 = '\uFEFF';
-
 /** Separador entre custodios dentro de una misma celda. */
 const SEPARADOR_CUSTODIOS = ' | ';
 
@@ -37,33 +31,49 @@ const ENCABEZADOS = [
   'Estado',
 ] as const;
 
+/** Celda de una tabla CSV. Los números se escriben tal cual; el texto se escapa. */
+export type CeldaCsv = string | number;
+
+/** Opciones de `Papa.unparse` compartidas por todos los reportes. */
+const OPCIONES_CSV = { delimiter: ',', newline: '\r\n', escapeFormulae: true } as const;
+
+/**
+ * Arma un CSV a partir de encabezados y filas. Es el único punto donde se configura
+ * `Papa.unparse`, para que todos los reportes compartan separador, saltos de línea y
+ * neutralización de fórmulas.
+ *
+ * `escapeFormulae` sólo actúa sobre texto: un número negativo (p. ej. una longitud) se
+ * escribe sin apóstrofo y Excel lo sigue leyendo como número.
+ */
+export function tablaACsv(encabezados: readonly string[], filas: CeldaCsv[][]): string {
+  // Papa.unparse agrega un salto de línea final cuando no hay filas de datos; se evita
+  // para que el resultado sea exactamente la fila de encabezados.
+  if (filas.length === 0) return encabezados.join(',');
+
+  return Papa.unparse({ fields: [...encabezados], data: filas }, OPCIONES_CSV);
+}
+
 /**
  * Convierte las filas del registro por viaje a texto CSV: una fila por viaje, en el
  * mismo orden recibido. Con lista vacía devuelve sólo la fila de encabezados.
  */
 export function viajesACsv(viajes: FilaViaje[]): string {
-  // Papa.unparse agrega un salto de línea final cuando no hay filas de datos; se evita
-  // para que el resultado sea exactamente la fila de encabezados.
-  if (viajes.length === 0) return ENCABEZADOS.join(',');
-
-  const filas = viajes.map((v) => [
-    v.custodios.join(SEPARADOR_CUSTODIOS),
-    v.placas,
-    v.fechaLocal,
-    v.fotos,
-    v.audios,
-    v.fotos + v.audios,
-    ETIQUETA_CICLO[v.ciclo],
-  ]);
-
-  return Papa.unparse(
-    { fields: [...ENCABEZADOS], data: filas },
-    { delimiter: ',', newline: '\r\n', escapeFormulae: true },
+  return tablaACsv(
+    ENCABEZADOS,
+    viajes.map((v) => [
+      v.custodios.join(SEPARADOR_CUSTODIOS),
+      v.placas,
+      v.fechaLocal,
+      v.fotos,
+      v.audios,
+      v.fotos + v.audios,
+      ETIQUETA_CICLO[v.ciclo],
+    ]),
   );
 }
 
-/** Deja una placa usable en un nombre de archivo. */
-function sanearParaArchivo(valor: string): string {
+/** Deja un valor usable en un nombre de archivo: minúsculas, sin acentos, `[a-z0-9_-]`. */
+export function sanearParaArchivo(valor: string): string {
   return valor
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -105,4 +115,11 @@ export function descargarArchivo(nombre: string, contenido: string, tipo: string
   enlace.click();
   enlace.remove();
   URL.revokeObjectURL(url);
+}
+
+const TIPO_CSV = 'text/csv;charset=utf-8';
+
+/** Descarga un CSV tal cual, sin marca de orden de bytes (BOM). */
+export function descargarCsv(nombre: string, csv: string): void {
+  descargarArchivo(nombre, csv, TIPO_CSV);
 }

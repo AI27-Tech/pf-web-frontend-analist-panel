@@ -53,11 +53,27 @@ export interface GraficasReporte {
   gbAcumulados: PuntoSerie[];
 }
 
+/** Tope de documentos por lectura de métricas (reportes y medios, cada una por periodo). */
+export const TOPE_LECTURA_METRICAS = 5000;
+
+/** Qué tan completa es la lectura detrás de las cifras. Si algo se recortó, la pantalla debe
+ *  avisarlo: un ranking o un total sobre datos incompletos no se puede leer como exacto. */
+export interface CoberturaMetricas {
+  /** `true` si el periodo tiene más viajes (`reportes`) que el tope: de ellos salen las
+   *  tarjetas, las tablas y los rankings, y faltan los más antiguos. */
+  reportesRecortados: boolean;
+  /** `true` si el periodo tiene más archivos (`medios`) que el tope: sólo afecta a las
+   *  gráficas por hora y de GB, que cubren únicamente los más recientes. */
+  mediosRecortados: boolean;
+}
+
 /** El paquete completo que consume la pantalla de reporte. */
 export interface Metricas {
   /** Folio del reporte, derivado del periodo (`EXP-2026-09-MX`). */
   folio: string;
   periodo: RangoFechas;
+  /** Si la lectura se recortó por el tope. */
+  cobertura: CoberturaMetricas;
   estadisticas: EstadisticasReporte;
   graficas: GraficasReporte;
   /** Desglose por custodio: una fila por `custodioUid` del periodo. */
@@ -68,12 +84,26 @@ export interface Metricas {
   porUnidad: EstadisticaUnidad[];
 }
 
-export function obtenerMetricas(periodo: RangoFechas): Promise<Metricas> {
+/** Opciones de lectura de las métricas. */
+export interface OpcionesMetricas {
+  /**
+   * Leer también `medios`, que sólo alimentan las gráficas «Capturas por hora» y «GB
+   * acumulados» (pantalla Sistema). Es la lectura más pesada, así que las pantallas que no
+   * muestran esas gráficas deben pasar `false`. Por defecto `true`. Con `false` esas dos
+   * series quedan vacías.
+   */
+  conMedios?: boolean;
+}
+
+export function obtenerMetricas(
+  periodo: RangoFechas,
+  opciones: OpcionesMetricas = {},
+): Promise<Metricas> {
   if (usarMock) return obtenerMetricasMock(periodo);
   // La rama real vive en su propio módulo y se importa de forma diferida: así el
   // camino de desarrollo (`VITE_DATOS_MOCK=true`) no carga el SDK de Firestore sólo
   // para el reporte, y el módulo de agregaciones sólo entra al bundle cuando se usa.
-  return import('./metricasFirestore').then((m) => m.obtenerMetricasFirestore(periodo));
+  return import('./metricasFirestore').then((m) => m.obtenerMetricasFirestore(periodo, opciones));
 }
 
 /**

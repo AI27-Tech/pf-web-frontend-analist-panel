@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, FileBarChart } from 'lucide-react';
 import { useState } from 'react';
 
+import { AvisoCobertura } from '@/features/reporte/AvisoCobertura';
 import { SelectorPeriodo } from '@/features/reporte/SelectorPeriodo';
 import { obtenerMetricas } from '@/lib/datos/metricas';
 import { resolverPeriodo, type SeleccionPeriodo } from '@/lib/formato/fechas';
@@ -67,6 +68,7 @@ export function SistemaSection() {
 
       {consulta.isSuccess && (
         <div className="space-y-8 px-8 py-6">
+          <AvisoCobertura cobertura={consulta.data.cobertura} alcance="sistema" />
           <GraficasSection graficas={consulta.data.graficas} />
           {consulta.data.estadisticas.viajesAuditados.valor === '0' && (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
