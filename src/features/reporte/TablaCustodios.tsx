@@ -23,7 +23,7 @@ function totalMedios(c: EstadisticaCustodio): number {
 
 const columnas: Column<EstadisticaCustodio>[] = [
   { key: 'nombre', header: 'Unidad', accessor: 'nombre', sortable: true },
-  { key: 'viajes', header: 'Viajes', accessor: 'viajes', align: 'right', sortable: true },
+  { key: 'viajes', header: 'Seguimientos', accessor: 'viajes', align: 'right', sortable: true },
   { key: 'fotos', header: 'Fotos', accessor: 'fotos', align: 'right', sortable: true },
   { key: 'audios', header: 'Audios', accessor: 'audios', align: 'right', sortable: true },
   {

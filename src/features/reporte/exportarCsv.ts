@@ -33,7 +33,7 @@ const ENCABEZADOS = [
   'Fecha',
   'Cantidad de fotos',
   'Cantidad de audios',
-  'Total de validaciones',
+  'Total de evidencias',
   'Estado',
 ] as const;
 

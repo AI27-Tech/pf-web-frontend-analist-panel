@@ -51,10 +51,11 @@ export function TablaViajesSection({ porViaje }: { porViaje: FilaViaje[] }) {
         </span>
         <div className="flex-1">
           <h2 id="viajes-titulo" className="text-text text-sm font-semibold">
-            Registro por viaje
+            Registro por seguimiento
           </h2>
           <p className="text-text-muted text-xs">
-            Un renglón por viaje del periodo. Haz clic en un viaje para abrir su expediente.
+            Un renglón por seguimiento del periodo. Haz clic en un seguimiento para abrir su
+            expediente.
           </p>
         </div>
       </div>

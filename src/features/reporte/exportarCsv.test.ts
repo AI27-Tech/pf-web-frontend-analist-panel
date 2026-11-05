@@ -28,7 +28,7 @@ describe('viajesACsv', () => {
   it('escribe los encabezados en el orden esperado y una fila por viaje', () => {
     const csv = viajesACsv([viaje(), viaje({ id: 'v2', ciclo: 'ACTIVO', fotos: 0, audios: 2 })]);
     expect(lineas(csv)).toEqual([
-      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de validaciones,Estado',
+      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de evidencias,Estado',
       'Jesús Pérez,ABC-123,2026-09-01,5,1,6,Cerrado',
       'Jesús Pérez,ABC-123,2026-09-01,0,2,2,Activo',
     ]);
@@ -84,7 +84,7 @@ describe('viajesACsv', () => {
 
   it('lista vacía devuelve sólo los encabezados', () => {
     expect(viajesACsv([])).toBe(
-      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de validaciones,Estado',
+      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de evidencias,Estado',
     );
   });
 });
