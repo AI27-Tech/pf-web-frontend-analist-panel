@@ -28,24 +28,22 @@ describe('viajesACsv', () => {
   it('escribe los encabezados en el orden esperado y una fila por viaje', () => {
     const csv = viajesACsv([viaje(), viaje({ id: 'v2', ciclo: 'ACTIVO', fotos: 0, audios: 2 })]);
     expect(lineas(csv)).toEqual([
-      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de evidencias,Estado',
-      'Jesús Pérez,ABC-123,2026-09-01,5,1,6,Cerrado',
-      'Jesús Pérez,ABC-123,2026-09-01,0,2,2,Activo',
+      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de evidencias',
+      'Jesús Pérez,ABC-123,2026-09-01,5,1,6',
+      'Jesús Pérez,ABC-123,2026-09-01,0,2,2',
     ]);
   });
 
-  it('etiqueta los tres ciclos', () => {
+  it('no incluye la columna Estado, sin importar el ciclo del viaje', () => {
     const csv = viajesACsv([
       viaje({ ciclo: 'ACTIVO' }),
       viaje({ ciclo: 'CERRADO' }),
       viaje({ ciclo: 'DESCARTADO' }),
     ]);
-    expect(lineas(csv).map((l) => l.split(',').at(-1))).toEqual([
-      'Estado',
-      'Activo',
-      'Cerrado',
-      'Descartado',
-    ]);
+    expect(lineas(csv)[0]).not.toContain('Estado');
+    expect(csv).not.toMatch(/Activo|Cerrado|Descartado/);
+    // Todas las filas tienen las mismas 6 columnas que el encabezado.
+    expect(lineas(csv).every((l) => l.split(',').length === 6)).toBe(true);
   });
 
   it('respeta el orden recibido', () => {
@@ -69,22 +67,22 @@ describe('viajesACsv', () => {
     const csv = viajesACsv([viaje({ custodios: [valor] })]);
     // La celda ya no empieza con el carácter de fórmula: lleva un apóstrofo delante
     // (y papaparse la entrecomilla).
-    expect(lineas(csv)[1]).toBe(`"'${valor}",ABC-123,2026-09-01,5,1,6,Cerrado`);
+    expect(lineas(csv)[1]).toBe(`"'${valor}",ABC-123,2026-09-01,5,1,6`);
   });
 
   it('viaje sin custodios deja la celda vacía', () => {
     const csv = viajesACsv([viaje({ custodios: [] })]);
-    expect(lineas(csv)[1]).toBe(',ABC-123,2026-09-01,5,1,6,Cerrado');
+    expect(lineas(csv)[1]).toBe(',ABC-123,2026-09-01,5,1,6');
   });
 
   it('viaje con varios custodios los une con " | "', () => {
     const csv = viajesACsv([viaje({ custodios: ['Jesús Pérez', 'Mayra García'] })]);
-    expect(lineas(csv)[1]).toBe('Jesús Pérez | Mayra García,ABC-123,2026-09-01,5,1,6,Cerrado');
+    expect(lineas(csv)[1]).toBe('Jesús Pérez | Mayra García,ABC-123,2026-09-01,5,1,6');
   });
 
   it('lista vacía devuelve sólo los encabezados', () => {
     expect(viajesACsv([])).toBe(
-      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de evidencias,Estado',
+      'Unidad,Numero economico,Fecha,Cantidad de fotos,Cantidad de audios,Total de evidencias',
     );
   });
 });

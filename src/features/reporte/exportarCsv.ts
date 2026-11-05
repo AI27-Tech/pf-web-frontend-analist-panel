@@ -5,20 +5,13 @@
 
 import Papa from 'papaparse';
 
-import type { CicloViaje, FilaViaje } from '@/lib/datos/tipos';
+import type { FilaViaje } from '@/lib/datos/tipos';
 import type { RangoFechas } from '@/lib/formato/fechas';
 
 import type { FiltroReporte } from './filtros';
 
 /** Separador entre custodios dentro de una misma celda. */
 const SEPARADOR_CUSTODIOS = ' | ';
-
-/** Etiqueta legible del ciclo; replica la que muestra la tabla en pantalla. */
-const ETIQUETA_CICLO: Record<CicloViaje, string> = {
-  ACTIVO: 'Activo',
-  CERRADO: 'Cerrado',
-  DESCARTADO: 'Descartado',
-};
 
 /** Encabezados, en el orden de las columnas del archivo. */
 const ENCABEZADOS = [
@@ -28,7 +21,6 @@ const ENCABEZADOS = [
   'Cantidad de fotos',
   'Cantidad de audios',
   'Total de evidencias',
-  'Estado',
 ] as const;
 
 /** Celda de una tabla CSV. Los números se escriben tal cual; el texto se escapa. */
@@ -67,7 +59,6 @@ export function viajesACsv(viajes: FilaViaje[]): string {
       v.fotos,
       v.audios,
       v.fotos + v.audios,
-      ETIQUETA_CICLO[v.ciclo],
     ]),
   );
 }
