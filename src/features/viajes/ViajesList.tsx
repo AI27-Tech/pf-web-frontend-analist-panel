@@ -53,7 +53,7 @@ export function ViajesList({
           Expedientes registrados
         </h2>
         <p className="text-text-muted cifras-tabulares text-xs" aria-live="polite">
-          Mostrando {viajes.length} de {new Intl.NumberFormat('es-MX').format(total)} viajes
+          Mostrando {viajes.length} de {new Intl.NumberFormat('es-MX').format(total)} seguimientos
         </p>
       </header>
 
@@ -64,7 +64,8 @@ export function ViajesList({
           <li className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
             <SearchX className="text-text-muted size-8" aria-hidden="true" />
             <p className="text-text-muted text-sm">
-              No hay viajes entre el {periodo.desde} y el {periodo.hasta} con los filtros actuales.
+              No hay seguimientos entre el {periodo.desde} y el {periodo.hasta} con los filtros
+              actuales.
             </p>
             <Button variant="outline" size="sm" onClick={onLimpiarFiltros}>
               Limpiar filtros
@@ -83,7 +84,7 @@ export function ViajesList({
         {estado === 'error' && (
           <li className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
             <AlertTriangle className="text-danger size-8" aria-hidden="true" />
-            <p className="text-text-muted text-sm">No se pudo cargar la lista de viajes.</p>
+            <p className="text-text-muted text-sm">No se pudo cargar la lista de seguimientos.</p>
             <Button variant="outline" size="sm" onClick={onReintentar}>
               Reintentar
             </Button>

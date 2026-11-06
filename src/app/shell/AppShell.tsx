@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import { observarSesion, type UsuarioSesion } from '@/lib/datos/sesion';
 
 const nav = [
-  { to: '/viajes', label: 'Viajes', Icon: Route },
+  { to: '/viajes', label: 'Seguimientos', Icon: Route },
   { to: '/galeria', label: 'Galería', Icon: Images },
   { to: '/reporte', label: 'Reporte', Icon: SquareText },
   { to: '/sistema', label: 'Sistema', Icon: Activity },

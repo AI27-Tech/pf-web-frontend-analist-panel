@@ -128,7 +128,9 @@ export function ExpedienteGaleria({
   if (!cargando && medios.length === 0) {
     return (
       <div className="border-border rounded-md border border-dashed px-8 py-12 text-center">
-        <p className="text-text-muted text-sm">Este viaje no tiene archivos registrados todavía.</p>
+        <p className="text-text-muted text-sm">
+          Este seguimiento no tiene archivos registrados todavía.
+        </p>
       </div>
     );
   }
