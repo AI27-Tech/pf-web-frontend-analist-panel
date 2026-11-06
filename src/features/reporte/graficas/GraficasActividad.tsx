@@ -45,9 +45,9 @@ function GraficaVacia({ mensaje }: { mensaje: string }) {
 export function GraficaViajesPorDia({ datos }: { datos: PuntoSerie[] }) {
   const total = datos.reduce((s, p) => s + p.valor, 0);
   return (
-    <PanelGrafica titulo="Viajes por día" subtitulo="Actividad diaria del periodo">
+    <PanelGrafica titulo="Seguimientos por día" subtitulo="Actividad diaria del periodo">
       {total === 0 ? (
-        <GraficaVacia mensaje="No hay viajes en el periodo." />
+        <GraficaVacia mensaje="No hay seguimientos en el periodo." />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={datos} margin={{ left: -16, right: 8 }}>
@@ -73,9 +73,9 @@ export function GraficaViajesPorDia({ datos }: { datos: PuntoSerie[] }) {
 export function GraficaDistribucionCiclo({ datos }: { datos: PuntoCategoria[] }) {
   const total = datos.reduce((s, p) => s + p.valor, 0);
   return (
-    <PanelGrafica titulo="Distribución por estado" subtitulo="Viajes por ciclo en el periodo">
+    <PanelGrafica titulo="Distribución por estado" subtitulo="Seguimientos por ciclo en el periodo">
       {total === 0 ? (
-        <GraficaVacia mensaje="No hay viajes en el periodo." />
+        <GraficaVacia mensaje="No hay seguimientos en el periodo." />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>

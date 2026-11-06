@@ -79,7 +79,7 @@ const columnas: Column<FilaViaje>[] = [
 export function TablaViajes({ datos, sort, onSortChange, onAbrirViaje }: TablaViajesProps) {
   return (
     <Table
-      aria-label="Registro por viaje"
+      aria-label="Registro por seguimiento"
       columns={columnas}
       data={datos}
       rowKey={(v) => v.id}
@@ -87,7 +87,7 @@ export function TablaViajes({ datos, sort, onSortChange, onAbrirViaje }: TablaVi
       onSortChange={onSortChange}
       onRowClick={(v) => onAbrirViaje(v.id)}
       density="compact"
-      emptyState="No hay viajes en el periodo para el filtro seleccionado."
+      emptyState="No hay seguimientos en el periodo para el filtro seleccionado."
     />
   );
 }

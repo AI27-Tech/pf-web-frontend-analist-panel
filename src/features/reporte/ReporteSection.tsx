@@ -5,13 +5,16 @@ import { folioDePeriodo, obtenerMetricas } from '@/lib/datos/metricas';
 import { resolverPeriodo, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
 import { ActividadReporteSection } from './ActividadReporteSection';
+import { AvisoCobertura } from './AvisoCobertura';
 import { GraficasReporteSection } from './GraficasReporteSection';
 import { ReporteFiltros } from './ReporteFiltros';
 import { ReporteHeader } from './ReporteHeader';
+import { ReportesModal } from './ReportesModal';
 import { TablaCustodiosSection } from './TablaCustodiosSection';
 import { TablaViajesSection } from './TablaViajesSection';
 import { TarjetasEstadistica } from './TarjetasEstadistica';
 import { ReporteCargando, ReporteError, ReporteVacio } from './estados';
+import { descargarCsv, nombreArchivoCsv, viajesACsv } from './exportarCsv';
 import {
   FILTRO_VACIO,
   estadisticasDeViajes,
@@ -32,12 +35,14 @@ import {
 export function ReporteSection() {
   const [periodo, setPeriodo] = useState<SeleccionPeriodo>({ atajo: 'mes' });
   const [filtro, setFiltro] = useState<FiltroReporte>(FILTRO_VACIO);
+  const [reportesAbiertos, setReportesAbiertos] = useState(false);
 
   const rango = resolverPeriodo(periodo);
 
   const consulta = useQuery({
-    queryKey: ['metricas', rango],
-    queryFn: () => obtenerMetricas(rango),
+    // Sin `medios`: esta pantalla no muestra las gráficas por hora ni de GB.
+    queryKey: ['metricas', rango, 'sin-medios'],
+    queryFn: () => obtenerMetricas(rango, { conMedios: false }),
   });
 
   const folio = consulta.data?.folio ?? folioDePeriodo(rango);
@@ -58,6 +63,16 @@ export function ReporteSection() {
     [datos, filtro],
   );
 
+  // Exporta exactamente lo que muestra «Registro por viaje». Sólo se ofrece cuando la
+  // consulta terminó y hay datos; en cualquier otro estado el botón queda deshabilitado.
+  const puedeExportar = consulta.isSuccess && !sinDatos;
+  function exportarCsv(): void {
+    // `filtro.custodio` es un uid; el nombre se resuelve igual que en `filtrarViajes`.
+    const nombreCustodio =
+      datos?.porCustodio.find((c) => c.uid === filtro.custodio)?.nombre ?? null;
+    descargarCsv(nombreArchivoCsv(rango, filtro, nombreCustodio), viajesACsv(viajesFiltrados));
+  }
+
   // Tarjetas: globales por defecto; recalculadas sobre la selección cuando hay filtro.
   const estadisticas = useMemo(() => {
     if (!datos) return null;
@@ -69,6 +84,8 @@ export function ReporteSection() {
       <ReporteHeader
         folio={folio}
         seleccion={periodo}
+        onExportarCsv={puedeExportar ? exportarCsv : undefined}
+        onAbrirReportes={puedeExportar ? () => setReportesAbiertos(true) : undefined}
         onPeriodoChange={(seleccion) => {
           // Cambiar de periodo limpia el filtro: un custodio o placa del periodo anterior
           // puede no existir en el nuevo.
@@ -76,6 +93,17 @@ export function ReporteSection() {
           setPeriodo(seleccion);
         }}
       />
+
+      {reportesAbiertos && datos && (
+        <ReportesModal
+          open
+          onClose={() => setReportesAbiertos(false)}
+          rango={rango}
+          porCustodio={datos.porCustodio}
+          porViaje={datos.porViaje}
+          custodioInicial={filtro.custodio}
+        />
+      )}
 
       {consulta.isPending && <ReporteCargando />}
 
@@ -93,6 +121,7 @@ export function ReporteSection() {
             custodios={datos.porCustodio}
             unidades={datos.porUnidad}
           />
+          <AvisoCobertura cobertura={datos.cobertura} alcance="reporte" />
           <TarjetasEstadistica estadisticas={estadisticas} />
           {/* 01 — Custodios y unidades */}
           <GraficasReporteSection

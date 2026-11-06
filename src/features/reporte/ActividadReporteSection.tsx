@@ -24,7 +24,7 @@ export function ActividadReporteSection({ porViaje }: ActividadReporteSectionPro
             Actividad del periodo
           </h2>
           <p className="text-text-muted text-xs">
-            Tendencia diaria de viajes y composición por estado
+            Tendencia diaria de seguimientos y composición por estado
           </p>
         </div>
       </div>
