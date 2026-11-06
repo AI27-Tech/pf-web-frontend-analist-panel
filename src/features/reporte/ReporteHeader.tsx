@@ -1,5 +1,5 @@
 import { Badge, Button } from '@ai27-tech/ui';
-import { Printer } from 'lucide-react';
+import { Download, FileBarChart, Printer } from 'lucide-react';
 
 import type { SeleccionPeriodo } from '@/lib/formato/fechas';
 
@@ -15,6 +15,10 @@ export interface ReporteHeaderProps {
   onPeriodoChange: (seleccion: SeleccionPeriodo) => void;
   /** Dispara la impresión. */
   onImprimir?: () => void;
+  /** Descarga el registro por viaje en CSV. */
+  onExportarCsv?: (() => void) | undefined;
+  /** Abre el modal de reportes (unidad, rankings, actividad). Sin callback, queda deshabilitado. */
+  onAbrirReportes?: (() => void) | undefined;
 }
 
 export function ReporteHeader({
@@ -22,6 +26,8 @@ export function ReporteHeader({
   seleccion,
   onPeriodoChange,
   onImprimir,
+  onExportarCsv,
+  onAbrirReportes,
 }: ReporteHeaderProps) {
   function imprimir(): void {
     (onImprimir ?? (() => window.print()))();
@@ -34,7 +40,7 @@ export function ReporteHeader({
         <div className="flex items-center gap-3">
           <h1 className="text-text text-2xl font-semibold tracking-tight">Reporte</h1>
           <Badge variant="escort" pill>
-            AI27 FORENSIC AUDIT
+            AI27 DATA ANALISIS
           </Badge>
         </div>
         <div className="mt-2 flex items-center gap-3">
@@ -57,6 +63,24 @@ export function ReporteHeader({
           startIcon={<Printer size={16} strokeWidth={1.75} />}
         >
           Imprimir
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={onExportarCsv}
+          disabled={!onExportarCsv}
+          startIcon={<Download size={16} strokeWidth={1.75} />}
+        >
+          Exportar CSV
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={onAbrirReportes}
+          disabled={!onAbrirReportes}
+          startIcon={<FileBarChart size={16} strokeWidth={1.75} />}
+        >
+          Reportes
         </Button>
       </div>
     </header>

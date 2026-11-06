@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Se stubea el SDK de Firestore: `getDocs` devuelve los documentos de cada rango según
-// el orden de las cuatro consultas (reportesA, reportesP, mediosA, mediosP). Así se
-// prueba la DERIVACIÓN en el cliente (deltas, efectividad, descartes, cubetas horarias,
-// acumulado de GB) sin Firestore real y sin depender de índices.
+// Se stubea el SDK de Firestore: `getDocs` devuelve los documentos de cada lectura según
+// el orden de las tres consultas (reportes del periodo, reportes del periodo anterior y
+// medios del periodo). Así se prueba la DERIVACIÓN en el cliente (deltas, descartes,
+// cubetas horarias, acumulado de GB, conteos desde el reporte) sin Firestore real y sin
+// depender de índices.
 
 const getDocsMock = vi.fn();
 
@@ -30,8 +31,7 @@ import { obtenerMetricasFirestore } from './metricasFirestore';
 const periodo = { desde: '2026-09-01', hasta: '2026-09-30' };
 
 /** Snapshot con `docs` a partir de un arreglo de datos crudos. El `id` del documento sale
- *  del campo `__id` (si se provee), para poder probar la agrupación por viaje que usa
- *  `doc.id`; ese campo no forma parte de `data()`. */
+ *  del campo `__id` (si se provee); ese campo no forma parte de `data()`. */
 const snap = (datos: Record<string, unknown>[]) => ({
   docs: datos.map((d, i) => {
     const { __id, ...data } = d;
@@ -39,6 +39,7 @@ const snap = (datos: Record<string, unknown>[]) => ({
   }),
 });
 
+/** Reporte CERRADO con el desglose en `resumenMedios`, como lo escribe el productor. */
 function reporte(overrides: Record<string, unknown> = {}) {
   return {
     ciclo: 'CERRADO',
@@ -47,6 +48,8 @@ function reporte(overrides: Record<string, unknown> = {}) {
     custodioUid: '',
     placas: '',
     fechaLocal: '2026-09-10',
+    mediosSubidos: 0,
+    resumenMedios: { fotos: 0, audios: 0 },
     ...overrides,
   };
 }
@@ -56,26 +59,17 @@ function medio(overrides: Record<string, unknown> = {}) {
     fechaLocal: '2026-09-10',
     sizeBytes: 1024 * 1024,
     createdAtDevice: { toDate: () => new Date('2026-09-10T15:30:00Z') },
-    // El vínculo al viaje en la colección `medios` se llama `reporteId` (contrato del
-    // productor, ver `medios.ts`), no `viajeId`.
-    reporteId: '',
-    custodioUid: '',
     ...overrides,
   };
 }
 
-// El doc de un reporte trae un `id` en Firestore; el snapshot del stub sólo expone
-// `data()`, así que para las pruebas de agrupación se pasa el id dentro del override y
-// se refleja como `id` del documento a través de un stub extendido más abajo.
-
-/** Encola las cuatro respuestas en el orden que las pide obtenerMetricasFirestore:
- *  reportesA, reportesP, mediosA, mediosP. */
-function encolar(rA: unknown[], rP: unknown[], mA: unknown[], mP: unknown[]) {
+/** Encola las tres respuestas en el orden que las pide obtenerMetricasFirestore:
+ *  reportes del periodo, reportes del periodo anterior y medios del periodo. */
+function encolar(rA: unknown[], rP: unknown[], mA: unknown[]) {
   getDocsMock
     .mockResolvedValueOnce(snap(rA as Record<string, unknown>[]))
     .mockResolvedValueOnce(snap(rP as Record<string, unknown>[]))
-    .mockResolvedValueOnce(snap(mA as Record<string, unknown>[]))
-    .mockResolvedValueOnce(snap(mP as Record<string, unknown>[]));
+    .mockResolvedValueOnce(snap(mA as Record<string, unknown>[]));
 }
 
 beforeEach(() => {
@@ -83,13 +77,20 @@ beforeEach(() => {
 });
 
 describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', () => {
-  it('deriva las estadísticas de cabecera y el folio', async () => {
-    // Actual: 3 reportes (2 cerrados, 1 con novedad), 4 fotos. Anterior: 2 reportes, 2 fotos.
+  it('deriva las estadísticas de cabecera y el folio desde los reportes', async () => {
+    // Actual: 3 reportes (2 cerrados, 1 activo con novedad), 4 fotos. Anterior: 2 reportes,
+    // 2 fotos. Los `medios` no intervienen: se pasan vacíos a propósito.
     encolar(
-      [reporte(), reporte(), reporte({ ciclo: 'ACTIVO', hayNovedad: true })],
-      [reporte(), reporte()],
-      [medio(), medio(), medio(), medio()],
-      [medio(), medio()],
+      [
+        reporte({ resumenMedios: { fotos: 2, audios: 0 } }),
+        reporte({ resumenMedios: { fotos: 1, audios: 1 } }),
+        reporte({ ciclo: 'ACTIVO', hayNovedad: true, mediosSubidos: 1 }),
+      ],
+      [
+        reporte({ resumenMedios: { fotos: 1, audios: 0 } }),
+        reporte({ resumenMedios: { fotos: 1, audios: 0 } }),
+      ],
+      [],
     );
 
     const m = await obtenerMetricasFirestore(periodo);
@@ -102,6 +103,30 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
     expect(m.estadisticas.evidenciasFotograficas.delta).toBeCloseTo(1); // (4-2)/2
   });
 
+  it('sólo hace tres lecturas: ya no lee los medios del periodo anterior', async () => {
+    encolar([], [], []);
+
+    await obtenerMetricasFirestore(periodo);
+
+    expect(getDocsMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('con `conMedios: false` no lee los medios y deja sus gráficas vacías', async () => {
+    // Sólo las dos lecturas de reportes; si pidiera una tercera, el mock devolvería undefined.
+    getDocsMock
+      .mockResolvedValueOnce(snap([reporte({ resumenMedios: { fotos: 2, audios: 0 } })]))
+      .mockResolvedValueOnce(snap([]));
+
+    const m = await obtenerMetricasFirestore(periodo, { conMedios: false });
+
+    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(m.cobertura.mediosRecortados).toBe(false);
+    expect(m.graficas.capturasPorHora.every((p) => p.valor === 0)).toBe(true);
+    expect(m.graficas.gbAcumulados).toEqual([]);
+    // Todo lo demás sigue saliendo de los reportes.
+    expect(m.estadisticas.evidenciasFotograficas.valor).toBe('2');
+  });
+
   it('agrupa los descartes por motivo', async () => {
     encolar(
       [
@@ -110,7 +135,6 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
         reporte({ ciclo: 'DESCARTADO', motivoDescarte: null }),
         reporte({ ciclo: 'CERRADO' }),
       ],
-      [],
       [],
       [],
     );
@@ -125,7 +149,7 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
     );
   });
 
-  it('cubetea capturas por hora (MX) y acumula GB por día', async () => {
+  it('cubetea capturas por hora (MX) y acumula GB por día desde los medios', async () => {
     encolar(
       [],
       [],
@@ -134,7 +158,6 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
         medio({ fechaLocal: '2026-09-10', sizeBytes: 1024 * 1024 * 1024 }),
         medio({ fechaLocal: '2026-09-11', sizeBytes: 1024 * 1024 * 1024 }),
       ],
-      [],
     );
 
     const m = await obtenerMetricasFirestore(periodo);
@@ -146,19 +169,14 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
     ]);
   });
 
-  it('agrupa por custodio: cuenta viajes por reporte y fotos/audios por medio', async () => {
+  it('agrupa por custodio: viajes, fotos y audios salen de los reportes del dueño', async () => {
     encolar(
       [
-        reporte({ __id: 'v1', custodioUid: 'c1' }),
+        reporte({ __id: 'v1', custodioUid: 'c1', resumenMedios: { fotos: 1, audios: 1 } }),
         reporte({ __id: 'v2', custodioUid: 'c1' }),
-        reporte({ __id: 'v3', custodioUid: 'c2' }),
+        reporte({ __id: 'v3', custodioUid: 'c2', resumenMedios: { fotos: 1, audios: 0 } }),
       ],
       [],
-      [
-        medio({ reporteId: 'v1', custodioUid: 'c1', tipo: 'FOTO' }),
-        medio({ reporteId: 'v1', custodioUid: 'c1', tipo: 'AUDIO' }),
-        medio({ reporteId: 'v3', custodioUid: 'c2', tipo: 'FOTO' }),
-      ],
       [],
     );
 
@@ -170,7 +188,7 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
     expect(c2).toEqual({ uid: 'c2', nombre: 'Custodio c2', viajes: 1, fotos: 1, audios: 0 });
   });
 
-  it('agrupa por viaje: un renglón por reporte, con custodios y conteos de medios', async () => {
+  it('agrupa por viaje: un renglón por reporte, con conteos y el dueño como custodio', async () => {
     encolar(
       [
         reporte({
@@ -179,29 +197,58 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
           placas: 'ABC-123',
           ciclo: 'CERRADO',
           hayNovedad: true,
+          resumenMedios: { fotos: 2, audios: 1 },
         }),
       ],
       [],
-      [
-        medio({ reporteId: 'v1', custodioUid: 'c1', tipo: 'FOTO' }),
-        medio({ reporteId: 'v1', custodioUid: 'c1', tipo: 'FOTO' }),
-        // Segundo custodio en el mismo viaje: debe sumarse a la lista de custodios.
-        medio({ reporteId: 'v1', custodioUid: 'c2', tipo: 'AUDIO' }),
-      ],
       [],
     );
 
     const m = await obtenerMetricasFirestore(periodo);
-    expect(m.porViaje).toHaveLength(1);
-    const fila = m.porViaje[0]!;
-    expect(fila.id).toBe('v1');
-    expect(fila.placas).toBe('ABC-123');
-    expect(fila.fotos).toBe(2);
-    expect(fila.audios).toBe(1);
-    expect(fila.ciclo).toBe('CERRADO');
-    expect(fila.hayNovedad).toBe(true);
-    expect(fila.custodios).toEqual(expect.arrayContaining(['Custodio c1', 'Custodio c2']));
-    expect(fila.custodios).toHaveLength(2);
+
+    expect(m.porViaje).toEqual([
+      {
+        id: 'v1',
+        placas: 'ABC-123',
+        custodios: ['Custodio c1'],
+        fechaLocal: '2026-09-10',
+        fotos: 2,
+        audios: 1,
+        ciclo: 'CERRADO',
+        hayNovedad: true,
+      },
+    ]);
+  });
+
+  it('un viaje ACTIVO reporta lo subido como fotos y no separa audios', async () => {
+    encolar(
+      [
+        reporte({
+          __id: 'v1',
+          custodioUid: 'c1',
+          ciclo: 'ACTIVO',
+          mediosSubidos: 6,
+          // El resumen de un viaje abierto queda en cero aunque ya haya evidencia.
+          resumenMedios: { fotos: 0, audios: 0 },
+        }),
+      ],
+      [],
+      [],
+    );
+
+    const m = await obtenerMetricasFirestore(periodo);
+
+    expect(m.porViaje[0]).toMatchObject({ ciclo: 'ACTIVO', fotos: 6, audios: 0 });
+    expect(m.porCustodio[0]).toMatchObject({ uid: 'c1', fotos: 6, audios: 0 });
+  });
+
+  it('un reporte sin custodio no genera fila de custodio y deja la lista de custodios vacía', async () => {
+    encolar([reporte({ __id: 'v1', custodioUid: '' })], [], []);
+
+    const m = await obtenerMetricasFirestore(periodo);
+
+    expect(m.porCustodio).toEqual([]);
+    expect(m.porViaje[0]?.custodios).toEqual([]);
   });
 
   it('agrupa por unidad: cuenta viajes por placa, ordenado descendente', async () => {
@@ -215,7 +262,6 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
       ],
       [],
       [],
-      [],
     );
 
     const m = await obtenerMetricasFirestore(periodo);
@@ -224,5 +270,56 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
       { placas: 'ABC-123', viajes: 2 },
       { placas: 'XYZ-789', viajes: 1 },
     ]);
+  });
+});
+
+describe('obtenerMetricasFirestore (tope de lectura)', () => {
+  const reportes5001 = () =>
+    // Firestore entrega de lo más reciente a lo más antiguo: el índice 0 es el más nuevo y
+    // el 5000 (el documento de verificación, el +1) es el más antiguo.
+    Array.from({ length: 5001 }, (_, i) =>
+      reporte({ __id: `r-${i}`, fechaLocal: `f${String(5000 - i).padStart(5, '0')}` }),
+    );
+
+  it('si los reportes rebasan el tope descarta los más antiguos, conserva el orden ascendente y lo declara', async () => {
+    const advertencia = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    encolar(reportes5001(), [], []);
+
+    const m = await obtenerMetricasFirestore(periodo);
+
+    expect(m.porViaje).toHaveLength(5000);
+    // Se perdió el más antiguo (f00000) y el resultado vuelve a ir de antiguo a reciente.
+    expect(m.porViaje.map((v) => v.fechaLocal)).not.toContain('f00000');
+    expect(m.porViaje[0]?.fechaLocal).toBe('f00001');
+    expect(m.porViaje.at(-1)?.fechaLocal).toBe('f05000');
+    expect(advertencia).toHaveBeenCalledWith(expect.stringContaining('más recientes'));
+    expect(m.cobertura).toEqual({ reportesRecortados: true, mediosRecortados: false });
+    advertencia.mockRestore();
+  });
+
+  it('si los medios rebasan el tope lo declara aparte: los totales siguen completos', async () => {
+    const advertencia = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    encolar(
+      [reporte({ __id: 'v1', resumenMedios: { fotos: 3, audios: 0 } })],
+      [],
+      Array.from({ length: 5001 }, () => medio()),
+    );
+
+    const m = await obtenerMetricasFirestore(periodo);
+
+    expect(m.cobertura).toEqual({ reportesRecortados: false, mediosRecortados: true });
+    // Las tarjetas salen de los reportes, no de los medios recortados.
+    expect(m.estadisticas.evidenciasFotograficas.valor).toBe('3');
+    // Las gráficas sí cubren sólo los 5000 más recientes.
+    expect(m.graficas.capturasPorHora.reduce((suma, p) => suma + p.valor, 0)).toBe(5000);
+    advertencia.mockRestore();
+  });
+
+  it('con lecturas completas la cobertura no marca recortes', async () => {
+    encolar([reporte()], [], [medio()]);
+
+    const m = await obtenerMetricasFirestore(periodo);
+
+    expect(m.cobertura).toEqual({ reportesRecortados: false, mediosRecortados: false });
   });
 });

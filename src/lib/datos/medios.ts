@@ -4,13 +4,16 @@ import {
   limit,
   orderBy,
   query,
+  startAfter,
   where,
   type DocumentData,
   type QueryConstraint,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { getDownloadURL, ref } from 'firebase/storage';
 
 import { firestore, storage } from '@/lib/firebase/cliente';
+import type { RangoFechas } from '@/lib/formato/fechas';
 import { enriquecerMediosConNombres } from './custodios';
 
 import type { FiltrosMedio, Medio } from './tipos';
@@ -105,6 +108,65 @@ export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
     const timeB = b.capturadoEn.getTime();
     return timeB - timeA; // Descendente
   });
+}
+
+/** Documentos por página en la lectura del reporte de unidad. */
+const TAMANO_PAGINA = 500;
+
+/** Tope de archivos por reporte de unidad. Acota las lecturas (y el costo) de una descarga. */
+const TOPE_UNIDAD = 5000;
+
+/** Archivos de un custodio en un periodo, y si se descartaron los más recientes por el tope. */
+export interface MediosDelPeriodo {
+  medios: Medio[];
+  /** `true` si la unidad tiene más archivos que el tope: faltan los más recientes. */
+  recortado: boolean;
+}
+
+/**
+ * Los archivos de UN custodio en un periodo, para el reporte de unidad.
+ *
+ * La consulta filtra en el servidor por `custodioUid` y por rango de `fechaLocal`, así que
+ * sólo se leen los documentos de esa unidad, sin importar cuántos archivos tengan las
+ * demás. Necesita el índice compuesto de `medios` (`custodioUid` ↑, `fechaLocal` ↑,
+ * `createdAtDevice` ↓) que declara `pf-infra-firebase/firestore.indexes.json`. El orden de
+ * la consulta debe coincidir EXACTAMENTE con el del índice.
+ *
+ * Se lee de lo más antiguo a lo más reciente, por páginas (`startAfter`). Si la unidad
+ * rebasa `TOPE_UNIDAD`, se conservan los más antiguos y `recortado` queda en `true`.
+ * Se pide un documento de más para distinguir «justo el tope» de «más que el tope».
+ */
+export async function listarMediosDeCustodioEnPeriodo(
+  periodo: RangoFechas,
+  custodioUid: string,
+): Promise<MediosDelPeriodo> {
+  const medios: Medio[] = [];
+  let cursor: QueryDocumentSnapshot | undefined;
+
+  while (medios.length <= TOPE_UNIDAD) {
+    const pendientes = TOPE_UNIDAD + 1 - medios.length;
+    const tamano = Math.min(TAMANO_PAGINA, pendientes);
+    const restricciones: QueryConstraint[] = [
+      where('custodioUid', '==', custodioUid),
+      where('fechaLocal', '>=', periodo.desde),
+      where('fechaLocal', '<=', periodo.hasta),
+      orderBy('fechaLocal', 'asc'),
+      orderBy('createdAtDevice', 'desc'),
+      limit(tamano),
+    ];
+    if (cursor) restricciones.push(startAfter(cursor));
+
+    const pagina = await getDocs(query(collection(firestore, 'medios'), ...restricciones));
+    for (const documento of pagina.docs) medios.push(aMedio(documento.id, documento.data()));
+
+    // Una página incompleta es la última: no quedan más documentos.
+    const ultimo = pagina.docs[pagina.docs.length - 1];
+    if (pagina.docs.length < tamano || !ultimo) break;
+    cursor = ultimo;
+  }
+
+  const recortado = medios.length > TOPE_UNIDAD;
+  return { medios: recortado ? medios.slice(0, TOPE_UNIDAD) : medios, recortado };
 }
 
 /**

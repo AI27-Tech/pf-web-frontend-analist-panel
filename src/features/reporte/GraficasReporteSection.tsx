@@ -43,7 +43,8 @@ export function GraficasReporteSection({
             Unidades y números económicos
           </h2>
           <p className="text-text-muted text-xs">
-            Evidencia por unidad y viajes por número económico. Haz clic en una barra para filtrar.
+            Evidencia por unidad y seguimientos por número económico. Haz clic en una barra para
+            filtrar.
           </p>
         </div>
       </div>

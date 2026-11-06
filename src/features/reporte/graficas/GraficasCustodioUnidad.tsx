@@ -147,11 +147,11 @@ export function GraficaViajesPorUnidad({ datos, seleccion, onSeleccionar }: Graf
 
   return (
     <PanelGrafica
-      titulo="Viajes por número económico"
-      subtitulo="Números económicos con más viajes, top 10. Haz clic para filtrar."
+      titulo="Seguimientos por número económico"
+      subtitulo="Números económicos con más seguimientos, top 10. Haz clic para filtrar."
     >
       {top.length === 0 ? (
-        <GraficaVacia mensaje="No hay números económicos con viajes en el periodo." />
+        <GraficaVacia mensaje="No hay números económicos con seguimientos en el periodo." />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={top} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -167,7 +167,7 @@ export function GraficaViajesPorUnidad({ datos, seleccion, onSeleccionar }: Graf
             <Tooltip contentStyle={ESTILO_TOOLTIP} cursor={{ fill: 'var(--color-surface-high)' }} />
             <Bar
               dataKey="viajes"
-              name="Viajes"
+              name="Seguimientos"
               fill={COLORES.accent}
               radius={[0, 4, 4, 0]}
               maxBarSize={22}

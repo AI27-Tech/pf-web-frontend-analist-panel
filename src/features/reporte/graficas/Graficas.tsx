@@ -45,10 +45,10 @@ export function GraficaDescartes({ datos }: { datos: GraficasReporte['descartesP
   return (
     <PanelGrafica
       titulo="Descartes por motivo"
-      subtitulo="Viajes descartados y la razón registrada"
+      subtitulo="Seguimientos descartados y la razón registrada"
     >
       {datos.length === 0 ? (
-        <GraficaVacia mensaje="No hubo viajes descartados en el periodo." />
+        <GraficaVacia mensaje="No hubo seguimientos descartados en el periodo." />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={datos} layout="vertical" margin={{ left: 8, right: 16 }}>
