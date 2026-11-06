@@ -159,8 +159,12 @@ export async function listarMedios(filtros: FiltrosMedio): Promise<MediosDelPeri
   // Enriquecer con nombres de custodios
   const medios = await enriquecerMediosConNombres(dentroDelTope);
 
-  // Más reciente primero (el orden de la consulta es ascendente dentro de cada día).
-  medios.sort((a, b) => b.capturadoEn.getTime() - a.capturadoEn.getTime());
+  // Más reciente primero, con `id` de desempate para que el orden sea determinista. La
+  // consulta no fija el orden dentro de un mismo día.
+  medios.sort(
+    (a, b) =>
+      b.capturadoEn.getTime() - a.capturadoEn.getTime() || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
   return { medios, recortado };
 }
 

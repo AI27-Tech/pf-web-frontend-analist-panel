@@ -20,10 +20,14 @@ function coincideTexto(valor: string | undefined, criterio: string): boolean {
 }
 
 /**
- * Orden descendente por `fechaLocal`, con `id` ascendente de desempate.
+ * `fechaLocal` descendente (el día), luego `abiertoEn` descendente y, por último, `
+ * id` ascendente para que el orden sea determinista cuando dos viajes abren en el
+ * mismo instante.
  */
 function compararViajes(a: Viaje, b: Viaje): number {
   if (a.fechaLocal !== b.fechaLocal) return a.fechaLocal < b.fechaLocal ? 1 : -1;
+  const diferencia = b.abiertoEn.getTime() - a.abiertoEn.getTime();
+  if (diferencia !== 0) return diferencia;
   if (a.id !== b.id) return a.id < b.id ? -1 : 1;
   return 0;
 }

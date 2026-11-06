@@ -258,9 +258,9 @@ export function GaleriaSection() {
     setViewMode(mode);
     setPage(1);
   };
-
-  // Calcular el índice inicial del Visor basado en el ID abierto
-  const initialVisibleIndex = openMedioId ? medios.findIndex((m) => m.id === openMedioId) : -1;
+  const initialVisibleIndex = openMedioId
+    ? mediosFiltrados.findIndex((m) => m.id === openMedioId)
+    : -1;
 
   const muestraRangoPersonalizado = filterValues.periodo === 'rango';
 
@@ -454,9 +454,9 @@ export function GaleriaSection() {
       )}
 
       {/* Visor: abre cuando se hace click en un item */}
-      {openMedioId !== null && initialVisibleIndex >= 0 && medios[initialVisibleIndex] && (
+      {openMedioId !== null && initialVisibleIndex >= 0 && mediosFiltrados[initialVisibleIndex] && (
         <Visor
-          mediums={medios.map((medio) => ({
+          mediums={mediosFiltrados.map((medio) => ({
             id: medio.id,
             type: medio.tipo === 'AUDIO' ? 'AUDIO' : 'IMAGE',
             label: (medio.etiquetas || []).join(', ') || 'Sin etiqueta',
@@ -465,7 +465,7 @@ export function GaleriaSection() {
           initialIndex={initialVisibleIndex}
           onClose={() => setOpenMedioId(null)}
           resolveUrl={(medium) => {
-            const medio = medios.find((m) => m.id === medium.id);
+            const medio = mediosFiltrados.find((m) => m.id === medium.id);
             return medio ? urlOriginal(medio) : '';
           }}
         />
