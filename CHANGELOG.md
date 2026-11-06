@@ -2,6 +2,71 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:05 17:50 — Reportes en CSV con gráficas, métricas desde `reportes` y terminología «Seguimientos» (rama `feat/export-cvs-file`)
+
+**Resumen:** la sección Reporte ahora puede descargar datos en CSV: el registro por seguimiento (botón «Exportar CSV») y, desde un modal «Reportes», el reporte de una unidad (una fila por archivo) y la actividad por día, cada uno con una gráfica que resume lo mismo que su archivo. Al probarlo con datos reales apareció un problema que ya existía: las métricas leían como máximo 5,000 archivos de todas las unidades juntas, y con el volumen real (más de 5,000 archivos en 4 días) las cifras salían incompletas. Se corrigió calculando las métricas desde los `reportes` y se agregó un aviso en pantalla cuando una lectura se recorta. En la interfaz de la sección, «viaje» pasó a llamarse «seguimiento».
+
+**Cambios:**
+
+- **Exportar CSV (registro por seguimiento).** Descarga exactamente lo que muestra la tabla, con el periodo y los filtros activos y sin consultas nuevas. Columnas: `Unidad`, `Numero economico`, `Fecha`, `Cantidad de fotos`, `Cantidad de audios`, `Total de evidencias`. Nombre: `reporte_<desde>_<hasta>[_<placa>][_<custodio>].csv`. Usa `papaparse` con `escapeFormulae` para que Excel no ejecute como fórmula una celda que empiece con `=`, `+`, `-` o `@`. El archivo no lleva marca UTF-8 (BOM).
+- **Modal «Reportes»** (botón junto a «Imprimir» y «Exportar CSV»), con un aviso de que los reportes se generan con los datos disponibles hasta la fecha y hora de la descarga:
+  - **Reporte de unidad.** Buscador con lista de opciones para elegir la unidad (el custodio; no confundir con «Número económico», que son las placas). Al elegirla se leen sus archivos, se muestra la gráfica «Archivos por día» (fotos y audios apilados) y la descarga reutiliza esa lectura. CSV sin título ni líneas sueltas: `Numero economico`, `Tipo de archivo`, `Fecha`, `Hora` (HH:mm:ss, zona de México), `Latitud`, `Longitud`; las coordenadas quedan vacías si el archivo no trae GPS. Nombre: `reporte_unidad_<unidad>_<desde>_<hasta>.csv`.
+  - **Actividad por día.** Gráfica «Seguimientos por día» y CSV con `Fecha`, `Seguimientos`, `Fotos`, `Audios`, `Total de evidencias`, `Numeros economicos activos`, incluidos los días sin actividad. Cubre todo el periodo, sin los filtros de la página. Nombre: `actividad_por-dia_<desde>_<hasta>.csv`.
+  - El ranking de unidades, el ranking de números económicos y la actividad por unidad están programados y probados en `reportesCsv.ts`, pero no se exponen en el modal por decisión de producto.
+- **Lectura de los archivos de una unidad** (`lib/datos/medios.ts`, `listarMediosDeCustodioEnPeriodo`). Filtra en el servidor por `custodioUid` y rango de `fechaLocal`, lee de 500 en 500 y se detiene en 5,000 archivos de la unidad (`recortado` lo avisa). Usa el índice compuesto que ya declara `pf-infra-firebase` (`custodioUid` ↑, `fechaLocal` ↑, `createdAtDevice` ↓) y la consulta pide exactamente ese orden: Firestore no recorre un índice compuesto al revés.
+- **Métricas desde `reportes`** (`lib/datos/metricasFirestore.ts`). Las tarjetas, tablas y rankings se calculan con los reportes (un documento por seguimiento) y el conteo de fotos y audios sale de cada reporte con `conteoDeMedios`. Los `medios` solo se leen para las gráficas «Capturas por hora» y «GB acumulados» de la pantalla Sistema (`obtenerMetricas(periodo, { conMedios })`; la pantalla Reporte pide `conMedios: false`). La pantalla Reporte pasó de hasta 4 lecturas a 2.
+- **Aviso de lectura incompleta** (`AvisoCobertura`, campo nuevo `Metricas.cobertura`). Cuando los reportes o los archivos rebasan el tope de 5,000, la pantalla Reporte y la pantalla Sistema lo avisan, en lugar de solo escribir una advertencia en la consola. El tope se conserva con los registros más recientes.
+- **Interfaz.** Se retiró la tarjeta «Incidencias registradas» (el cálculo sigue en `EstadisticasReporte`). Los textos visibles de la sección pasaron de «Viajes» a «Seguimientos» (tarjeta, tablas, gráficas, avisos y encabezados de CSV); los identificadores del código no cambiaron. El «Registro por seguimiento» se pagina en cliente (10 por página, con selector de tamaño) y ordenar por una columna ordena todo el registro. El distintivo de la cabecera ahora dice «AI27 DATA ANALISIS».
+- **Dependencias:** `papaparse` ^5.7.0 y `@types/papaparse` ^5.5.2.
+
+**Consecuencias de calcular desde `reportes`:**
+
+- Un seguimiento `ACTIVO` no separa fotos de audios: `resumenMedios` es un snapshot de cierre, así que se cuenta `mediosSubidos` como fotos y los audios quedan en 0 hasta el cierre.
+- Los totales por unidad se atribuyen al custodio que abrió el seguimiento, no a quien sube cada archivo, y la columna de custodios del registro trae solo al dueño.
+- «Capturas por hora» y «GB acumulados» (pantalla Sistema) cubren solo los 5,000 archivos más recientes del periodo; la pantalla lo avisa.
+- Los reportes por encima de 5,000 seguimientos en un periodo también se recortan.
+
+**Verificación:** `pnpm lint`, `pnpm test` (160 pruebas) y `pnpm format:check` en verde. `pnpm typecheck` conserva un error que ya existía y no es de estos cambios (`src/routes/reset-contrasena.tsx(203)`). En el navegador contra Firestore se probó el reporte de una unidad: con la lectura anterior salían 422 archivos, y con la consulta por unidad salen 530.
+**Pendiente de verificar:** abrir los CSV en Excel (fórmulas neutralizadas y, al no llevar BOM, la lectura de los acentos), que `resumenMedios` esté poblado en los seguimientos cerrados de producción, y la pantalla Reporte con volumen real tras el cambio a `reportes`.
+
+**Archivos modificados:**
+
+- `src/features/reporte/exportarCsv.ts` (nuevo)
+- `src/features/reporte/exportarCsv.test.ts` (nuevo)
+- `src/features/reporte/reportesCsv.ts` (nuevo)
+- `src/features/reporte/reportesCsv.test.ts` (nuevo)
+- `src/features/reporte/seriesReporte.ts` (nuevo)
+- `src/features/reporte/seriesReporte.test.ts` (nuevo)
+- `src/features/reporte/buscarUnidades.ts` (nuevo)
+- `src/features/reporte/buscarUnidades.test.ts` (nuevo)
+- `src/features/reporte/ReportesModal.tsx` (nuevo)
+- `src/features/reporte/AvisoCobertura.tsx` (nuevo)
+- `src/features/reporte/graficas/GraficasReportes.tsx` (nuevo)
+- `src/features/reporte/ReporteHeader.tsx`
+- `src/features/reporte/ReporteSection.tsx`
+- `src/features/reporte/TarjetasEstadistica.tsx`
+- `src/features/reporte/TablaViajesSection.tsx`
+- `src/features/reporte/TablaViajes.tsx`
+- `src/features/reporte/TablaCustodios.tsx`
+- `src/features/reporte/ActividadReporteSection.tsx`
+- `src/features/reporte/GraficasReporteSection.tsx`
+- `src/features/reporte/estados.tsx`
+- `src/features/reporte/graficas/Graficas.tsx`
+- `src/features/reporte/graficas/GraficasActividad.tsx`
+- `src/features/reporte/graficas/GraficasCustodioUnidad.tsx`
+- `src/features/sistema/SistemaSection.tsx`
+- `src/lib/datos/medios.ts`
+- `src/lib/datos/medios.test.ts`
+- `src/lib/datos/metricas.ts`
+- `src/lib/datos/metricasFirestore.ts`
+- `src/lib/datos/metricasFirestore.test.ts`
+- `src/lib/datos/metricasMock.ts`
+- `package.json`
+- `pnpm-lock.yaml`
+- `CHANGELOG.md`
+
+---
+
 ## 2026:10:15 — Pestaña «Administración»: alta de custodios desde el panel (rama `feature/add-unidad`)
 
 **Resumen:** nueva pestaña «Administración» para que el analista dé de alta custodios desde la interfaz, en lugar de ejecutar scripts manuales. El panel escribe una solicitud en `solicitudes_custodios` y la Cloud Function `procesarSolicitudCustodio` (en `pf-infra-firebase`, Admin SDK) la procesa: crea la cuenta de Auth, el directorio `usuarios/{uid}` y la allowlist `correos_autorizados/{email}`. El panel escucha el resultado en tiempo real y mantiene el botón cargando hasta que la solicitud se resuelve (COMPLETADO o ERROR). El analista solo captura el ID de unidad (`B####`) y el teléfono; el correo (`b####@ai27.com`), la contraseña inicial (`Bravo-####-ai27`) y el nombre (`B####`) se derivan del patrón del CSV de provisión.

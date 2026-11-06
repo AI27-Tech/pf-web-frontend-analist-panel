@@ -244,6 +244,7 @@ export function obtenerMetricasMock(periodo: RangoFechas): Promise<Metricas> {
   return Promise.resolve({
     folio: folioDePeriodo(periodo),
     periodo,
+    cobertura: { reportesRecortados: false, mediosRecortados: false },
     estadisticas: estadisticas(periodo),
     graficas: graficas(periodo),
     porCustodio: porCustodio(periodo),

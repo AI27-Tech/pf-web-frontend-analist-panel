@@ -57,6 +57,16 @@ function ResetContrasena() {
     validarCodigo();
   }, [oobCode]);
 
+  // Al actualizar la contraseña, redirige a login a los 2 segundos. Vive en un efecto (y no
+  // dentro del JSX) para programarse una sola vez y cancelarse si la persona sale antes.
+  useEffect(() => {
+    if (estado !== 'success') return;
+    const temporizador = setTimeout(() => {
+      navigate({ to: '/login', replace: true });
+    }, 2000);
+    return () => clearTimeout(temporizador);
+  }, [estado, navigate]);
+
   function validarContraseñas(): { validas: boolean; errores: ErroresValidacion } {
     const errores: ErroresValidacion = {};
 
@@ -199,12 +209,6 @@ function ResetContrasena() {
             >
               Ir a login ahora
             </Button>
-
-            {/* Auto-redirigir después de 2 segundos */}
-            {typeof window !== 'undefined' &&
-              setTimeout(() => {
-                navigate({ to: '/login', replace: true });
-              }, 2000)}
           </CardBody>
         </Card>
       </main>
