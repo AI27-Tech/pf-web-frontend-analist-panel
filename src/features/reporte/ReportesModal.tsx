@@ -154,9 +154,14 @@ export function ReportesModal({
 
       <div
         role="note"
-        className="border-border bg-surface-high text-text-muted mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs"
+        className="border-accent/40 bg-accent/10 text-text border-l-accent mt-3 flex items-start gap-3 rounded-lg border border-l-4 px-4 py-3 text-sm font-medium"
       >
-        <Info size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
+        <Info
+          size={20}
+          strokeWidth={2}
+          className="text-accent mt-0.5 shrink-0"
+          aria-hidden="true"
+        />
         <p>
           Los reportes se generan con los datos disponibles hasta la fecha y hora de la descarga.
         </p>

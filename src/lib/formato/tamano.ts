@@ -16,6 +16,17 @@ export function formatearBytes(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / KB))} KB`;
 }
 
+/** Hora local de México en formato de 24 horas con segundos `HH:MM:SS`. */
+export function horaLocalConSegundos(instante: Date): string {
+  return new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'America/Mexico_City',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(instante);
+}
+
 /** Hora local de México en formato de 24 horas `HH:MM`, para la esquina de la celda. */
 export function horaLocal(instante: Date): string {
   return new Intl.DateTimeFormat('es-MX', {

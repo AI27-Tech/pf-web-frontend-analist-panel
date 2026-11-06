@@ -64,7 +64,7 @@ export function ExpedienteResumenCards({ viaje }: ExpedienteResumenCardsProps) {
       />
 
       <TarjetaResumen
-        titulo="Duración del viaje"
+        titulo="Duración del seguimiento"
         Icono={Timer}
         tamanoValor="medio"
         valor={duracionEntre(viaje.abiertoEn, viaje.cerradoEn)}

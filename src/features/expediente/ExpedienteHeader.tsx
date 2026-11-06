@@ -27,7 +27,7 @@ export function ExpedienteHeader({ viaje }: ExpedienteHeaderProps) {
       >
         <Link to="/viajes" className="hover:text-text inline-flex items-center gap-1">
           <ChevronLeft className="size-4" aria-hidden="true" />
-          Viajes
+          Seguimientos
         </Link>
         <span aria-hidden="true">/</span>
         <span className="text-text font-mono">Expediente {viaje.id}</span>

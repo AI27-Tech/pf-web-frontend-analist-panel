@@ -16,7 +16,8 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('@/lib/firebase/cliente', () => ({ firestore: {} }));
 vi.mock('./custodios', () => ({ enriquecerConNombres: vi.fn() }));
 
-import { conteoDeMedios } from './viajesFirestore';
+import { getDocs } from 'firebase/firestore';
+import { conteoDeMedios, listarPlacasFirestore } from './viajesFirestore';
 
 describe('conteoDeMedios (resumenMedios como snapshot de cierre)', () => {
   it('viaje ACTIVO: reporta mediosSubidos como fotos, ignorando el resumen en cero', () => {
@@ -51,5 +52,25 @@ describe('conteoDeMedios (resumenMedios como snapshot de cierre)', () => {
 
   it('CERRADO sin resumenMedios cae a cero', () => {
     expect(conteoDeMedios({ ciclo: 'CERRADO', mediosSubidos: 3 })).toEqual({ fotos: 0, audios: 0 });
+  });
+});
+
+describe('listarPlacasFirestore', () => {
+  it('devuelve los números económicos distintos, ordenados y sin vacíos', async () => {
+    const viaje = (placas: unknown) => ({ data: () => ({ placas }) });
+    vi.mocked(getDocs).mockResolvedValue({
+      docs: [
+        viaje('807Y453REAL'),
+        viaje('ABC123'),
+        viaje('807Y453REAL'),
+        viaje(''),
+        viaje(undefined),
+      ],
+    } as never);
+
+    expect(await listarPlacasFirestore({ desde: '', hasta: '' })).toEqual([
+      '807Y453REAL',
+      'ABC123',
+    ]);
   });
 });

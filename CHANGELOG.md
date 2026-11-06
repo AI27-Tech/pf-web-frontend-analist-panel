@@ -2,6 +2,54 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:06 14:30 — Galería sin tope de 120 archivos, orden del más reciente al más antiguo y sección «Seguimientos» (rama `fix/platform-cleanup`)
+
+**Resumen:** `listarMedios` leía como máximo 120 documentos sin orden (`limit(120)`, el total que mostraba la paginación) y todos los filtros corrían en el cliente sobre ese puñado. Ahora el periodo y el número económico acotan la lectura en Firestore. También se agregaron segundos a la hora de las tarjetas, se ordenaron los seguimientos y la galería del más reciente al más antiguo, y la sección «Viajes» pasó a llamarse «Seguimientos» en la interfaz.
+
+**Cambios:**
+
+- **Galería: lectura acotada en Firestore** (`lib/datos/medios.ts`, `listarMedios`). Lee por páginas de 500 hasta agotar los resultados o un tope de 2,000 archivos (`recortado` lo avisa y la pantalla muestra un aviso). Devuelve `{ medios, recortado }` en lugar de un arreglo. **No usa índices compuestos**, para no depender de que `pf-infra-firebase/firestore.indexes.json` esté desplegado: sin número económico filtra por rango de `fechaLocal` ordenado por `fechaLocal` ↓ (índice de un solo campo); con número económico consulta solo `placas ==` y aplica el periodo sobre los documentos de esa unidad. Una primera versión con `orderBy` de dos campos exigía un índice compuesto y dejó la galería vacía.
+- **Galería: pantalla** (`GaleriaSection.tsx`, `routes/_privado/galeria.tsx`). La ruta ya no tiene `loader`; `GaleriaSection` consulta con `useQuery` y resuelve los estados de carga, error y vacío sin esconder la barra de filtros. Período y número económico se resuelven en Firestore; tipo, unidad y búsqueda de texto siguen en el cliente. El selector «Número económico» sale de los seguimientos del periodo (`listarPlacas`, nuevo en `viajes.ts`/`viajesFirestore.ts`) y no de los medios cargados. Si lo que se teclea en la búsqueda coincide exactamente con un número económico (sin importar mayúsculas, espacios ni guiones), se consulta en el servidor; una búsqueda parcial sigue buscando sobre lo ya cargado. El error de lectura se escribe en la consola.
+- **Orden del más reciente al más antiguo.** `queryViajes` ordena por `fechaLocal` ↓, luego `abiertoEn` ↓ y, al final, `id` (antes desempataba solo por `id`, aleatorio). `listarMedios` ordena por `capturadoEn` ↓ con `id` de desempate. El Visor de la Galería ahora recorre los medios **filtrados**, en el mismo orden que la cuadrícula (antes recorría la lista completa).
+- **Tarjetas de evidencia** (`ExpedienteGaleria.tsx`, `GaleriaSection.tsx`). La hora lleva segundos (`HH:MM:SS`, zona de México, `horaLocalConSegundos`). Se quitó el nombre del archivo / ID del título para dar más espacio a la imagen y el pie muestra solo el tamaño (`formatearBytes`). El título vacío de `ImageCard` se oculta con `[&_h3:empty]:hidden` y la tarjeta lleva un `aria-label` («Abrir foto capturada a las 09:07:23»). No cambió la librería `@ai27-tech/ui`.
+- **Terminología.** Los textos visibles de la sección «Viajes» pasaron a «Seguimientos»: menú lateral, título de la página, enlaces de regreso, mensajes de la lista y del expediente, «Duración del seguimiento» y las gráficas de descartes de Sistema. La URL (`/viajes`) y los identificadores del código no cambiaron.
+- **Interfaz.** El aviso del modal «Reportes» («Los reportes se generan con los datos disponibles hasta la fecha y hora de la descarga») es más visible: texto `text-sm`, fondo y borde de acento, barra lateral e ícono más grandes.
+
+**Consecuencias:**
+
+- Con periodo «Todos» y sin número económico, la Galería muestra los 2,000 archivos más recientes (el aviso lo indica); los más antiguos se ven acotando por periodo o número económico.
+- Al elegir un número económico se lee todo el historial de esa unidad y el periodo se filtra después. Es más caro para una unidad con muchísimos archivos y un periodo corto; desplegar los índices (`firebase deploy --only firestore:indexes --project custodio-906e7268`) permitiría acotar también en el servidor.
+- Al elegir un número económico, el selector «Unidad» solo ofrece los custodios de esa unidad (sus opciones salen de lo cargado).
+- La búsqueda parcial («807Y») no se resuelve en el servidor, que solo compara por igualdad.
+
+**Verificación:** `tsc --build`, `eslint` y `vitest` (173 pruebas) en verde; el build de Vite genera las clases nuevas. Pruebas nuevas: orden, filtros en el servidor, paginación, tope y periodo sobre la unidad en `medios.test.ts`; `listarPlacasFirestore` en `viajesFirestore.test.ts`; orden de seguimientos en `viajesQuery.test.ts`.
+
+**Archivos modificados:**
+
+- `src/lib/datos/medios.ts`
+- `src/lib/datos/medios.test.ts`
+- `src/lib/datos/viajes.ts`
+- `src/lib/datos/viajesFirestore.ts`
+- `src/lib/datos/viajesFirestore.test.ts`
+- `src/lib/datos/viajesQuery.ts`
+- `src/lib/datos/viajesQuery.test.ts` (nuevo)
+- `src/lib/formato/tamano.ts`
+- `src/features/galeria/GaleriaSection.tsx`
+- `src/routes/_privado/galeria.tsx`
+- `src/features/expediente/ExpedienteGaleria.tsx`
+- `src/features/expediente/ExpedienteGaleria.test.tsx`
+- `src/features/expediente/ExpedienteHeader.tsx`
+- `src/features/expediente/ExpedienteResumenCards.tsx`
+- `src/features/reporte/ReportesModal.tsx`
+- `src/features/sistema/graficas/Graficas.tsx`
+- `src/features/viajes/ViajesList.tsx`
+- `src/routes/_privado/viajes.index.tsx`
+- `src/routes/_privado/viajes.$id.tsx`
+- `src/app/shell/AppShell.tsx`
+- `CHANGELOG.md`
+
+---
+
 ## 2026:11:05 17:50 — Reportes en CSV con gráficas, métricas desde `reportes` y terminología «Seguimientos» (rama `feat/export-cvs-file`)
 
 **Resumen:** la sección Reporte ahora puede descargar datos en CSV: el registro por seguimiento (botón «Exportar CSV») y, desde un modal «Reportes», el reporte de una unidad (una fila por archivo) y la actividad por día, cada uno con una gráfica que resume lo mismo que su archivo. Al probarlo con datos reales apareció un problema que ya existía: las métricas leían como máximo 5,000 archivos de todas las unidades juntas, y con el volumen real (más de 5,000 archivos en 4 días) las cifras salían incompletas. Se corrigió calculando las métricas desde los `reportes` y se agregó un aviso en pantalla cuando una lectura se recorta. En la interfaz de la sección, «viaje» pasó a llamarse «seguimiento».
