@@ -80,7 +80,7 @@ function Pantalla_Viajes() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <EncabezadoPagina titulo="Viajes" />
+      <EncabezadoPagina titulo="Seguimientos" />
       <div className="flex min-h-0 flex-1 flex-col gap-4 px-8 py-6">
         <ViajesFilters
           filtros={filtros}

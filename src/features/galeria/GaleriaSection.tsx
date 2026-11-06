@@ -1,6 +1,12 @@
 /*
  * GaleriaSection. La `*Section` del dominio `galeria`.
  *
+ * - EN FIRESTORE: el período y el número económico (`listarMedios`). La galería no carga
+ *   «todo» y filtra aquí; pide sólo lo que corresponde, así que el resultado no depende de
+ *   cuántos archivos haya en total. El selector de números económicos sale de los viajes
+ *   (`listarPlacas`), no de los medios cargados.
+ * - EN EL CLIENTE: tipo, unidad (custodio) y búsqueda de texto, sobre lo ya cargado.
+ *
  * Integración con librería @ai27-tech/ui:
  * - FilterBar: barra de filtros con selector de vista (grid/lista) y búsqueda
  * - ImageGrid: grilla de imágenes con renderItem personalizado
@@ -11,23 +17,36 @@
 
 import { ImageGrid, ImageCard, Visor, Badge, FilterBar, Pagination, Table } from '@ai27-tech/ui';
 import type { FilterDefinition, FilterValues } from '@ai27-tech/ui';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Headphones } from 'lucide-react';
+import { AlertTriangle, Headphones } from 'lucide-react';
 
 import { useResolvedMedia } from '@/lib/hooks/useResolvedMedia';
-import { urlOriginal } from '@/lib/datos/medios';
+import { listarMedios, urlOriginal } from '@/lib/datos/medios';
 import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
-import { rangoDeAtajo, type Atajo } from '@/lib/formato/fechas';
-import { horaLocal } from '@/lib/formato/tamano';
-
-export interface GaleriaSectionProps {
-  readonly medios: readonly Medio[];
-}
+import { listarPlacas } from '@/lib/datos/viajes';
+import { rangoDeAtajo, type Atajo, type RangoFechas } from '@/lib/formato/fechas';
+import { formatearBytes, horaLocal, horaLocalConSegundos } from '@/lib/formato/tamano';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const INITIAL_PAGE_SIZE = 25;
 
-export function GaleriaSection({ medios }: GaleriaSectionProps) {
+/** Sin medios: referencia estable para no re-renderizar mientras llega la primera carga. */
+const SIN_MEDIOS: readonly Medio[] = [];
+
+/** Rango abierto: «Todos» los períodos. `listarMedios` ignora los extremos vacíos. */
+const RANGO_ABIERTO: RangoFechas = { desde: '', hasta: '' };
+
+/**
+ * Forma del número económico tal como lo guarda la app custodio en `placas`: mayúsculas,
+ * sin espacios ni guiones (pf-app-custodio §5.1). Permite comparar lo que teclea el
+ * analista con el valor guardado.
+ */
+function normalizarPlaca(texto: string): string {
+  return texto.toUpperCase().replace(/[\s-]/g, '');
+}
+
+export function GaleriaSection() {
   const [openMedioId, setOpenMedioId] = useState<string | null>(null);
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -41,6 +60,59 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
   // Cargar URLs de miniaturas reales en paralelo (solo para FOTOs)
   // REFACTOR: Ya no es necesario este useEffect global. Cada Miniatura que se renderiza
   // usa el hook useResolvedMedia para cargar su propia URL bajo demanda.
+
+  // --- Consulta a Firestore: período + número económico ---------------------------------
+
+  // Período → rango de `fechaLocal`. «Todos» (o un rango personalizado incompleto) deja el
+  // rango abierto.
+  const periodoElegido = filterValues.periodo;
+  const rango: RangoFechas =
+    periodoElegido === 'hoy' || periodoElegido === 'semana' || periodoElegido === 'mes'
+      ? rangoDeAtajo(periodoElegido as Atajo)
+      : periodoElegido === 'rango' && rangoDesde && rangoHasta
+        ? { desde: rangoDesde, hasta: rangoHasta }
+        : RANGO_ABIERTO;
+
+  // Números económicos de los viajes del período: alimentan el selector y permiten
+  // reconocer cuando lo tecleado en la búsqueda es un número económico completo.
+  const consultaPlacas = useQuery({
+    queryKey: ['galeria-placas', rango.desde, rango.hasta],
+    queryFn: () => listarPlacas(rango),
+    placeholderData: keepPreviousData,
+  });
+  const placasDeViajes = consultaPlacas.data ?? [];
+
+  // Número económico que se consulta en Firestore: el elegido en el selector o, si no hay
+  // uno, el que se teclea en la búsqueda cuando coincide EXACTAMENTE con uno de los viajes
+  // (sin importar mayúsculas, espacios ni guiones). Una búsqueda parcial («807Y») no puede
+  // resolverse en el servidor, que sólo compara por igualdad: sigue buscando sobre lo ya
+  // cargado, como el resto del texto (comentario, unidad).
+  const placaDelSelector =
+    filterValues.placa && filterValues.placa !== 'TODO' ? filterValues.placa : null;
+  const placaDeLaBusqueda = placasDeViajes.includes(normalizarPlaca(searchValue))
+    ? normalizarPlaca(searchValue)
+    : null;
+  const placaServidor = placaDelSelector ?? placaDeLaBusqueda;
+  // Si la búsqueda ya se convirtió en filtro de número económico, no se vuelve a aplicar
+  // como texto: «807-y453 real» no está literalmente en `placas` y vaciaría el resultado.
+  const busquedaEnCliente =
+    placaDelSelector === null && placaDeLaBusqueda !== null ? '' : searchValue;
+
+  const consultaMedios = useQuery({
+    queryKey: ['galeria-medios', rango.desde, rango.hasta, placaServidor],
+    queryFn: () =>
+      listarMedios({
+        ...rango,
+        ...(placaServidor !== null ? { placas: placaServidor } : {}),
+      }).catch((error: unknown) => {
+        // La pantalla sólo dice «no se pudo cargar»; el motivo (p. ej. un índice faltante
+        // de Firestore, con su enlace de creación) queda en la consola.
+        console.error('[Galería] Error al listar medios:', error);
+        throw error;
+      }),
+    placeholderData: keepPreviousData,
+  });
+  const medios = consultaMedios.data?.medios ?? SIN_MEDIOS;
 
   // Definir los filtros
   const filters: FilterDefinition[] = [
@@ -82,7 +154,15 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       label: 'Número económico',
       options: [
         { label: 'Todas', value: 'TODO' },
-        ...Array.from(new Set(medios.map((m) => m.placas).filter(Boolean)))
+        // Viajes del período + los medios cargados (por si un archivo trae un número
+        // económico sin viaje) + el elegido, para que el selector nunca pierda su valor.
+        ...Array.from(
+          new Set(
+            [...placasDeViajes, ...medios.map((m) => m.placas), placaDelSelector ?? ''].filter(
+              Boolean,
+            ),
+          ),
+        )
           .sort((a, b) => a.localeCompare(b, 'es'))
           .map((val) => ({ label: val, value: val })),
       ],
@@ -105,44 +185,12 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     },
   ];
 
-  // Verifica si un medio cae dentro del rango `desde`/`hasta` (ambos `YYYY-MM-DD`).
+  // Determina si un medio cumple con los filtros y búsqueda que se aplican en el cliente.
   //
-  // Se compara contra `medio.fechaLocal` —la fecha local de México que escribe el
-  // productor— y NO contra `capturadoEn.toISOString()`. `toISOString()` da la fecha en
-  // UTC: una foto tomada hoy por la tarde en México cae en el día UTC siguiente y una de
-  // la madrugada en el anterior, que es exactamente por qué «Hoy» mostraba fotos del día
-  // de ayer. `fechaLocal` es la misma cadena que usan la pantalla de Viajes y la consulta
-  // del backend, así que las tres comparten el rango sin depender de la zona de quien
-  // consulta (ver `lib/formato/fechas.ts` y `lib/datos/medios.ts`).
-  const medioDentroDeRango = (medio: Medio, desde: string, hasta: string): boolean => {
-    if (!desde || !hasta) return true; // Si no hay rango, pasar todo
-    if (!medio.fechaLocal) return false;
-    return medio.fechaLocal >= desde && medio.fechaLocal <= hasta;
-  };
-
-  // Determina si un medio cumple con los filtros y búsqueda
+  // El período y el número económico NO se revisan aquí: ya los resolvió Firestore en
+  // `listarMedios` (por `fechaLocal`, la fecha local de México que escribe el productor, no
+  // por `capturadoEn.toISOString()`, que da el día en UTC; ver `lib/formato/fechas.ts`).
   const matchesFiltersAndSearch = (medio: Medio): boolean => {
-    // Aplicar filtro de fecha
-    const periodo = filterValues.periodo;
-    if (periodo) {
-      if (periodo === 'todos') {
-        // Todos los medios
-      } else if (periodo === 'rango') {
-        // Rango personalizado
-        if (rangoDesde && rangoHasta) {
-          if (!medioDentroDeRango(medio, rangoDesde, rangoHasta)) {
-            return false;
-          }
-        }
-      } else {
-        // Atajo (hoy, semana, mes)
-        const { desde, hasta } = rangoDeAtajo(periodo as Atajo);
-        if (!medioDentroDeRango(medio, desde, hasta)) {
-          return false;
-        }
-      }
-    }
-
     // Aplicar filtros
     if (filterValues.tipo && filterValues.tipo !== 'TODO' && medio.tipo !== filterValues.tipo)
       return false;
@@ -154,8 +202,6 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     //   !(medio.etiquetas || []).includes(filterValues.etiqueta)
     // )
     //   return false;
-    if (filterValues.placa && filterValues.placa !== 'TODO' && medio.placas !== filterValues.placa)
-      return false;
     if (
       filterValues.custodio &&
       filterValues.custodio !== 'TODO' &&
@@ -166,8 +212,8 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     // Aplicar búsqueda (buscar en etiquetas, comentario, placas y custodio por
     // nombre o UID; el filtro de custodio muestra el nombre, así que la búsqueda
     // también debe encontrar por nombre y no solo por UID).
-    if (searchValue) {
-      const searchLower = searchValue.toLowerCase();
+    if (busquedaEnCliente) {
+      const searchLower = busquedaEnCliente.toLowerCase();
       const etiquetasJoined = (medio.etiquetas || []).join(', ').toLowerCase();
       const hayCoincidencia =
         etiquetasJoined.includes(searchLower) ||
@@ -212,9 +258,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
     setViewMode(mode);
     setPage(1);
   };
-
-  // Calcular el índice inicial del Visor basado en el ID abierto
-  const initialVisibleIndex = openMedioId ? medios.findIndex((m) => m.id === openMedioId) : -1;
+  const initialVisibleIndex = openMedioId
+    ? mediosFiltrados.findIndex((m) => m.id === openMedioId)
+    : -1;
 
   const muestraRangoPersonalizado = filterValues.periodo === 'rango';
 
@@ -288,8 +334,31 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
         )}
       </div>
 
+      {consultaMedios.data?.recortado && (
+        <p className="text-text-muted mb-4 text-sm" role="status">
+          Se muestran los archivos más recientes. Utiliza el filtrado para visualizar archivos
+          específicos.
+        </p>
+      )}
+
       {/* Contenido: Galería */}
-      {viewMode === 'grid' ? (
+      {consultaMedios.isError && !consultaMedios.data ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+          <AlertTriangle className="text-danger size-8" aria-hidden="true" />
+          <p className="text-text-muted text-sm">No se pudo cargar la galería en este momento.</p>
+          <button
+            type="button"
+            onClick={() => void consultaMedios.refetch()}
+            className="text-accent text-xs font-semibold hover:underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : consultaMedios.isPending ? (
+        <p className="text-text-muted py-12 text-center text-sm" role="status">
+          Cargando galería…
+        </p>
+      ) : viewMode === 'grid' ? (
         <>
           {/* Grid de imágenes */}
           <ImageGrid
@@ -299,9 +368,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
             )}
             columns={6}
             gap="1rem"
-            emptyMessage={
-              mediosFiltrados.length === 0 ? 'No hay archivos para estos filtros.' : 'Cargando...'
-            }
+            emptyMessage="No hay archivos para estos filtros."
           />
         </>
       ) : (
@@ -387,9 +454,9 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
       )}
 
       {/* Visor: abre cuando se hace click en un item */}
-      {openMedioId !== null && initialVisibleIndex >= 0 && medios[initialVisibleIndex] && (
+      {openMedioId !== null && initialVisibleIndex >= 0 && mediosFiltrados[initialVisibleIndex] && (
         <Visor
-          mediums={medios.map((medio) => ({
+          mediums={mediosFiltrados.map((medio) => ({
             id: medio.id,
             type: medio.tipo === 'AUDIO' ? 'AUDIO' : 'IMAGE',
             label: (medio.etiquetas || []).join(', ') || 'Sin etiqueta',
@@ -398,7 +465,7 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
           initialIndex={initialVisibleIndex}
           onClose={() => setOpenMedioId(null)}
           resolveUrl={(medium) => {
-            const medio = medios.find((m) => m.id === medium.id);
+            const medio = mediosFiltrados.find((m) => m.id === medium.id);
             return medio ? urlOriginal(medio) : '';
           }}
         />
@@ -414,23 +481,18 @@ export function GaleriaSection({ medios }: GaleriaSectionProps) {
 function MiniaturaTarjeta({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
   const isAudio = medio.tipo === 'AUDIO';
   const { miniatura } = useResolvedMedia(medio);
-  const tamanoMB = (medio.bytes / (1024 * 1024)).toFixed(2);
-  // Hora en zona de México (`horaLocal`), no la del navegador: así el sello coincide con
-  // el día por el que se filtra (`fechaLocal`). Antes se calculaba con `getHours()`, que
-  // usa la zona del navegador y podía caer en otro día.
-  const hora = horaLocal(medio.capturadoEn);
-  // Id corto del medio: el primer segmento del id real. Sustituye al `idCortoDe` que
-  // vivía en `provisional.ts` (retirado en etapa 6), que era un hash sintético para datos
-  // de muestra; con medios reales el prefijo del id es un identificador legible.
-  const idCorto = medio.id.slice(0, 8);
+  // Hora en zona de México con segundos (`horaLocalConSegundos`).
+  const hora = horaLocalConSegundos(medio.capturadoEn);
   const etiquetaPrincipal = medio.etiquetas?.[0] || medio.tipo;
 
   return (
     <ImageCard
       src={isAudio ? '' : (miniatura ?? '')}
       alt={etiquetaPrincipal}
-      title={medio.id}
-      subtitle={`${tamanoMB} MB ${idCorto}`}
+      title=""
+      className="[&_h3:empty]:hidden"
+      aria-label={`Abrir ${isAudio ? 'audio' : 'foto'} capturada a las ${hora}`}
+      subtitle={<span className="cifras-tabulares font-mono">{formatearBytes(medio.bytes)}</span>}
       onClick={onAbrir}
       badges={[
         { label: hora, variant: 'neutral', position: 'left' },

@@ -19,6 +19,10 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('firebase/storage', () => ({ getDownloadURL: vi.fn(), ref: vi.fn() }));
 vi.mock('@/lib/firebase/cliente', () => ({ firestore: {}, storage: {} }));
+// El directorio de custodios lee `usuarios/{uid}`.
+vi.mock('./custodios', () => ({
+  enriquecerMediosConNombres: vi.fn((medios: unknown[]) => Promise.resolve([...medios])),
+}));
 
 import { listarMedios, listarMediosDeCustodioEnPeriodo, listarMediosDelViaje } from './medios';
 
@@ -77,6 +81,116 @@ describe('listarMedios (filtro de etiqueta)', () => {
 
     const llamadaEtiqueta = whereMock.mock.calls.find(([campo]) => campo === 'etiquetas');
     expect(llamadaEtiqueta).toEqual(['etiquetas', 'array-contains', 'sin-novedad']);
+  });
+});
+
+describe('listarMedios (galería)', () => {
+  /** `n` documentos con ids `<prefijo>-0 … <prefijo>-(n-1)`. */
+  const documentos = (n: number, prefijo: string) =>
+    Array.from({ length: n }, (_, i) => ({ ...docReal(), id: `${prefijo}-${i}` }));
+
+  it('sin número económico acota por rango de fechaLocal en el servidor', async () => {
+    getDocsMock.mockResolvedValue({ docs: [] });
+
+    await listarMedios({ desde: '2026-09-01', hasta: '2026-09-30' });
+
+    expect(whereMock.mock.calls).toEqual([
+      ['fechaLocal', '>=', '2026-09-01'],
+      ['fechaLocal', '<=', '2026-09-30'],
+    ]);
+  });
+
+  it('con número económico consulta sólo `placas ==` (sin rango: evita el índice compuesto)', async () => {
+    getDocsMock.mockResolvedValue({ docs: [] });
+
+    await listarMedios({ desde: '2026-09-01', hasta: '2026-09-30', placas: '807Y453REAL' });
+
+    expect(whereMock.mock.calls).toEqual([['placas', '==', '807Y453REAL']]);
+    expect(orderByMock).not.toHaveBeenCalled();
+  });
+
+  it('con número económico aplica el período sobre lo leído', async () => {
+    getDocsMock.mockResolvedValue({
+      docs: [
+        { ...docReal({ fechaLocal: '2026-08-31' }), id: 'antes' },
+        { ...docReal({ fechaLocal: '2026-09-15' }), id: 'dentro' },
+        { ...docReal({ fechaLocal: '2026-10-01' }), id: 'despues' },
+      ],
+    });
+
+    const { medios } = await listarMedios({
+      desde: '2026-09-01',
+      hasta: '2026-09-30',
+      placas: '807Y453REAL',
+    });
+
+    expect(medios.map((m) => m.id)).toEqual(['dentro']);
+  });
+
+  it('con período «Todos» (extremos vacíos) no pone filtros de fecha', async () => {
+    getDocsMock.mockResolvedValue({ docs: [] });
+
+    await listarMedios({ desde: '', hasta: '' });
+
+    expect(whereMock).not.toHaveBeenCalled();
+  });
+
+  it('ordena por un solo campo (fechaLocal ↓): no exige índice compuesto', async () => {
+    getDocsMock.mockResolvedValue({ docs: [] });
+
+    await listarMedios({ desde: '', hasta: '' });
+
+    expect(orderByMock.mock.calls).toEqual([['fechaLocal', 'desc']]);
+  });
+
+  it('lee por páginas hasta agotarlas: no se queda en las primeras 120', async () => {
+    const primera = documentos(500, 'a');
+    getDocsMock
+      .mockResolvedValueOnce({ docs: primera })
+      .mockResolvedValueOnce({ docs: documentos(300, 'b') });
+
+    const { medios, recortado } = await listarMedios({ desde: '', hasta: '' });
+
+    expect(medios).toHaveLength(800);
+    expect(recortado).toBe(false);
+    expect(startAfterMock).toHaveBeenCalledWith(primera[499]);
+  });
+
+  it('si rebasa el tope, devuelve el tope y marca recorte', async () => {
+    getDocsMock
+      .mockResolvedValueOnce({ docs: documentos(500, 'a') })
+      .mockResolvedValueOnce({ docs: documentos(1, 'extra') });
+
+    const { medios, recortado } = await listarMedios({ desde: '', hasta: '', limite: 500 });
+
+    expect(recortado).toBe(true);
+    expect(medios).toHaveLength(500);
+    expect(medios.some((m) => m.id === 'extra-0')).toBe(false);
+  });
+
+  it('con exactamente el tope de archivos no marca recorte', async () => {
+    getDocsMock
+      .mockResolvedValueOnce({ docs: documentos(500, 'a') })
+      .mockResolvedValueOnce({ docs: [] });
+
+    const { medios, recortado } = await listarMedios({ desde: '', hasta: '', limite: 500 });
+
+    expect(medios).toHaveLength(500);
+    expect(recortado).toBe(false);
+  });
+
+  it('devuelve lo más reciente primero, aunque la consulta lea cada día de forma ascendente', async () => {
+    const captura = (iso: string) => ({ toDate: () => new Date(iso) });
+    getDocsMock.mockResolvedValue({
+      docs: [
+        { ...docReal({ createdAtDevice: captura('2026-09-23T10:00:00Z') }), id: 'temprano' },
+        { ...docReal({ createdAtDevice: captura('2026-09-23T20:00:00Z') }), id: 'tarde' },
+      ],
+    });
+
+    const { medios } = await listarMedios({ desde: '', hasta: '' });
+
+    expect(medios.map((m) => m.id)).toEqual(['tarde', 'temprano']);
   });
 });
 

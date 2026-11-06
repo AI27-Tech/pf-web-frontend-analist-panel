@@ -31,7 +31,7 @@ function Pantalla_Expediente() {
         const errorMsg =
           error instanceof Error
             ? error.message
-            : 'No se pudieron cargar los medios de este viaje.';
+            : 'No se pudieron cargar los medios de este seguimiento.';
         return { medios: [], error: errorMsg };
       }
     },
@@ -52,7 +52,7 @@ function Pantalla_Expediente() {
             : 'No se pudo cargar el expediente.'}
         </p>
         <Link to="/viajes" className="text-accent text-sm hover:underline">
-          Volver a viajes
+          Volver a seguimientos
         </Link>
       </div>
     );
