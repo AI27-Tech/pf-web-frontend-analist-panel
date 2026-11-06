@@ -59,68 +59,113 @@ export async function listarMediosDelViaje(viajeId: string): Promise<Medio[]> {
   return resultado.docs.map((documento) => aMedio(documento.id, documento.data()));
 }
 
-/**
- * Lista archivos ENTRE viajes, para la galería.
- *
- * La galería responde «todas las fotos de tal etiqueta en tal periodo»: a diferencia de
- * `listarMediosDelViaje`, que arma el expediente de un solo servicio, aquí se cruza todo
- * el corpus acotado por fecha. Se filtra por `fechaLocal`, la misma cadena `YYYY-MM-DD`
- * que usa la pantalla de Viajes, para que ambas compartan el rango sin depender de la
- * zona horaria de quien consulta (ver `lib/formato/fechas.ts`).
- *
- * El orden es por captura descendente: lo más reciente primero, que es como el analista
- * revisa el día.
- *
- * NOTA: La consulta original usaba orderBy('createdAtDevice', 'desc') con múltiples
- * filtros de rango, lo que exige un índice compuesto de Firestore. Para desarrollo,
- * ordenamos en memoria. Ver:
- * https://console.firebase.google.com/v1/r/project/custodio-906e7268/firestore/indexes
- */
-export async function listarMedios(filtros: FiltrosMedio): Promise<Medio[]> {
-  const restricciones: QueryConstraint[] = [];
-
-  // Solo agregar filtro de fecha si los valores no están vacíos
-  if (filtros.desde && filtros.desde.trim() !== '') {
-    restricciones.push(where('fechaLocal', '>=', filtros.desde));
-  }
-  if (filtros.hasta && filtros.hasta.trim() !== '') {
-    restricciones.push(where('fechaLocal', '<=', filtros.hasta));
-  }
-
-  if (filtros.tipo) restricciones.push(where('tipo', '==', filtros.tipo));
-  // `etiquetas` es un array: la pertenencia se consulta con `array-contains`, no con `==`.
-  if (filtros.etiqueta) restricciones.push(where('etiquetas', 'array-contains', filtros.etiqueta));
-  if (filtros.placas) restricciones.push(where('placas', '==', filtros.placas));
-  if (filtros.custodioUid) restricciones.push(where('custodioUid', '==', filtros.custodioUid));
-
-  // Sin orderBy en la consulta (evita exigir índice). Ordenamos en memoria en el cliente.
-  restricciones.push(limit(filtros.limite ?? 120));
-
-  const resultado = await getDocs(query(collection(firestore, 'medios'), ...restricciones));
-  let medios = resultado.docs.map((documento) => aMedio(documento.id, documento.data()));
-
-  // Enriquecer con nombres de custodios
-  medios = await enriquecerMediosConNombres(medios);
-
-  // Ordenar en cliente por createdAtDevice descendente (más reciente primero)
-  return medios.sort((a, b) => {
-    const timeA = a.capturadoEn.getTime();
-    const timeB = b.capturadoEn.getTime();
-    return timeB - timeA; // Descendente
-  });
-}
-
-/** Documentos por página en la lectura del reporte de unidad. */
+/** Documentos por página en las lecturas por cursor (galería y reporte de unidad). */
 const TAMANO_PAGINA = 500;
 
 /** Tope de archivos por reporte de unidad. Acota las lecturas (y el costo) de una descarga. */
 const TOPE_UNIDAD = 5000;
 
-/** Archivos de un custodio en un periodo, y si se descartaron los más recientes por el tope. */
+/** Tope de archivos que la galería carga de una vez cuando no se acota por periodo ni por
+ *  número económico. Acota las lecturas de Firestore de una sola visita. */
+const TOPE_GALERIA = 2000;
+
+/** Archivos leídos de una consulta acotada, y si el tope dejó fuera archivos. */
 export interface MediosDelPeriodo {
   medios: Medio[];
-  /** `true` si la unidad tiene más archivos que el tope: faltan los más recientes. */
+  /** `true` si hay más archivos que el tope: faltan los del extremo que la consulta lee al
+   *  final (en la galería, los más antiguos; en el reporte de unidad, los más recientes). */
   recortado: boolean;
+}
+
+/**
+ * Lista archivos ENTRE viajes, para la galería.
+ *
+ * La galería responde «todas las fotos de tal unidad en tal periodo»: a diferencia de
+ * `listarMediosDelViaje`, que arma el expediente de un solo servicio, aquí se cruza todo
+ * el corpus. El periodo (`fechaLocal`, la misma cadena `YYYY-MM-DD` que usa la pantalla de
+ * Viajes, ver `lib/formato/fechas.ts`) y el número económico (`placas`, igualdad exacta
+ * sobre el valor normalizado) acotan la lectura EN FIRESTORE.
+ *
+ * SIN ÍNDICES COMPUESTOS. Las dos formas de consulta que usa la galería sólo necesitan los
+ * índices de un campo que Firestore crea solo; no dependen de que
+ * `pf-infra-firebase/firestore.indexes.json` esté desplegado (una consulta con un índice
+ * faltante falla entera, y la galería se queda sin nada):
+ *  - Sin número económico: rango de `fechaLocal` ordenado por `fechaLocal` ↓. Lee los días
+ *    más recientes primero, así que si se rebasa el tope se pierden los más antiguos.
+ *  - Con número económico: sólo `placas ==`. Combinarlo con el rango de `fechaLocal` exigiría
+ *    un índice compuesto, así que el periodo se aplica aquí mismo sobre los documentos de
+ *    esa unidad. Es la lectura completa de la unidad, no de todo el corpus.
+ * Dentro de la consulta el orden de los documentos de un mismo día no está definido, por eso
+ * al final se ordena en memoria por captura descendente (lo más reciente primero).
+ *
+ * Se lee por páginas (`startAfter`) hasta agotar los resultados o el tope (`limite`, por
+ * defecto `TOPE_GALERIA`). Se pide un documento de más para distinguir «justo el tope» de
+ * «más que el tope». Los demás filtros de `FiltrosMedio` (`tipo`, `etiqueta`,
+ * `custodioUid`) no se usan desde la galería y, combinados con el rango, sí piden índice
+ * compuesto.
+ */
+export async function listarMedios(filtros: FiltrosMedio): Promise<MediosDelPeriodo> {
+  const base: QueryConstraint[] = [];
+  const desde = filtros.desde.trim();
+  const hasta = filtros.hasta.trim();
+
+  if (filtros.tipo) base.push(where('tipo', '==', filtros.tipo));
+  // `etiquetas` es un array: la pertenencia se consulta con `array-contains`, no con `==`.
+  if (filtros.etiqueta) base.push(where('etiquetas', 'array-contains', filtros.etiqueta));
+  if (filtros.custodioUid) base.push(where('custodioUid', '==', filtros.custodioUid));
+
+  if (filtros.placas) {
+    base.push(where('placas', '==', filtros.placas));
+  } else {
+    if (desde) base.push(where('fechaLocal', '>=', desde));
+    if (hasta) base.push(where('fechaLocal', '<=', hasta));
+    base.push(orderBy('fechaLocal', 'desc'));
+  }
+
+  // Con número económico el periodo no viaja a Firestore.
+  const enPeriodo = (medio: Medio): boolean =>
+    !filtros.placas ||
+    ((!desde || medio.fechaLocal >= desde) && (!hasta || medio.fechaLocal <= hasta));
+
+  const tope = filtros.limite ?? TOPE_GALERIA;
+  const leidos: Medio[] = [];
+  let cursor: QueryDocumentSnapshot | undefined;
+
+  while (leidos.length <= tope) {
+    // Con número económico algunos documentos leídos se descartan por el periodo, así que
+    // `leidos` no mide cuánto se ha consumido: se piden páginas completas para no terminar
+    // leyendo de uno en uno al acercarse al tope.
+    const tamano = filtros.placas
+      ? TAMANO_PAGINA
+      : Math.min(TAMANO_PAGINA, tope + 1 - leidos.length);
+    const restricciones: QueryConstraint[] = [...base, limit(tamano)];
+    if (cursor) restricciones.push(startAfter(cursor));
+
+    const pagina = await getDocs(query(collection(firestore, 'medios'), ...restricciones));
+    for (const documento of pagina.docs) {
+      const medio = aMedio(documento.id, documento.data());
+      if (enPeriodo(medio)) leidos.push(medio);
+    }
+
+    // Una página incompleta es la última.
+    const ultimo = pagina.docs[pagina.docs.length - 1];
+    if (pagina.docs.length < tamano || !ultimo) break;
+    cursor = ultimo;
+  }
+
+  const recortado = leidos.length > tope;
+  const dentroDelTope = recortado ? leidos.slice(0, tope) : leidos;
+
+  // Enriquecer con nombres de custodios
+  const medios = await enriquecerMediosConNombres(dentroDelTope);
+
+  // Más reciente primero, con `id` de desempate para que el orden sea determinista. La
+  // consulta no fija el orden dentro de un mismo día.
+  medios.sort(
+    (a, b) =>
+      b.capturadoEn.getTime() - a.capturadoEn.getTime() || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
+  return { medios, recortado };
 }
 
 /**

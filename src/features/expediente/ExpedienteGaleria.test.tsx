@@ -35,7 +35,7 @@ describe('ExpedienteGaleria', () => {
     render(<ExpedienteGaleria medios={[]} cargando={false} />);
 
     expect(
-      screen.getByText('Este viaje no tiene archivos registrados todavía.'),
+      screen.getByText('Este seguimiento no tiene archivos registrados todavía.'),
     ).toBeInTheDocument();
   });
 
@@ -43,7 +43,7 @@ describe('ExpedienteGaleria', () => {
     render(<ExpedienteGaleria medios={[]} cargando={true} />);
 
     expect(
-      screen.queryByText('Este viaje no tiene archivos registrados todavía.'),
+      screen.queryByText('Este seguimiento no tiene archivos registrados todavía.'),
     ).not.toBeInTheDocument();
   });
 
