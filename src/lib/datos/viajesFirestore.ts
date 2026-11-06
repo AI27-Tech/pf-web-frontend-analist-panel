@@ -110,6 +110,32 @@ export async function listarViajesFirestore(filtros: FiltrosViaje): Promise<Viaj
   return queryViajes(enriquecidos, filtros);
 }
 
+/**
+ * Números económicos (`placas`) distintos de los viajes de un periodo, ordenados.
+ *
+ * Alimenta el selector «Número económico» de la galería. Sale de `reportes` y no de los
+ * `medios` ya cargados porque la galería consulta los medios por número económico en
+ * Firestore: si el selector se armara con lo cargado, al elegir uno quedaría sólo ese y no
+ * se podría cambiar a otro. Un `desde`/`hasta` vacío deja ese extremo abierto.
+ */
+export async function listarPlacasFirestore(rango: {
+  desde: string;
+  hasta: string;
+}): Promise<string[]> {
+  const restricciones: QueryConstraint[] = [];
+  if (rango.desde) restricciones.push(where('fechaLocal', '>=', rango.desde));
+  if (rango.hasta) restricciones.push(where('fechaLocal', '<=', rango.hasta));
+  restricciones.push(orderBy('fechaLocal', 'desc'));
+
+  const resultado = await getDocs(query(collection(firestore, 'reportes'), ...restricciones));
+  const placas = new Set<string>();
+  for (const documento of resultado.docs) {
+    const valor: unknown = documento.data().placas;
+    if (typeof valor === 'string' && valor.length > 0) placas.add(valor);
+  }
+  return [...placas].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
 export async function obtenerViajeFirestore(id: string): Promise<Viaje | null> {
   const documento = await getDoc(doc(firestore, 'reportes', id));
   if (!documento.exists()) return null;

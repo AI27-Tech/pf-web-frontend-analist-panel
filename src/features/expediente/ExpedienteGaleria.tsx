@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useResolvedMedia } from '@/lib/hooks/useResolvedMedia';
 import { urlOriginal } from '@/lib/datos/medios';
 import { etiquetaVisible, type Medio } from '@/lib/datos/tipos';
-import { formatearBytes, horaLocal } from '@/lib/formato/tamano';
+import { formatearBytes, horaLocalConSegundos } from '@/lib/formato/tamano';
 
 /**
  * Presenta los medios de un viaje como una GRILLA (`ImageGrid` de la librería), no en
@@ -194,7 +194,7 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
   // (derecha). RETIRO DE ETIQUETADO (ver docs/PLAN_RETIRO_ETIQUETADO.md): el sello derecho
   // usaba la etiqueta real (`etiquetaVisible`); sin señal de etiqueta cae al tipo (FOTO/AUDIO).
   const badges: BadgeConfig[] = [
-    { label: horaLocal(medio.capturadoEn), variant: 'neutral', position: 'left' },
+    { label: horaLocalConSegundos(medio.capturadoEn), variant: 'neutral', position: 'left' },
     {
       label: medio.tipo,
       variant: 'neutral',
@@ -202,16 +202,16 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
     },
   ];
 
+  const hora = horaLocalConSegundos(medio.capturadoEn);
+
   return (
     <ImageCard
       src={src ?? ''}
       alt={medio.comentario ?? medio.tipo}
-      title={<span className="font-mono text-xs">{nombreArchivo(medio)}</span>}
-      subtitle={
-        <span className="cifras-tabulares flex items-center gap-2 font-mono">
-          {formatearBytes(medio.bytes)}
-        </span>
-      }
+      title=""
+      className="[&_h3:empty]:hidden"
+      aria-label={`Abrir ${isAudio ? 'audio' : 'foto'} capturada a las ${hora}`}
+      subtitle={<span className="cifras-tabulares font-mono">{formatearBytes(medio.bytes)}</span>}
       badges={badges}
       onClick={onAbrir}
     >
@@ -227,11 +227,4 @@ function MedioCard({ medio, onAbrir }: { medio: Medio; onAbrir: () => void }) {
       )}
     </ImageCard>
   );
-}
-
-/** Nombre de archivo: último segmento de la ruta del original, con respaldo a la
- *  etiqueta. Es lo que la maqueta muestra bajo cada miniatura. */
-function nombreArchivo(medio: Medio): string {
-  const segmento = medio.rutaOriginal.split('/').pop() ?? '';
-  return segmento || medio.etiquetas[0] || 'SIN_NOMBRE';
 }
