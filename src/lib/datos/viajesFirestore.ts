@@ -136,6 +136,34 @@ export async function listarPlacasFirestore(rango: {
   return [...placas].sort((a, b) => a.localeCompare(b, 'es'));
 }
 
+/**
+ * Nombres de unidad (custodios) distintos de los viajes de un periodo, ordenados.
+ *
+ * Alimenta el selector «Unidad» de Seguimientos. Usa el mismo nombre que muestra la tabla
+ * (`custodioName`, o el correo si no hay nombre), porque el filtro compara contra ese texto.
+ * Un `desde`/`hasta` vacío deja ese extremo abierto.
+ */
+export async function listarUnidadesFirestore(rango: {
+  desde: string;
+  hasta: string;
+}): Promise<string[]> {
+  const restricciones: QueryConstraint[] = [];
+  if (rango.desde) restricciones.push(where('fechaLocal', '>=', rango.desde));
+  if (rango.hasta) restricciones.push(where('fechaLocal', '<=', rango.hasta));
+  restricciones.push(orderBy('fechaLocal', 'desc'));
+
+  const resultado = await getDocs(query(collection(firestore, 'reportes'), ...restricciones));
+  const viajes = resultado.docs.map((documento) => aViaje(documento.id, documento.data()));
+  const enriquecidos = await enriquecerConNombres(viajes);
+
+  const nombres = new Set<string>();
+  for (const viaje of enriquecidos) {
+    const nombre = viaje.custodioName ?? viaje.custodioCorreo;
+    if (nombre) nombres.add(nombre);
+  }
+  return [...nombres].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
 export async function obtenerViajeFirestore(id: string): Promise<Viaje | null> {
   const documento = await getDoc(doc(firestore, 'reportes', id));
   if (!documento.exists()) return null;

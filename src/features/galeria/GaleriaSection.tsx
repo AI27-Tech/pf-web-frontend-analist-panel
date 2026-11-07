@@ -152,6 +152,7 @@ export function GaleriaSection() {
     {
       key: 'placa',
       label: 'Número económico',
+      variant: 'searchable',
       options: [
         { label: 'Todas', value: 'TODO' },
         // Viajes del período + los medios cargados (por si un archivo trae un número
@@ -170,6 +171,7 @@ export function GaleriaSection() {
     {
       key: 'custodio',
       label: 'Unidad',
+      variant: 'searchable',
       options: [
         { label: 'Todos', value: 'TODO' },
         ...Array.from(new Set(medios.map((m) => m.custodioUid).filter(Boolean)))
