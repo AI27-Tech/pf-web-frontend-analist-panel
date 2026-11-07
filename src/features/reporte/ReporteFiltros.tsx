@@ -40,11 +40,18 @@ export function ReporteFiltros({
       onSearchChange={(texto) => onFiltroChange({ ...filtro, texto })}
       searchPlaceholder="Buscar por unidad o número económico…"
       filters={[
-        { key: 'custodio', label: 'Unidad', placeholder: 'Todas', options: opcionesCustodio },
+        {
+          key: 'custodio',
+          label: 'Unidad',
+          placeholder: 'Todas',
+          variant: 'searchable',
+          options: opcionesCustodio,
+        },
         {
           key: 'unidad',
           label: 'Número económico',
           placeholder: 'Todos',
+          variant: 'searchable',
           options: opcionesUnidad,
         },
       ]}

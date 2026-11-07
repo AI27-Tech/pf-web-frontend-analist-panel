@@ -2,6 +2,46 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:06 18:08 — Select buscable en número económico y unidad (Galería, Seguimientos y Reportes), librería `@ai27-tech/ui` 0.2.0-beta.8 (rama `feature/select-buscador`)
+
+**Resumen:** la librería `@ai27-tech/ui` pasó a `0.2.0-beta.8`, que trae la variante `searchable` en `Select` y en `FilterBar`. Los filtros de número económico y unidad de Galería, Seguimientos y Reportes ahora permiten escribir para filtrar las opciones. En Seguimientos también se quitaron los filtros de Etiqueta y Novedad.
+
+**Cambios:**
+
+- **Librería.** `@ai27-tech/ui` pasa de `0.2.0-beta.6` a `0.2.0-beta.8` (`package.json`, `pnpm-lock.yaml`). `pnpm-workspace.yaml` agrega `beta.7` y `beta.8` a `minimumReleaseAgeExclude`, para que pnpm no bloquee su instalación por antigüedad.
+- **Galería** (`GaleriaSection.tsx`). Los filtros «Número económico» y «Unidad» usan `variant: 'searchable'`.
+- **Reportes** (`features/reporte/ReporteFiltros.tsx`). Los filtros «Unidad» y «Número económico» de la barra principal usan `variant: 'searchable'`. El modal «Reportes» tiene su propio buscador de unidad y no cambió.
+- **Seguimientos** (`features/viajes/ViajesFilters.tsx`):
+  - «Número económico» y «Unidad» pasan de texto libre con debounce a Select buscable. Sus opciones salen del periodo vigente.
+  - Se quitaron los filtros «Etiqueta» y «Novedad». Los chips de `FiltrosActivos` siguen mostrándolos si el filtro llega por la ruta.
+  - Si el valor vigente no está entre las opciones del periodo, se agrega a la lista para que el selector no lo pierda.
+- **Datos de Seguimientos.** `routes/_privado/viajes.index.tsx` consulta las placas y las unidades del periodo con `keepPreviousData`.
+  - `lib/datos/viajesFirestore.ts` agrega `listarUnidadesFirestore`. Lee los `reportes` del periodo y devuelve los nombres de custodio ordenados.
+  - `lib/datos/viajes.ts` agrega `listarUnidades` con su rama mock.
+
+**Consecuencias:**
+
+- En Seguimientos, el filtro de número económico sigue siendo de coincidencia parcial normalizada (`queryViajes`). Elegir «AB-123» también incluye «AB-1234» si existe.
+- En Seguimientos, la unidad filtra por nombre, no por UID. Dos custodios con el mismo nombre se filtran juntos.
+- Cada cambio de periodo en Seguimientos lanza dos consultas más sobre `reportes`. Son lecturas adicionales de Firestore.
+
+**Verificación:** `tsc --build`, `eslint` en las carpetas modificadas, `prettier --check` y `vitest` (173 pruebas en 21 archivos) en verde con `beta.8`. No hay pruebas de `ViajesFilters` ni de los filtros de Galería o Reportes, y no se revisó el buscador en el navegador.
+
+**Archivos modificados:**
+
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `src/features/galeria/GaleriaSection.tsx`
+- `src/features/reporte/ReporteFiltros.tsx`
+- `src/features/viajes/ViajesFilters.tsx`
+- `src/lib/datos/viajes.ts`
+- `src/lib/datos/viajesFirestore.ts`
+- `src/routes/_privado/viajes.index.tsx`
+- `CHANGELOG.md`
+
+---
+
 ## 2026:11:06 14:30 — Galería sin tope de 120 archivos, orden del más reciente al más antiguo y sección «Seguimientos» (rama `fix/platform-cleanup`)
 
 **Resumen:** `listarMedios` leía como máximo 120 documentos sin orden (`limit(120)`, el total que mostraba la paginación) y todos los filtros corrían en el cliente sobre ese puñado. Ahora el periodo y el número económico acotan la lectura en Firestore. También se agregaron segundos a la hora de las tarjetas, se ordenaron los seguimientos y la galería del más reciente al más antiguo, y la sección «Viajes» pasó a llamarse «Seguimientos» en la interfaz.

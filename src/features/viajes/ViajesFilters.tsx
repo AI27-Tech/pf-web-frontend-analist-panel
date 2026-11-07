@@ -1,5 +1,5 @@
 import { Card, CardBody, FormField, Input, Select } from '@ai27-tech/ui';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import {
   esRangoValido,
@@ -15,6 +15,10 @@ export interface ViajesFiltersProps {
   filtros: FiltrosViaje;
   onFiltrosChange: (filtros: FiltrosViaje) => void;
   etiquetas: Etiqueta[];
+  /** Números económicos del periodo, para el selector buscable. */
+  placas: string[];
+  /** Nombres de unidad del periodo, para el selector buscable. */
+  unidades: string[];
 }
 
 const OPCIONES_PERIODO: Array<{ value: Atajo | 'rango'; label: string }> = [
@@ -23,8 +27,6 @@ const OPCIONES_PERIODO: Array<{ value: Atajo | 'rango'; label: string }> = [
   { value: 'mes', label: 'Este mes' },
   { value: 'rango', label: 'Rango de fechas' },
 ];
-
-const DEBOUNCE_MS = 300;
 
 function omitirClave<T extends object, K extends keyof T>(objeto: T, clave: K): Omit<T, K> {
   const copia = { ...objeto };
@@ -44,23 +46,16 @@ function omitirClave<T extends object, K extends keyof T>(objeto: T, clave: K): 
  * `filtros.desde`/`filtros.hasta` no coinciden con ningún atajo conocido, se asume
  * `{ atajo: 'rango', ... }` como estado inicial.
  */
-export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFiltersProps) {
+export function ViajesFilters({
+  filtros,
+  onFiltrosChange,
+  etiquetas,
+  placas,
+  unidades,
+}: ViajesFiltersProps) {
   const [periodo, setPeriodo] = useState<SeleccionPeriodo>(() =>
     inferirPeriodoInicial(filtros.desde, filtros.hasta),
   );
-
-  const [placasTexto, setPlacasTexto] = useState(filtros.placas ?? '');
-  const [custodioTexto, setCustodioTexto] = useState(filtros.custodioName ?? '');
-
-  const timeoutPlacas = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const timeoutCustodio = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(timeoutPlacas.current);
-      clearTimeout(timeoutCustodio.current);
-    };
-  }, []);
 
   function manejarCambioPeriodo(valor: string) {
     if (valor === 'rango') {
@@ -95,60 +90,28 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
     // válido.
   }
 
-  function manejarCambioPlacas(valor: string) {
-    setPlacasTexto(valor);
-    clearTimeout(timeoutPlacas.current);
-    timeoutPlacas.current = setTimeout(() => {
-      const texto = valor.trim();
-      const resto = omitirClave(filtros, 'placas');
-      onFiltrosChange({ ...resto, ...(texto ? { placas: texto } : {}), page: 1 });
-    }, DEBOUNCE_MS);
+  // Cambiar un selector reemplaza su criterio; elegir la opción vacía lo quita.
+  function manejarCambioCriterio(clave: 'placas' | 'custodioName', valor: string) {
+    const resto = omitirClave(filtros, clave);
+    onFiltrosChange({ ...resto, ...(valor ? { [clave]: valor } : {}), page: 1 });
   }
 
-  function manejarCambioCustodio(valor: string) {
-    setCustodioTexto(valor);
-    clearTimeout(timeoutCustodio.current);
-    timeoutCustodio.current = setTimeout(() => {
-      const texto = valor.trim();
-      const resto = omitirClave(filtros, 'custodioName');
-      onFiltrosChange({ ...resto, ...(texto ? { custodioName: texto } : {}), page: 1 });
-    }, DEBOUNCE_MS);
-  }
-
-  function manejarCambioEtiqueta(valor: string) {
-    const resto = omitirClave(filtros, 'etiqueta');
-    onFiltrosChange({
-      ...resto,
-      ...(valor ? { etiqueta: valor } : {}),
-      page: 1,
-    });
-  }
-
-  function manejarCambioNovedad(valor: string) {
-    const resto = omitirClave(filtros, 'isUpdated');
-    if (valor === '') {
-      onFiltrosChange({ ...resto, page: 1 });
-      return;
-    }
-    onFiltrosChange({ ...resto, isUpdated: valor === 'true', page: 1 });
+  // Las opciones salen del periodo. Si el criterio vigente no está entre ellas (por ejemplo,
+  // tras cambiar de periodo), se agrega para que el selector no pierda su valor.
+  function opcionesConVigente(lista: string[], vigente: string | undefined) {
+    const nombres = vigente && !lista.includes(vigente) ? [...lista, vigente] : lista;
+    return [
+      { value: '', label: 'Todos' },
+      ...nombres.map((nombre) => ({ value: nombre, label: nombre })),
+    ];
   }
 
   function quitarFiltro(clave: ClaveFiltroQuitable) {
     const resto = omitirClave(filtros, clave);
-    if (clave === 'placas') {
-      setPlacasTexto('');
-    }
-    if (clave === 'custodioName') {
-      setCustodioTexto('');
-    }
     onFiltrosChange({ ...resto, page: 1 });
   }
 
   function limpiarTodo() {
-    clearTimeout(timeoutPlacas.current);
-    clearTimeout(timeoutCustodio.current);
-    setPlacasTexto('');
-    setCustodioTexto('');
     const nuevoPeriodo: SeleccionPeriodo = { atajo: 'mes' };
     setPeriodo(nuevoPeriodo);
     const { desde, hasta } = resolverPeriodo(nuevoPeriodo, new Date());
@@ -198,43 +161,22 @@ export function ViajesFilters({ filtros, onFiltrosChange, etiquetas }: ViajesFil
         )}
 
         <FormField label="Número económico">
-          <Input
-            type="text"
-            placeholder="Todos los números económicos"
-            value={placasTexto}
-            onChange={(evento) => manejarCambioPlacas(evento.target.value)}
+          <Select
+            variant="searchable"
+            searchPlaceholder="Buscar número económico..."
+            options={opcionesConVigente(placas, filtros.placas)}
+            value={filtros.placas ?? ''}
+            onChange={(valor) => manejarCambioCriterio('placas', String(valor))}
           />
         </FormField>
 
         <FormField label="Unidad">
-          <Input
-            type="text"
-            placeholder="Todas las unidades"
-            value={custodioTexto}
-            onChange={(evento) => manejarCambioCustodio(evento.target.value)}
-          />
-        </FormField>
-
-        <FormField label="Etiqueta">
           <Select
-            options={[
-              { value: '', label: 'Cualquier etiqueta' },
-              ...etiquetas.map((etiqueta) => ({ value: etiqueta.id, label: etiqueta.nombre })),
-            ]}
-            value={filtros.etiqueta ?? ''}
-            onChange={(valor) => manejarCambioEtiqueta(String(valor))}
-          />
-        </FormField>
-
-        <FormField label="Novedad">
-          <Select
-            options={[
-              { value: '', label: 'Todas las novedades' },
-              { value: 'true', label: 'Con novedad' },
-              { value: 'false', label: 'Sin novedad' },
-            ]}
-            value={filtros.isUpdated === undefined ? '' : String(filtros.isUpdated)}
-            onChange={(valor) => manejarCambioNovedad(String(valor))}
+            variant="searchable"
+            searchPlaceholder="Buscar unidad..."
+            options={opcionesConVigente(unidades, filtros.custodioName)}
+            value={filtros.custodioName ?? ''}
+            onChange={(valor) => manejarCambioCriterio('custodioName', String(valor))}
           />
         </FormField>
 

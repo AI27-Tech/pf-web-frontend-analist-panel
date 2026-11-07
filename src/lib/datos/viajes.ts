@@ -7,6 +7,7 @@
 
 import {
   listarPlacasFirestore,
+  listarUnidadesFirestore,
   listarViajesFirestore,
   obtenerViajeFirestore,
 } from './viajesFirestore';
@@ -28,6 +29,21 @@ export function listarPlacas(rango: { desde: string; hasta: string }): Promise<s
       .map((viaje) => viaje.placas),
   );
   return Promise.resolve([...placas].sort((a, b) => a.localeCompare(b, 'es')));
+}
+
+/** Nombres de unidad (custodios) distintos de los viajes de un periodo (`desde`/`hasta` vacío = abierto). */
+export function listarUnidades(rango: { desde: string; hasta: string }): Promise<string[]> {
+  if (!usarMock) return listarUnidadesFirestore(rango);
+  const nombres = new Set(
+    viajesEstaticos
+      .filter(
+        (viaje) =>
+          (!rango.desde || viaje.fechaLocal >= rango.desde) &&
+          (!rango.hasta || viaje.fechaLocal <= rango.hasta),
+      )
+      .map((viaje) => viaje.custodioName ?? viaje.custodioCorreo),
+  );
+  return Promise.resolve([...nombres].sort((a, b) => a.localeCompare(b, 'es')));
 }
 
 export function listarViajes(filtros: FiltrosViaje): Promise<ViajesPage> {
