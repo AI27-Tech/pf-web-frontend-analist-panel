@@ -1,11 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { listarEtiquetas } from '@/lib/datos/catalogos';
 import type { FiltrosViaje } from '@/lib/datos/tipos';
-import { listarViajes } from '@/lib/datos/viajes';
+import { listarPlacas, listarUnidades, listarViajes } from '@/lib/datos/viajes';
 import { resolverPeriodo, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
 import { ViajesFilters } from '@/features/viajes/ViajesFilters';
@@ -40,6 +40,19 @@ function Pantalla_Viajes() {
   const consultaEtiquetas = useQuery({
     queryKey: ['etiquetas'],
     queryFn: () => listarEtiquetas(),
+  });
+
+  // Opciones de los selectores de número económico y unidad: los valores del periodo.
+  const consultaPlacas = useQuery({
+    queryKey: ['seguimiento-placas', desde, hasta],
+    queryFn: () => listarPlacas({ desde, hasta }),
+    placeholderData: keepPreviousData,
+  });
+
+  const consultaUnidades = useQuery({
+    queryKey: ['seguimiento-unidades', desde, hasta],
+    queryFn: () => listarUnidades({ desde, hasta }),
+    placeholderData: keepPreviousData,
   });
 
   const estado: 'cargando' | 'listo' | 'error' = consultaViajes.isPending
@@ -86,6 +99,8 @@ function Pantalla_Viajes() {
           filtros={filtros}
           onFiltrosChange={handleFiltrosChange}
           etiquetas={consultaEtiquetas.data ?? []}
+          placas={consultaPlacas.data ?? []}
+          unidades={consultaUnidades.data ?? []}
         />
         <ViajesList
           viajes={consultaViajes.data?.viajes ?? []}
