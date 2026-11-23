@@ -63,6 +63,7 @@ export function ReporteFiltros({
         onFiltroChange({ ...filtro, [key]: value === '' ? null : value })
       }
       onClear={() => onFiltroChange(FILTRO_VACIO)}
+      collapsibleOnMobile
     />
   );
 }

@@ -1,4 +1,4 @@
-import { Button, Navbar, Sidebar, SidebarItem } from '@ai27-tech/ui';
+import { Button, Navbar, Sidebar, SidebarItem, SidebarTrigger } from '@ai27-tech/ui';
 import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
 import {
   Images,
@@ -39,12 +39,21 @@ export function AppShell() {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   useEffect(() => observarSesion(setUsuario), []);
 
-  const [colapsada, setColapsada] = useState(false);
+  // En tablet (640 a 1023 px) la librería arranca la barra contraída solo si `collapsed` no
+  // se controla desde fuera. Como aquí sí se controla (para que el botón de colapso funcione
+  // también en escritorio), el estado inicial se toma del viewport.
+  const [colapsada, setColapsada] = useState(
+    () => window.matchMedia('(min-width: 40rem) and (max-width: 63.999rem)').matches,
+  );
+  // En móvil la barra es un panel que se abre con `SidebarTrigger` (en la `Navbar`).
+  const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-dvh">
       <Sidebar
         className="no-imprimir shrink-0"
+        mobileOpen={menuMovilAbierto}
+        onMobileOpenChange={setMenuMovilAbierto}
         header={
           colapsada ? undefined : <span className="text-lg font-semibold tracking-tight">AI27</span>
         }
@@ -80,6 +89,9 @@ export function AppShell() {
         <Navbar
           sticky
           className="no-imprimir"
+          brand={
+            <SidebarTrigger open={menuMovilAbierto} onClick={() => setMenuMovilAbierto(true)} />
+          }
           actions={
             <Button
               variant="ghost"

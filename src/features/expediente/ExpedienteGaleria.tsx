@@ -118,7 +118,7 @@ export function ExpedienteGaleria({
   // Si hay error, mostrar mensaje (después de los hooks)
   if (mediosError) {
     return (
-      <div className="border-border rounded-md border border-dashed px-8 py-12 text-center">
+      <div className="border-border rounded-md border border-dashed px-4 py-8 text-center sm:px-8 sm:py-12">
         <AlertTriangle className="text-danger mx-auto mb-3 size-6" aria-hidden="true" />
         <p className="text-text-muted text-sm">{mediosError}</p>
       </div>
@@ -127,7 +127,7 @@ export function ExpedienteGaleria({
 
   if (!cargando && medios.length === 0) {
     return (
-      <div className="border-border rounded-md border border-dashed px-8 py-12 text-center">
+      <div className="border-border rounded-md border border-dashed px-4 py-8 text-center sm:px-8 sm:py-12">
         <p className="text-text-muted text-sm">
           Este seguimiento no tiene archivos registrados todavía.
         </p>

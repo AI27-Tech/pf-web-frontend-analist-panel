@@ -1,3 +1,5 @@
+import { PageHeader } from '@ai27-tech/ui';
+
 /** Barra superior de página: título a la izquierda, acciones a la derecha.
  *  Corresponde al prompt 4 del diseño. */
 export function EncabezadoPagina({
@@ -7,11 +9,13 @@ export function EncabezadoPagina({
   titulo: string;
   children?: React.ReactNode;
 }) {
+  // `PageHeader` pasa las acciones debajo del título en pantallas angostas.
   return (
-    <header className="border-border flex shrink-0 items-center justify-between border-b px-8 py-6">
-      <h1 className="text-text text-xl font-semibold tracking-tight">{titulo}</h1>
-      {children && <div className="flex items-center gap-2">{children}</div>}
-    </header>
+    <PageHeader
+      title={titulo}
+      actions={children}
+      className="border-border shrink-0 border-b px-4 py-4 sm:px-8 sm:py-6"
+    />
   );
 }
 

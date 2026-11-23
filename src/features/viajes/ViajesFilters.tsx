@@ -1,4 +1,4 @@
-import { Card, CardBody, FormField, Input, Select } from '@ai27-tech/ui';
+import { DateInput, FilterBar, FormField, Grid, Stack, type FilterDefinition } from '@ai27-tech/ui';
 import { useState } from 'react';
 
 import {
@@ -7,24 +7,23 @@ import {
   type Atajo,
   type SeleccionPeriodo,
 } from '@/lib/formato/fechas';
-import type { Etiqueta, FiltrosViaje } from '@/lib/datos/tipos';
-
-import { FiltrosActivos, type ClaveFiltroQuitable } from './FiltrosActivos';
+import type { FiltrosViaje } from '@/lib/datos/tipos';
 
 export interface ViajesFiltersProps {
   filtros: FiltrosViaje;
   onFiltrosChange: (filtros: FiltrosViaje) => void;
-  etiquetas: Etiqueta[];
   /** Números económicos del periodo, para el selector buscable. */
   placas: string[];
   /** Nombres de unidad del periodo, para el selector buscable. */
   unidades: string[];
 }
 
-const OPCIONES_PERIODO: Array<{ value: Atajo | 'rango'; label: string }> = [
+// «Este mes» es el periodo por defecto: se representa con valor vacío para que FilterBar no lo
+// cuente como filtro activo (ni muestre su chip) mientras el analista no cambie de periodo.
+const OPCIONES_PERIODO = [
+  { value: '', label: 'Este mes' },
   { value: 'hoy', label: 'Hoy' },
   { value: 'semana', label: 'Esta semana' },
-  { value: 'mes', label: 'Este mes' },
   { value: 'rango', label: 'Rango de fechas' },
 ];
 
@@ -35,8 +34,9 @@ function omitirClave<T extends object, K extends keyof T>(objeto: T, clave: K): 
 }
 
 /**
- * ViajesFilters (Panel_Filtros, design.md §`ViajesFilters`): los cinco controles de
- * filtro más los chips de `FiltrosActivos`. Componente controlado: recibe `filtros`
+ * ViajesFilters (Panel_Filtros, design.md §`ViajesFilters`): periodo, número económico y
+ * unidad sobre `FilterBar` (que además dibuja los chips de filtros activos y en móvil guarda
+ * los filtros tras un botón). Componente controlado: recibe `filtros`
  * completo y emite `filtros` completo por `onFiltrosChange`; no lee estado global ni
  * filtra datos él mismo.
  *
@@ -46,18 +46,13 @@ function omitirClave<T extends object, K extends keyof T>(objeto: T, clave: K): 
  * `filtros.desde`/`filtros.hasta` no coinciden con ningún atajo conocido, se asume
  * `{ atajo: 'rango', ... }` como estado inicial.
  */
-export function ViajesFilters({
-  filtros,
-  onFiltrosChange,
-  etiquetas,
-  placas,
-  unidades,
-}: ViajesFiltersProps) {
+export function ViajesFilters({ filtros, onFiltrosChange, placas, unidades }: ViajesFiltersProps) {
   const [periodo, setPeriodo] = useState<SeleccionPeriodo>(() =>
     inferirPeriodoInicial(filtros.desde, filtros.hasta),
   );
 
-  function manejarCambioPeriodo(valor: string) {
+  function manejarCambioPeriodo(valorFilterBar: string) {
+    const valor = valorFilterBar === '' ? 'mes' : valorFilterBar;
     if (valor === 'rango') {
       // El rango vigente se conserva como valor inicial de los dos `Input` de fecha.
       setPeriodo({ atajo: 'rango', desde: filtros.desde, hasta: filtros.hasta });
@@ -106,11 +101,6 @@ export function ViajesFilters({
     ];
   }
 
-  function quitarFiltro(clave: ClaveFiltroQuitable) {
-    const resto = omitirClave(filtros, clave);
-    onFiltrosChange({ ...resto, page: 1 });
-  }
-
   function limpiarTodo() {
     const nuevoPeriodo: SeleccionPeriodo = { atajo: 'mes' };
     setPeriodo(nuevoPeriodo);
@@ -120,79 +110,68 @@ export function ViajesFilters({
 
   const rangoInvalido = periodo.atajo === 'rango' && !esRangoValido(periodo.desde, periodo.hasta);
 
+  const definiciones: FilterDefinition[] = [
+    { key: 'periodo', label: 'Periodo', options: OPCIONES_PERIODO },
+    {
+      key: 'placas',
+      label: 'Número económico',
+      placeholder: 'Todos',
+      variant: 'searchable',
+      searchPlaceholder: 'Buscar número económico...',
+      options: opcionesConVigente(placas, filtros.placas),
+    },
+    {
+      key: 'custodioName',
+      label: 'Unidad',
+      placeholder: 'Todos',
+      variant: 'searchable',
+      searchPlaceholder: 'Buscar unidad...',
+      options: opcionesConVigente(unidades, filtros.custodioName),
+    },
+  ];
+
+  function manejarCambioFiltro(clave: string, valor: string) {
+    if (clave === 'periodo') {
+      manejarCambioPeriodo(valor);
+    } else if (clave === 'placas' || clave === 'custodioName') {
+      manejarCambioCriterio(clave, valor);
+    }
+  }
+
   return (
-    // El `Card` de la librería trae `overflow: hidden` (para recortar sus esquinas
-    // redondeadas), y el desplegable del `Select` es `position: absolute` en el flujo,
-    // no en un portal. Sin esto, la lista de opciones se recorta al borde de la tarjeta
-    // (se ve en Viajes, no en Galería, que no envuelve sus filtros en un Card). Se fuerza
-    // `overflow-visible` para que el desplegable escape la tarjeta.
-    <Card variant="outlined" className="!overflow-visible">
-      <CardBody className="flex flex-wrap items-end gap-4 !overflow-visible">
-        <FormField label="Periodo">
-          <Select
-            options={OPCIONES_PERIODO.map((opcion) => ({
-              value: opcion.value,
-              label: opcion.label,
-            }))}
-            value={periodo.atajo}
-            onChange={(valor) => manejarCambioPeriodo(String(valor))}
-          />
-        </FormField>
-
-        {periodo.atajo === 'rango' && (
-          <>
-            <FormField label="Desde">
-              <Input
-                type="date"
-                value={periodo.desde}
-                invalid={rangoInvalido}
-                onChange={(evento) => manejarCambioRango('desde', evento.target.value)}
-              />
-            </FormField>
-            <FormField label="Hasta">
-              <Input
-                type="date"
-                value={periodo.hasta}
-                invalid={rangoInvalido}
-                onChange={(evento) => manejarCambioRango('hasta', evento.target.value)}
-              />
-            </FormField>
-          </>
-        )}
-
-        <FormField label="Número económico">
-          <Select
-            variant="searchable"
-            searchPlaceholder="Buscar número económico..."
-            options={opcionesConVigente(placas, filtros.placas)}
-            value={filtros.placas ?? ''}
-            onChange={(valor) => manejarCambioCriterio('placas', String(valor))}
-          />
-        </FormField>
-
-        <FormField label="Unidad">
-          <Select
-            variant="searchable"
-            searchPlaceholder="Buscar unidad..."
-            options={opcionesConVigente(unidades, filtros.custodioName)}
-            value={filtros.custodioName ?? ''}
-            onChange={(valor) => manejarCambioCriterio('custodioName', String(valor))}
-          />
-        </FormField>
-
-        <div className="basis-full">
-          <FiltrosActivos
-            filtros={filtros}
-            etiquetas={etiquetas}
-            onQuitarFiltro={quitarFiltro}
-            onLimpiarTodo={limpiarTodo}
-          />
-        </div>
-      </CardBody>
-    </Card>
+    <Stack gap={3}>
+      <FilterBar
+        filters={definiciones}
+        filterValues={{
+          periodo: periodo.atajo === 'mes' ? '' : periodo.atajo,
+          placas: filtros.placas ?? '',
+          custodioName: filtros.custodioName ?? '',
+        }}
+        onFilterChange={manejarCambioFiltro}
+        onClear={limpiarTodo}
+        collapsibleOnMobile
+      />
+      {periodo.atajo === 'rango' && (
+        <Grid gap={4} minItemWidth="14rem">
+          <FormField label="Desde">
+            <DateInput
+              value={periodo.desde}
+              invalid={rangoInvalido}
+              onChange={(valor) => manejarCambioRango('desde', valor)}
+            />
+          </FormField>
+          <FormField label="Hasta">
+            <DateInput
+              value={periodo.hasta}
+              invalid={rangoInvalido}
+              onChange={(valor) => manejarCambioRango('hasta', valor)}
+            />
+          </FormField>
+        </Grid>
+      )}
+    </Stack>
   );
 }
-
 /**
  * Estado inicial del periodo a partir de `desde`/`hasta` vigentes. Si el rango no
  * coincide con ninguno de los tres atajos calculados para "ahora", se asume que es un
