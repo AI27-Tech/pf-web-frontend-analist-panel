@@ -114,7 +114,7 @@ export function ReporteSection() {
       )}
 
       {consulta.isSuccess && !sinDatos && datos && estadisticas && (
-        <div className="reporte-imprimible space-y-8 px-8 py-6">
+        <div className="reporte-imprimible space-y-8 px-4 py-4 sm:px-8 sm:py-6">
           <ReporteFiltros
             filtro={filtro}
             onFiltroChange={setFiltro}

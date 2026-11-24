@@ -3,7 +3,6 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
-import { listarEtiquetas } from '@/lib/datos/catalogos';
 import type { FiltrosViaje } from '@/lib/datos/tipos';
 import { listarPlacas, listarUnidades, listarViajes } from '@/lib/datos/viajes';
 import { resolverPeriodo, type SeleccionPeriodo } from '@/lib/formato/fechas';
@@ -35,11 +34,6 @@ function Pantalla_Viajes() {
   const consultaViajes = useQuery({
     queryKey: ['viajes', filtros],
     queryFn: () => listarViajes(filtros),
-  });
-
-  const consultaEtiquetas = useQuery({
-    queryKey: ['etiquetas'],
-    queryFn: () => listarEtiquetas(),
   });
 
   // Opciones de los selectores de número económico y unidad: los valores del periodo.
@@ -94,11 +88,12 @@ function Pantalla_Viajes() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <EncabezadoPagina titulo="Seguimientos" />
-      <div className="flex min-h-0 flex-1 flex-col gap-4 px-8 py-6">
+      {/* En móvil los filtros ocupan varias filas: la pantalla entera hace scroll. Desde tablet,
+          los filtros quedan fijos y solo la lista hace scroll. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:overflow-visible sm:px-8 sm:py-6">
         <ViajesFilters
           filtros={filtros}
           onFiltrosChange={handleFiltrosChange}
-          etiquetas={consultaEtiquetas.data ?? []}
           placas={consultaPlacas.data ?? []}
           unidades={consultaUnidades.data ?? []}
         />

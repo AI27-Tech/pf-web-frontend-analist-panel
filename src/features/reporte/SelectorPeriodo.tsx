@@ -1,3 +1,4 @@
+import { DateInput, FormField, Inline } from '@ai27-tech/ui';
 import { esRangoValido, fechaLocalDe, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
 /**
@@ -40,7 +41,7 @@ export function SelectorPeriodo({ seleccion, onChange }: SelectorPeriodoProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <Inline gap={2} align="center">
       <div
         role="group"
         aria-label="Periodo del reporte"
@@ -64,36 +65,28 @@ export function SelectorPeriodo({ seleccion, onChange }: SelectorPeriodoProps) {
       </div>
 
       {esRango && (
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5">
-            <span className="text-text-muted text-xs">Desde</span>
-            <input
-              type="date"
+        <Inline gap={2} align="end">
+          <FormField label="Desde">
+            <DateInput
               value={desde}
               max={hasta}
-              aria-label="Fecha desde"
-              onChange={(event) => onChange({ atajo: 'rango', desde: event.target.value, hasta })}
-              className="border-border bg-surface text-text rounded-md border px-2 py-1 text-sm"
+              onChange={(valor) => onChange({ atajo: 'rango', desde: valor, hasta })}
             />
-          </label>
-          <label className="flex items-center gap-1.5">
-            <span className="text-text-muted text-xs">Hasta</span>
-            <input
-              type="date"
+          </FormField>
+          <FormField label="Hasta">
+            <DateInput
               value={hasta}
               min={desde}
-              aria-label="Fecha hasta"
-              onChange={(event) => onChange({ atajo: 'rango', desde, hasta: event.target.value })}
-              className="border-border bg-surface text-text rounded-md border px-2 py-1 text-sm"
+              onChange={(valor) => onChange({ atajo: 'rango', desde, hasta: valor })}
             />
-          </label>
+          </FormField>
           {rangoInvalido && (
             <span className="text-danger text-xs" role="alert">
               La fecha inicial no puede ser posterior a la final.
             </span>
           )}
-        </div>
+        </Inline>
       )}
-    </div>
+    </Inline>
   );
 }

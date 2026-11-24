@@ -31,8 +31,8 @@ export function SistemaSection() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-border border-b px-8 py-6">
-        <div className="flex items-center gap-3">
+      <header className="border-border border-b px-4 py-4 sm:px-8 sm:py-6">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h1 className="text-text text-2xl font-semibold tracking-tight">Sistema</h1>
           <Badge variant="neutral" pill>
             OPERACIÓN Y EVIDENCIA
@@ -47,7 +47,7 @@ export function SistemaSection() {
       </header>
 
       {consulta.isPending && (
-        <div className="space-y-4 px-8 py-6" aria-busy="true" aria-live="polite">
+        <div className="space-y-4 px-4 py-4 sm:px-8 sm:py-6" aria-busy="true" aria-live="polite">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="border-border bg-surface h-64 animate-pulse rounded-lg border" />
             <div className="border-border bg-surface h-64 animate-pulse rounded-lg border" />
@@ -57,7 +57,7 @@ export function SistemaSection() {
       )}
 
       {consulta.isError && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 py-24 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-16 text-center sm:px-8 sm:py-24">
           <AlertTriangle className="text-danger size-8" aria-hidden="true" />
           <p className="text-text-muted text-sm">No se pudieron cargar las gráficas.</p>
           <Button variant="outline" size="sm" onClick={() => consulta.refetch()}>
@@ -67,7 +67,7 @@ export function SistemaSection() {
       )}
 
       {consulta.isSuccess && (
-        <div className="space-y-8 px-8 py-6">
+        <div className="space-y-8 px-4 py-4 sm:px-8 sm:py-6">
           <AvisoCobertura cobertura={consulta.data.cobertura} alcance="sistema" />
           <GraficasSection graficas={consulta.data.graficas} />
           {consulta.data.estadisticas.viajesAuditados.valor === '0' && (
