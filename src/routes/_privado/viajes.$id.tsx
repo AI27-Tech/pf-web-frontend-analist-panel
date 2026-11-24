@@ -44,7 +44,7 @@ function Pantalla_Expediente() {
 
   if (consultaViaje.isError || consultaViaje.data === null) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-16 text-center sm:px-8 sm:py-24">
         <AlertTriangle className="text-danger size-8" aria-hidden="true" />
         <p className="text-text-muted text-sm">
           {consultaViaje.data === null

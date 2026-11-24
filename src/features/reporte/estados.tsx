@@ -45,7 +45,7 @@ function TablaEsqueleto() {
 /** Esqueleto de toda la vista: tres tarjetas, las dos gráficas y las dos tablas. */
 export function ReporteCargando() {
   return (
-    <div className="space-y-8 px-8 py-6" aria-busy="true" aria-live="polite">
+    <div className="space-y-8 px-4 py-4 sm:px-8 sm:py-6" aria-busy="true" aria-live="polite">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }, (_, i) => (
           <TarjetaEsqueleto key={i} />
@@ -64,7 +64,7 @@ export function ReporteCargando() {
 /** El periodo no tiene datos que reportar. */
 export function ReporteVacio({ onAmpliarRango }: { onAmpliarRango: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 py-24 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-16 text-center sm:px-8 sm:py-24">
       <FileBarChart className="text-text-muted size-8" aria-hidden="true" />
       <p className="text-text-muted max-w-prose text-sm">
         No hay seguimientos en este periodo, así que no hay métricas que consolidar. Amplía el rango
@@ -80,7 +80,7 @@ export function ReporteVacio({ onAmpliarRango }: { onAmpliarRango: () => void })
 /** No se pudieron cargar las métricas. */
 export function ReporteError({ onReintentar }: { onReintentar: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 py-24 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-16 text-center sm:px-8 sm:py-24">
       <AlertTriangle className="text-danger size-8" aria-hidden="true" />
       <p className="text-text-muted text-sm">No se pudo cargar el reporte.</p>
       <Button variant="outline" size="sm" onClick={onReintentar}>

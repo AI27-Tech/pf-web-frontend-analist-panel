@@ -47,7 +47,7 @@ export function ViajesList({
   }, [page]);
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col">
+    <section className="flex shrink-0 flex-col sm:min-h-0 sm:flex-1 sm:shrink">
       <header className="shrink-0 pb-3">
         <h2 className="text-text-muted font-mono text-xs tracking-widest uppercase">
           Expedientes registrados
@@ -57,7 +57,7 @@ export function ViajesList({
         </p>
       </header>
 
-      <ul ref={areaRenglones} className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+      <ul ref={areaRenglones} className="space-y-3 sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
         {estado === 'cargando' && <ViajesListSkeleton count={pageSize} />}
 
         {estado === 'listo' && viajes.length === 0 && (

@@ -1,6 +1,6 @@
-import { Badge, Button } from '@ai27-tech/ui';
-import { Link } from '@tanstack/react-router';
-import { ChevronLeft, FileText } from 'lucide-react';
+import { Badge, Breadcrumb, Button } from '@ai27-tech/ui';
+import { useNavigate } from '@tanstack/react-router';
+import { FileText } from 'lucide-react';
 
 import type { Viaje } from '@/lib/datos/tipos';
 
@@ -19,19 +19,25 @@ export interface ExpedienteHeaderProps {
 }
 
 export function ExpedienteHeader({ viaje }: ExpedienteHeaderProps) {
+  const navigate = useNavigate();
+
   return (
-    <header className="border-border flex flex-col gap-4 border-b px-8 py-6">
-      <nav
+    <header className="border-border flex flex-col gap-4 border-b px-4 py-4 sm:px-8 sm:py-6">
+      <Breadcrumb
         aria-label="Ruta de navegación"
-        className="text-text-muted flex items-center gap-1.5 text-sm"
-      >
-        <Link to="/viajes" className="hover:text-text inline-flex items-center gap-1">
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          Seguimientos
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-text font-mono">Expediente {viaje.id}</span>
-      </nav>
+        items={[
+          {
+            label: 'Seguimientos',
+            href: '/viajes',
+            // Renderiza como `<a>` real, pero navega con el router sin recargar la SPA.
+            onClick: (evento) => {
+              evento.preventDefault();
+              void navigate({ to: '/viajes' });
+            },
+          },
+          { label: `Expediente ${viaje.id}` },
+        ]}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">

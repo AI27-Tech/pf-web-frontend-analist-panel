@@ -25,7 +25,7 @@ describe('SelectorPeriodo', () => {
 
   it('no muestra los campos de fecha salvo en Rango', () => {
     render(<SelectorPeriodo seleccion={{ atajo: 'mes' }} onChange={() => {}} />);
-    expect(screen.queryByLabelText('Fecha desde')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Desde')).not.toBeInTheDocument();
   });
 
   it('en Rango expone los dos campos de fecha con sus valores', () => {
@@ -35,8 +35,9 @@ describe('SelectorPeriodo', () => {
       hasta: '2026-09-30',
     };
     render(<SelectorPeriodo seleccion={seleccion} onChange={() => {}} />);
-    expect(screen.getByLabelText('Fecha desde')).toHaveValue('2026-09-01');
-    expect(screen.getByLabelText('Fecha hasta')).toHaveValue('2026-09-30');
+    // DateInput guarda el valor en AAAA-MM-DD pero lo muestra como DD/MM/AAAA.
+    expect(screen.getByLabelText('Desde')).toHaveValue('01/09/2026');
+    expect(screen.getByLabelText('Hasta')).toHaveValue('30/09/2026');
   });
 
   it('avisa cuando el rango es inválido', () => {

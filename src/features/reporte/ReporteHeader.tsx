@@ -34,16 +34,16 @@ export function ReporteHeader({
   }
 
   return (
-    <header className="border-border border-b px-8 py-6">
+    <header className="border-border border-b px-4 py-4 sm:px-8 sm:py-6">
       {/* Fila superior: identidad del reporte. */}
       <div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h1 className="text-text text-2xl font-semibold tracking-tight">Reporte</h1>
           <Badge variant="escort" pill>
             AI27 DATA ANALISIS
           </Badge>
         </div>
-        <div className="mt-2 flex items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="border-border text-text-muted rounded border px-2 py-0.5 font-mono text-xs">
             {folio}
           </span>
