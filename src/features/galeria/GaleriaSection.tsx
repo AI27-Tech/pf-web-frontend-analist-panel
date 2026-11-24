@@ -15,7 +15,19 @@
  * - Visor: abre fotos/audios con zoom, rotación y reproductor
  */
 
-import { ImageGrid, ImageCard, Visor, Badge, FilterBar, Pagination, Table } from '@ai27-tech/ui';
+import {
+  ImageGrid,
+  ImageCard,
+  Visor,
+  Badge,
+  DateInput,
+  FilterBar,
+  FormField,
+  Grid,
+  Pagination,
+  Stack,
+  Table,
+} from '@ai27-tech/ui';
 import type { FilterDefinition, FilterValues } from '@ai27-tech/ui';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -267,9 +279,9 @@ export function GaleriaSection() {
   const muestraRangoPersonalizado = filterValues.periodo === 'rango';
 
   return (
-    <div>
+    <Stack gap={4}>
       {/* Barra de filtros */}
-      <div style={{ marginBottom: '1rem' }}>
+      <Stack gap={3}>
         <FilterBar
           filters={filters}
           filterValues={filterValues}
@@ -284,60 +296,40 @@ export function GaleriaSection() {
           enableViewToggle={true}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          collapsibleOnMobile
         />
 
         {/* Controles de rango personalizado (solo cuando se selecciona "rango") */}
         {muestraRangoPersonalizado && (
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Desde
-              </label>
-              <input
-                type="date"
+          <Grid gap={4} minItemWidth="14rem" className="items-end">
+            <FormField label="Desde">
+              <DateInput
                 value={rangoDesde}
-                onChange={(e) => {
-                  setRangoDesde(e.target.value);
+                onChange={(valor) => {
+                  setRangoDesde(valor);
                   setPage(1);
                 }}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                }}
               />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                Hasta
-              </label>
-              <input
-                type="date"
+            </FormField>
+            <FormField label="Hasta">
+              <DateInput
                 value={rangoHasta}
-                onChange={(e) => {
-                  setRangoHasta(e.target.value);
+                onChange={(valor) => {
+                  setRangoHasta(valor);
                   setPage(1);
                 }}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                }}
               />
-            </div>
+            </FormField>
             {rangoDesde && rangoHasta && (
-              <div style={{ color: '#666', fontSize: '0.875rem' }}>
+              <p className="text-text-muted text-sm">
                 Mostrando: {rangoDesde} a {rangoHasta}
-              </div>
+              </p>
             )}
-          </div>
+          </Grid>
         )}
-      </div>
-
+      </Stack>
       {consultaMedios.data?.recortado && (
-        <p className="text-text-muted mb-4 text-sm" role="status">
+        <p className="text-text-muted text-sm" role="status">
           Se muestran los archivos más recientes. Utiliza el filtrado para visualizar archivos
           específicos.
         </p>
@@ -438,7 +430,7 @@ export function GaleriaSection() {
 
       {/* Paginación */}
       {mediosFiltrados.length > 0 && (
-        <div style={{ marginTop: '2rem' }}>
+        <div className="pt-4">
           <Pagination
             page={page}
             pageSize={pageSize}
@@ -472,7 +464,7 @@ export function GaleriaSection() {
           }}
         />
       )}
-    </div>
+    </Stack>
   );
 }
 

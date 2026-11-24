@@ -26,7 +26,7 @@ export function ExpedienteDetalle({
     <div className="flex min-h-0 flex-1 flex-col">
       <ExpedienteHeader viaje={viaje} />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-8 py-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-4 sm:px-8 sm:py-6">
         <ExpedienteResumenCards viaje={viaje} />
         <ExpedienteGaleria medios={medios} mediosError={mediosError} cargando={cargandoMedios} />
       </div>

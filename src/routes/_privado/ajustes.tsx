@@ -1,3 +1,4 @@
+import { Button } from '@ai27-tech/ui';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
@@ -18,14 +19,10 @@ function Ajustes() {
   return (
     <>
       <EncabezadoPagina titulo="Ajustes" />
-      <div className="px-8 py-10">
-        <button
-          type="button"
-          onClick={salir}
-          className="border-acento text-acento h-12 rounded border px-6 text-sm font-semibold"
-        >
+      <div className="px-4 py-6 sm:px-8 sm:py-10">
+        <Button variant="outline" onClick={salir}>
           Cerrar sesión
-        </button>
+        </Button>
       </div>
     </>
   );

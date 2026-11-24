@@ -110,8 +110,8 @@ importers:
   .:
     dependencies:
       '@ai27-tech/ui':
-        specifier: 0.2.0-beta.8
-        version: 0.2.0-beta.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: 0.3.0-beta.2
+        version: 0.3.0-beta.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -227,8 +227,8 @@ packages:
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
 
-  '@ai27-tech/ui@0.2.0-beta.8':
-    resolution: {integrity: sha512-71AuBaKKsi+MnUo2FF2/YHBp/cflwEw5YTJHhbdXKP7Hj47/rou4wMHoCvilK/8UoKLHhVA58VnYoMLAsDZB9g==, tarball: https://npm.pkg.github.com/download/@ai27-tech/ui/0.2.0-beta.8/74b25e36da0cd24aa5a26662a7c5867a610153ec}
+  '@ai27-tech/ui@0.3.0-beta.2':
+    resolution: {integrity: sha512-SFBQqbOsVDCQAzJhkiZwNE008oy4AryNGrNt4XuP4TJZcwh9C9/OdrWvtTIFj/Hw6IdITjT7dScqfiGnSrxIsQ==, tarball: https://npm.pkg.github.com/download/@ai27-tech/ui/0.3.0-beta.2/c024e1f15553a85e7de004c2264a96a46318f85c}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -2452,7 +2452,7 @@ snapshots:
 
   '@adobe/css-tools@4.5.0': {}
 
-  '@ai27-tech/ui@0.2.0-beta.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@ai27-tech/ui@0.3.0-beta.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)

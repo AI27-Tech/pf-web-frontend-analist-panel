@@ -22,7 +22,7 @@ function Galeria() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <EncabezadoPagina titulo="Galería" />
-      <div className="flex min-h-0 flex-1 flex-col gap-4 px-8 py-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4 sm:px-8 sm:py-6">
         <GaleriaSection />
       </div>
     </div>

@@ -15,8 +15,8 @@ import { ListaSolicitudes } from './custodios/ListaSolicitudes';
 export function AdministracionSection() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-border border-b px-8 py-6">
-        <div className="flex items-center gap-3">
+      <header className="border-border border-b px-4 py-4 sm:px-8 sm:py-6">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h1 className="text-text text-2xl font-semibold tracking-tight">Administración</h1>
           <Badge variant="neutral" pill>
             GESTIÓN INTERNA
@@ -28,7 +28,7 @@ export function AdministracionSection() {
       </header>
 
       <div className="no-imprimir flex flex-1 flex-col overflow-hidden">
-        <div className="grid flex-1 gap-8 overflow-y-auto px-8 py-6 lg:grid-cols-2">
+        <div className="grid flex-1 gap-8 overflow-y-auto px-4 py-4 sm:px-8 sm:py-6 lg:grid-cols-2">
           {/* Columna 1: Formulario */}
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-2">
