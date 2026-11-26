@@ -2,6 +2,27 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:26 15:30 — Capa de datos del reporte por Shipment ID (rama `feat/reporte-por-shipment-id`, apilada sobre `feat/acceso-y-consultas-panel`)
+
+**Resumen:** el reporte por Shipment ID (Echo 04) queda implementado de punta a punta en el panel: dropdown «Envío» en la barra de filtros global del reporte, con los Shipment IDs visibles para el rol; al elegir uno, las secciones del envío se insertan arriba del tablero del periodo (cabecera, totales sin descartados y lista de seguimientos con sus medios). La URL `?envio=S-100` sigue funcionando como acceso directo. La corrección del vínculo es del Analista, con auditoría. La lectura y la escritura reales van contra Firestore; en desarrollo hay un mock con el ejemplo común del handoff (`S-100/042`, `S-101/037`, `S-103/042`).
+
+**Cambios:**
+
+- **Tipos** (`lib/datos/tipos.ts`). `Envio`, `ReporteVinculado`, `EnvioSeguimiento`, `VistaEnvio` y `ResultadoCorreccion`.
+- **Dominio puro** (`lib/datos/envios.ts`). `construirVistaEnvio` (agrupa medios por seguimiento y ordena), `totalesDeEnvio` (los descartados no cuentan), `evaluarCorreccion` (destino inexistente o ajeno rechazado; al mismo valor no se escribe) y el conmutador de fuente con `TOPE_ENVIO`.
+- **Lectura y escritura** (`lib/datos/enviosFirestore.ts`). `obtenerVistaEnvioFirestore` lee `envios/{shipmentId}`, sus `reportes` por igualdad y los `medios` en lotes de `reporteId in [...]` de 30 con tope. Un envío ajeno responde `null` igual que uno inexistente. `corregirVinculacionFirestore` escribe los cinco campos de auditoría y nada más; la autorización real es la regla de 01 (pendiente).
+- **Mock de desarrollo** (`lib/datos/enviosMock.ts`). Los tres envíos del ejemplo más una empresa ajena, con un seguimiento descartado con medios que no debe contar.
+- **Medios** (`lib/datos/medios.ts`). `aMedio` pasa a ser exportado para reusarlo en la lectura de envíos.
+- **Vista** (`features/reporte/VistaEnvio.tsx`, `ReporteFiltros.tsx`). El dropdown «Envío» de la barra de filtros global lista los envíos del rol (`listarEnvios`, sin `orderBy` en servidor para no sumar índices); al elegir uno, las secciones del envío se insertan arriba del tablero del periodo, que sigue visible debajo. La lista de seguimientos enlaza al expediente y muestra miniaturas (omitidas en mock). Un envío inexistente y uno ajeno responden lo mismo: «No encontramos el envío».
+- **Corrección del vínculo** (`features/reporte/CorregirVinculoModal.tsx`). Sólo el Analista la ve. Elige destino por Shipment ID o «Sin envío», valida que exista y sea de la misma empresa antes de guardar y advierte que los totales cambian. Escribe los cinco campos de auditoría y nada más; al mismo valor no escribe. La autorización real es la regla de 01 (pendiente).
+- **Ruta** (`routes/_privado/reporte.tsx`, `features/reporte/ReporteSection.tsx`). `validateSearch` acepta `envio`; con el parámetro presente la vista de envío reemplaza el dashboard y el buscador sigue visible.
+- **Tipos** (`lib/datos/tipos.ts`). El panel deja de ser «sólo lectura»: la corrección del vínculo es su primera escritura.
+- **Pruebas.** 10 casos de dominio (`envios.test.ts`), 4 del mock (`enviosMock.test.ts`, incluye el orden de la lista) y las de regresión del resto del panel.
+
+**Verificación:** `tsc --build --force`, ESLint, Prettier, `vitest run` con 202 pruebas en 25 archivos y `vite build` verdes.
+
+**Pendientes de otras issues:** la regla de 01 que permite al Analista escribir esos cinco campos (sin ella la corrección falla en producción), los índices del Cliente (`reportes` y `medios` por `clienteId`) y la función de 03 que no sobrescriba un vínculo manual.
+
 ## 2026:11:26 12:40 — Acceso por rol y consultas del panel acotadas por empresa (rama `feat/acceso-y-consultas-panel`)
 
 **Resumen:** el panel resuelve el perfil de la cuenta al restaurar la sesión y usa una sola matriz de secciones para el destino inicial, las rutas directas y el menú. El Cliente ve Seguimientos, Galería, Reporte y Ajustes, y sus consultas a `reportes` y `medios` se acotan a su empresa. Checklist entra sólo a Envíos. El Analista conserva las seis secciones. Una cuenta sin perfil válido va a `/sin-acceso`.

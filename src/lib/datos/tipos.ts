@@ -5,8 +5,9 @@
  * Esa separación es lo que permite cambiar de fuente de datos —de Firebase a un BFF
  * en Go, cuando la identidad de la plataforma esté lista— sin tocar una sola pantalla.
  *
- * El contrato de origen lo define pf-app-custodio/docs/PLAN.md §5.1. Este panel es
- * SÓLO LECTURA: no escribe ni un documento.
+ * El contrato de origen lo define pf-app-custodio/docs/PLAN.md §5.1. El panel era sólo
+ * lectura hasta Echo 04: la corrección del vínculo es su primera escritura (cinco campos
+ * de auditoría en `reportes`, ver `enviosFirestore.ts`), autorizada por la regla de 01.
  */
 
 export type CicloViaje = 'ACTIVO' | 'CERRADO' | 'DESCARTADO';
@@ -192,3 +193,43 @@ export interface FiltrosMedio {
   custodioUid?: string;
   limite?: number;
 }
+
+/** Un envío registrado por Checklist: `envios/{shipmentId}` en Firestore. */
+export interface Envio {
+  shipmentId: string;
+  clienteId: string;
+  numeroEconomico: string;
+  lineaTransportista: string;
+  bitacoraLegacyId: string;
+  createdAtServer: Date | null;
+  vigente: boolean;
+}
+
+/** Un seguimiento vinculado a un envío, sin sus medios: la forma cruda que produce la
+ *  consulta de `reportes`. */
+export interface ReporteVinculado {
+  id: string;
+  clienteId: string;
+  ciclo: CicloViaje;
+  fechaLocal: string;
+  placas: string;
+  custodioCorreo: string;
+  abiertoEn: Date;
+}
+
+/** Un seguimiento del envío con sus medios ya agrupados. */
+export interface EnvioSeguimiento extends ReporteVinculado {
+  medios: Medio[];
+}
+
+/** Vista completa de un envío para el reporte por Shipment ID. */
+export interface VistaEnvio {
+  envio: Envio;
+  seguimientos: EnvioSeguimiento[];
+  /** `true` si la lectura de medios rebasó el tope: faltan archivos del envío. */
+  recortado: boolean;
+}
+
+/** Resultado de corregir el vínculo de un seguimiento: `cambio: false` significa que el
+ *  valor ya era ese y no hubo escritura. */
+export type ResultadoCorreccion = { ok: true; cambio: boolean } | { ok: false; mensaje: string };
