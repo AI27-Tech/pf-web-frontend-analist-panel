@@ -19,7 +19,9 @@ import { enriquecerMediosConNombres } from './custodios';
 
 import type { FiltrosMedio, Medio } from './tipos';
 
-function aMedio(id: string, d: DocumentData): Medio {
+/** Traduce un documento de medio a la vista del panel. Exportado para las consultas que
+ *  leen medios fuera de este módulo (reporte por Shipment ID). */
+export function aMedio(id: string, d: DocumentData): Medio {
   return {
     id,
     viajeId: d.reporteId ?? '',

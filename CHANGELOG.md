@@ -2,6 +2,21 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:26 15:30 — Capa de datos del reporte por Shipment ID (rama `feat/reporte-por-shipment-id`, apilada sobre `feat/acceso-y-consultas-panel`)
+
+**Resumen:** la lógica del reporte por Shipment ID (Echo 04) queda como dominio puro y probado, con lectura y escritura reales contra Firestore y un mock de desarrollo con el ejemplo común del handoff (`S-100/042`, `S-101/037`, `S-103/042`). La UI llega en el commit siguiente.
+
+**Cambios:**
+
+- **Tipos** (`lib/datos/tipos.ts`). `Envio`, `ReporteVinculado`, `EnvioSeguimiento`, `VistaEnvio` y `ResultadoCorreccion`.
+- **Dominio puro** (`lib/datos/envios.ts`). `construirVistaEnvio` (agrupa medios por seguimiento y ordena), `totalesDeEnvio` (los descartados no cuentan), `evaluarCorreccion` (destino inexistente o ajeno rechazado; al mismo valor no se escribe) y el conmutador de fuente con `TOPE_ENVIO`.
+- **Lectura y escritura** (`lib/datos/enviosFirestore.ts`). `obtenerVistaEnvioFirestore` lee `envios/{shipmentId}`, sus `reportes` por igualdad y los `medios` en lotes de `reporteId in [...]` de 30 con tope. Un envío ajeno responde `null` igual que uno inexistente. `corregirVinculacionFirestore` escribe los cinco campos de auditoría y nada más; la autorización real es la regla de 01 (pendiente).
+- **Mock de desarrollo** (`lib/datos/enviosMock.ts`). Los tres envíos del ejemplo más una empresa ajena, con un seguimiento descartado con medios que no debe contar.
+- **Medios** (`lib/datos/medios.ts`). `aMedio` pasa a ser exportado para reusarlo en la lectura de envíos.
+- **Pruebas** (`lib/datos/envios.test.ts`). 10 casos: agrupación y orden, recorte, totales sin descartados y las seis decisiones de corrección.
+
+**Verificación:** `tsc --build --force`, ESLint y Prettier verdes; 10 pruebas nuevas, 0 fallos.
+
 ## 2026:11:26 12:40 — Acceso por rol y consultas del panel acotadas por empresa (rama `feat/acceso-y-consultas-panel`)
 
 **Resumen:** el panel resuelve el perfil de la cuenta al restaurar la sesión y usa una sola matriz de secciones para el destino inicial, las rutas directas y el menú. El Cliente ve Seguimientos, Galería, Reporte y Ajustes, y sus consultas a `reportes` y `medios` se acotan a su empresa. Checklist entra sólo a Envíos. El Analista conserva las seis secciones. Una cuenta sin perfil válido va a `/sin-acceso`.
