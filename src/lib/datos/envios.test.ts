@@ -37,6 +37,7 @@ function medio(reporteId: string, tipo: 'FOTO' | 'AUDIO', hora: string): Medio {
 const reportes: ReporteVinculado[] = [
   {
     id: 'r-1',
+    clienteId: 'Colgate',
     ciclo: 'CERRADO',
     fechaLocal: '2026-11-20',
     placas: '042',
@@ -45,6 +46,7 @@ const reportes: ReporteVinculado[] = [
   },
   {
     id: 'r-2',
+    clienteId: 'Colgate',
     ciclo: 'ACTIVO',
     fechaLocal: '2026-11-21',
     placas: '042',
@@ -53,6 +55,7 @@ const reportes: ReporteVinculado[] = [
   },
   {
     id: 'r-3',
+    clienteId: 'Colgate',
     ciclo: 'DESCARTADO',
     fechaLocal: '2026-11-21',
     placas: '042',

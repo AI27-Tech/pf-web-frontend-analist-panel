@@ -5,8 +5,9 @@
  * Esa separación es lo que permite cambiar de fuente de datos —de Firebase a un BFF
  * en Go, cuando la identidad de la plataforma esté lista— sin tocar una sola pantalla.
  *
- * El contrato de origen lo define pf-app-custodio/docs/PLAN.md §5.1. Este panel es
- * SÓLO LECTURA: no escribe ni un documento.
+ * El contrato de origen lo define pf-app-custodio/docs/PLAN.md §5.1. El panel era sólo
+ * lectura hasta Echo 04: la corrección del vínculo es su primera escritura (cinco campos
+ * de auditoría en `reportes`, ver `enviosFirestore.ts`), autorizada por la regla de 01.
  */
 
 export type CicloViaje = 'ACTIVO' | 'CERRADO' | 'DESCARTADO';
@@ -208,6 +209,7 @@ export interface Envio {
  *  consulta de `reportes`. */
 export interface ReporteVinculado {
   id: string;
+  clienteId: string;
   ciclo: CicloViaje;
   fechaLocal: string;
   placas: string;

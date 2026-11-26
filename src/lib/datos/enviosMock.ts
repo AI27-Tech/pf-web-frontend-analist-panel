@@ -140,6 +140,11 @@ const reportesEstaticos = [
   },
 ] as const;
 
+export function obtenerEnvioMock(shipmentId: string): Promise<Envio | null> {
+  const envio = enviosEstaticos.find((e) => e.shipmentId === shipmentId);
+  return Promise.resolve(envio ?? null);
+}
+
 export function obtenerVistaEnvioMock(shipmentId: string): Promise<VistaEnvio | null> {
   const envio = enviosEstaticos.find((e) => e.shipmentId === shipmentId);
   if (!envio) return Promise.resolve(null);
@@ -147,6 +152,7 @@ export function obtenerVistaEnvioMock(shipmentId: string): Promise<VistaEnvio | 
     .filter((r) => r.shipmentId === shipmentId && r.clienteId === envio.clienteId)
     .map((r) => ({
       id: r.id,
+      clienteId: r.clienteId,
       ciclo: r.ciclo,
       fechaLocal: r.abiertoEn.toISOString().slice(0, 10),
       placas: r.placas,

@@ -14,8 +14,12 @@ import type {
   ResultadoCorreccion,
   VistaEnvio,
 } from './tipos';
-import { corregirVinculacionFirestore, obtenerVistaEnvioFirestore } from './enviosFirestore';
-import { corregirVinculacionMock, obtenerVistaEnvioMock } from './enviosMock';
+import {
+  corregirVinculacionFirestore,
+  obtenerEnvioFirestore,
+  obtenerVistaEnvioFirestore,
+} from './enviosFirestore';
+import { corregirVinculacionMock, obtenerEnvioMock, obtenerVistaEnvioMock } from './enviosMock';
 
 /** Tope de archivos que se leen de un solo envío. Acota las lecturas (y el costo) de una
  *  visita a un envío con mucha actividad. Un envío normal no lo alcanza. */
@@ -105,6 +109,11 @@ export function evaluarCorreccion({
     return { ok: true, cambio: false };
   }
   return { ok: true, cambio: true };
+}
+
+/** Cabecera del envío, o `null` si no existe o el Cliente no lo debe ver. */
+export function obtenerEnvio(shipmentId: string): Promise<Envio | null> {
+  return datosMockActivos ? obtenerEnvioMock(shipmentId) : obtenerEnvioFirestore(shipmentId);
 }
 
 /** Vista completa del envío, o `null` si no existe o el Cliente no lo debe ver. */

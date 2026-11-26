@@ -52,12 +52,25 @@ function aEnvio(id: string, d: DocumentData): Envio {
 function aReporteVinculado(id: string, d: DocumentData): ReporteVinculado {
   return {
     id,
+    clienteId: d.clienteId ?? '',
     ciclo: d.ciclo ?? 'ACTIVO',
     fechaLocal: d.fechaLocal ?? '',
     placas: d.placas ?? '',
     custodioCorreo: d.custodioCorreo ?? '',
     abiertoEn: d.createdAtServer?.toDate?.() ?? d.createdAtDevice?.toDate?.() ?? new Date(0),
   };
+}
+
+/** Cabecera de un envío. `null` si no existe o, para el Cliente, si es de otra empresa:
+ *  la pantalla responde igual en ambos casos para no revelar que el envío existe. */
+export async function obtenerEnvioFirestore(shipmentId: string): Promise<Envio | null> {
+  const clienteId = await alcanceLectura();
+  const envioDoc = await getDoc(doc(firestore, 'envios', shipmentId));
+  if (!envioDoc.exists()) return null;
+  const datosEnvio = envioDoc.data();
+  // Defensa en profundidad: las reglas ya niegan el documento ajeno.
+  if (clienteId !== null && datosEnvio.clienteId !== clienteId) return null;
+  return aEnvio(envioDoc.id, datosEnvio);
 }
 
 /**
@@ -67,13 +80,9 @@ function aReporteVinculado(id: string, d: DocumentData): ReporteVinculado {
  * pantalla responde igual en ambos casos para no revelar que el envío existe.
  */
 export async function obtenerVistaEnvioFirestore(shipmentId: string): Promise<VistaEnvio | null> {
+  const envio = await obtenerEnvioFirestore(shipmentId);
+  if (!envio) return null;
   const clienteId = await alcanceLectura();
-  const envioDoc = await getDoc(doc(firestore, 'envios', shipmentId));
-  if (!envioDoc.exists()) return null;
-  const datosEnvio = envioDoc.data();
-  // Defensa en profundidad: las reglas ya niegan el documento ajeno, pero un entorno sin
-  // reglas no debe revelarlo.
-  if (clienteId !== null && datosEnvio.clienteId !== clienteId) return null;
 
   const reportesSnap = await getDocs(
     query(
@@ -112,7 +121,7 @@ export async function obtenerVistaEnvioFirestore(shipmentId: string): Promise<Vi
   }
 
   const recortado = medios.length >= TOPE_ENVIO;
-  return construirVistaEnvio(aEnvio(envioDoc.id, datosEnvio), reportes, medios, recortado);
+  return construirVistaEnvio(envio, reportes, medios, recortado);
 }
 
 /**
