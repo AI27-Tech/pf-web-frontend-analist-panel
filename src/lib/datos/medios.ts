@@ -14,6 +14,7 @@ import { getDownloadURL, ref } from 'firebase/storage';
 
 import { firestore, storage } from '@/lib/firebase/cliente';
 import type { RangoFechas } from '@/lib/formato/fechas';
+import { alcanceLectura } from './accesoPanel';
 import { enriquecerMediosConNombres } from './custodios';
 
 import type { FiltrosMedio, Medio } from './tipos';
@@ -49,9 +50,12 @@ function aMedio(id: string, d: DocumentData): Medio {
 
 /** Los archivos de un viaje, para el expediente. */
 export async function listarMediosDelViaje(viajeId: string): Promise<Medio[]> {
+  const clienteId = await alcanceLectura();
   const resultado = await getDocs(
     query(
       collection(firestore, 'medios'),
+      // Igualdad por empresa: las reglas del Cliente exigen que la consulta la declare.
+      ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
       where('reporteId', '==', viajeId),
       orderBy('createdAtDevice', 'asc'),
     ),
@@ -86,8 +90,8 @@ export interface MediosDelPeriodo {
  * Viajes, ver `lib/formato/fechas.ts`) y el número económico (`placas`, igualdad exacta
  * sobre el valor normalizado) acotan la lectura EN FIRESTORE.
  *
- * SIN ÍNDICES COMPUESTOS. Las dos formas de consulta que usa la galería sólo necesitan los
- * índices de un campo que Firestore crea solo; no dependen de que
+ * SIN ÍNDICES COMPUESTOS PARA EL ANALISTA. Las dos formas de consulta que usa la galería
+ * sólo necesitan los índices de un campo que Firestore crea solo; no dependen de que
  * `pf-infra-firebase/firestore.indexes.json` esté desplegado (una consulta con un índice
  * faltante falla entera, y la galería se queda sin nada):
  *  - Sin número económico: rango de `fechaLocal` ordenado por `fechaLocal` ↓. Lee los días
@@ -95,6 +99,8 @@ export interface MediosDelPeriodo {
  *  - Con número económico: sólo `placas ==`. Combinarlo con el rango de `fechaLocal` exigiría
  *    un índice compuesto, así que el periodo se aplica aquí mismo sobre los documentos de
  *    esa unidad. Es la lectura completa de la unidad, no de todo el corpus.
+ * El Cliente agrega `clienteId` a las dos formas y por eso sí necesita los compuestos
+ * `clienteId`+`fechaLocal` y `clienteId`+`placas` (ver issue 05).
  * Dentro de la consulta el orden de los documentos de un mismo día no está definido, por eso
  * al final se ordena en memoria por captura descendente (lo más reciente primero).
  *
@@ -105,7 +111,9 @@ export interface MediosDelPeriodo {
  * compuesto.
  */
 export async function listarMedios(filtros: FiltrosMedio): Promise<MediosDelPeriodo> {
+  const clienteId = await alcanceLectura();
   const base: QueryConstraint[] = [];
+  if (clienteId !== null) base.push(where('clienteId', '==', clienteId));
   const desde = filtros.desde.trim();
   const hasta = filtros.hasta.trim();
 
@@ -185,6 +193,7 @@ export async function listarMediosDeCustodioEnPeriodo(
   periodo: RangoFechas,
   custodioUid: string,
 ): Promise<MediosDelPeriodo> {
+  const clienteId = await alcanceLectura();
   const medios: Medio[] = [];
   let cursor: QueryDocumentSnapshot | undefined;
 
@@ -192,6 +201,7 @@ export async function listarMediosDeCustodioEnPeriodo(
     const pendientes = TOPE_UNIDAD + 1 - medios.length;
     const tamano = Math.min(TAMANO_PAGINA, pendientes);
     const restricciones: QueryConstraint[] = [
+      ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
       where('custodioUid', '==', custodioUid),
       where('fechaLocal', '>=', periodo.desde),
       where('fechaLocal', '<=', periodo.hasta),
