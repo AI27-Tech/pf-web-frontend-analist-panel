@@ -4,7 +4,7 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 
 ## 2026:11:26 15:30 — Capa de datos del reporte por Shipment ID (rama `feat/reporte-por-shipment-id`, apilada sobre `feat/acceso-y-consultas-panel`)
 
-**Resumen:** el reporte por Shipment ID (Echo 04) queda implementado de punta a punta en el panel: buscador en `/reporte` con el envío en la URL (`?envio=S-100`), vista del envío que reemplaza el tablero (cabecera, totales sin descartados y lista de seguimientos con sus medios), y corrección del vínculo por el Analista con auditoría. La lectura y la escritura reales van contra Firestore; en desarrollo hay un mock con el ejemplo común del handoff (`S-100/042`, `S-101/037`, `S-103/042`).
+**Resumen:** el reporte por Shipment ID (Echo 04) queda implementado de punta a punta en el panel: dropdown «Envío» en la barra de filtros global del reporte, con los Shipment IDs visibles para el rol; al elegir uno, las secciones del envío se insertan arriba del tablero del periodo (cabecera, totales sin descartados y lista de seguimientos con sus medios). La URL `?envio=S-100` sigue funcionando como acceso directo. La corrección del vínculo es del Analista, con auditoría. La lectura y la escritura reales van contra Firestore; en desarrollo hay un mock con el ejemplo común del handoff (`S-100/042`, `S-101/037`, `S-103/042`).
 
 **Cambios:**
 
@@ -13,11 +13,11 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 - **Lectura y escritura** (`lib/datos/enviosFirestore.ts`). `obtenerVistaEnvioFirestore` lee `envios/{shipmentId}`, sus `reportes` por igualdad y los `medios` en lotes de `reporteId in [...]` de 30 con tope. Un envío ajeno responde `null` igual que uno inexistente. `corregirVinculacionFirestore` escribe los cinco campos de auditoría y nada más; la autorización real es la regla de 01 (pendiente).
 - **Mock de desarrollo** (`lib/datos/enviosMock.ts`). Los tres envíos del ejemplo más una empresa ajena, con un seguimiento descartado con medios que no debe contar.
 - **Medios** (`lib/datos/medios.ts`). `aMedio` pasa a ser exportado para reusarlo en la lectura de envíos.
-- **Vista** (`features/reporte/EnvioBuscador.tsx`, `VistaEnvio.tsx`). El buscador vive arriba del selector de periodo y el envío viaja en la URL para que recargar y compartir funcionen. La vista muestra cabecera, dos tarjetas de totales y la lista de seguimientos con enlace al expediente y miniaturas (omitidas en mock). Un envío inexistente y uno ajeno responden lo mismo: «No encontramos el envío».
+- **Vista** (`features/reporte/VistaEnvio.tsx`, `ReporteFiltros.tsx`). El dropdown «Envío» de la barra de filtros global lista los envíos del rol (`listarEnvios`, sin `orderBy` en servidor para no sumar índices); al elegir uno, las secciones del envío se insertan arriba del tablero del periodo, que sigue visible debajo. La lista de seguimientos enlaza al expediente y muestra miniaturas (omitidas en mock). Un envío inexistente y uno ajeno responden lo mismo: «No encontramos el envío».
 - **Corrección del vínculo** (`features/reporte/CorregirVinculoModal.tsx`). Sólo el Analista la ve. Elige destino por Shipment ID o «Sin envío», valida que exista y sea de la misma empresa antes de guardar y advierte que los totales cambian. Escribe los cinco campos de auditoría y nada más; al mismo valor no escribe. La autorización real es la regla de 01 (pendiente).
 - **Ruta** (`routes/_privado/reporte.tsx`, `features/reporte/ReporteSection.tsx`). `validateSearch` acepta `envio`; con el parámetro presente la vista de envío reemplaza el dashboard y el buscador sigue visible.
 - **Tipos** (`lib/datos/tipos.ts`). El panel deja de ser «sólo lectura»: la corrección del vínculo es su primera escritura.
-- **Pruebas.** 10 casos de dominio (`envios.test.ts`), 2 del mock (`enviosMock.test.ts`) y 3 del buscador (`EnvioBuscador.test.tsx`).
+- **Pruebas.** 10 casos de dominio (`envios.test.ts`), 4 del mock (`enviosMock.test.ts`, incluye el orden de la lista) y las de regresión del resto del panel.
 
 **Verificación:** `tsc --build --force`, ESLint, Prettier, `vitest run` con 202 pruebas en 25 archivos y `vite build` verdes.
 

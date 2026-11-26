@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
+import { listarEnvios } from '@/lib/datos/envios';
 import { folioDePeriodo, obtenerMetricas } from '@/lib/datos/metricas';
 import { resolverPeriodo, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
 import { ActividadReporteSection } from './ActividadReporteSection';
 import { AvisoCobertura } from './AvisoCobertura';
-import { EnvioBuscador } from './EnvioBuscador';
 import { GraficasReporteSection } from './GraficasReporteSection';
 import { ReporteFiltros } from './ReporteFiltros';
 import { ReporteHeader } from './ReporteHeader';
@@ -57,6 +57,14 @@ export function ReporteSection({ envio }: ReporteSectionProps) {
     queryFn: () => obtenerMetricas(rango, { conMedios: false }),
   });
 
+  // Envíos del rol para el dropdown «Envío». Sin reglas de 02 desplegadas la consulta
+  // falla en producción; el dropdown queda vacío y la página sigue funcionando.
+  const envios = useQuery({
+    queryKey: ['envios'],
+    queryFn: () => listarEnvios(),
+    retry: false,
+  });
+
   const folio = consulta.data?.folio ?? folioDePeriodo(rango);
   const sinDatos = consulta.isSuccess && consulta.data.estadisticas.viajesAuditados.valor === '0';
 
@@ -93,79 +101,72 @@ export function ReporteSection({ envio }: ReporteSectionProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <EnvioBuscador
-        envioActivo={envio}
-        onBuscar={(shipmentId) => void navigate({ to: '/reporte', search: { envio: shipmentId } })}
-        onLimpiar={() => void navigate({ to: '/reporte', search: { envio: undefined } })}
+      <ReporteHeader
+        folio={folio}
+        seleccion={periodo}
+        onExportarCsv={puedeExportar ? exportarCsv : undefined}
+        onAbrirReportes={puedeExportar ? () => setReportesAbiertos(true) : undefined}
+        onPeriodoChange={(seleccion) => {
+          // Cambiar de periodo limpia el filtro: un custodio o placa del periodo anterior
+          // puede no existir en el nuevo.
+          setFiltro(FILTRO_VACIO);
+          setPeriodo(seleccion);
+        }}
       />
 
-      {envio && (
-        <VistaEnvio
-          shipmentId={envio}
-          onVolver={() => void navigate({ to: '/reporte', search: { envio: undefined } })}
+      {reportesAbiertos && datos && (
+        <ReportesModal
+          open
+          onClose={() => setReportesAbiertos(false)}
+          rango={rango}
+          porCustodio={datos.porCustodio}
+          porViaje={datos.porViaje}
+          custodioInicial={filtro.custodio}
         />
       )}
 
-      {!envio && (
-        <>
-          <ReporteHeader
-            folio={folio}
-            seleccion={periodo}
-            onExportarCsv={puedeExportar ? exportarCsv : undefined}
-            onAbrirReportes={puedeExportar ? () => setReportesAbiertos(true) : undefined}
-            onPeriodoChange={(seleccion) => {
-              // Cambiar de periodo limpia el filtro: un custodio o placa del periodo anterior
-              // puede no existir en el nuevo.
-              setFiltro(FILTRO_VACIO);
-              setPeriodo(seleccion);
-            }}
+      {consulta.isPending && <ReporteCargando />}
+
+      {consulta.isError && <ReporteError onReintentar={() => consulta.refetch()} />}
+
+      {consulta.isSuccess && sinDatos && (
+        <ReporteVacio onAmpliarRango={() => setPeriodo({ atajo: 'mes' })} />
+      )}
+
+      {consulta.isSuccess && !sinDatos && datos && estadisticas && (
+        <div className="reporte-imprimible space-y-8 px-4 py-4 sm:px-8 sm:py-6">
+          <ReporteFiltros
+            filtro={filtro}
+            onFiltroChange={setFiltro}
+            custodios={datos.porCustodio}
+            unidades={datos.porUnidad}
+            envios={envios.data ?? []}
+            envioSeleccionado={envio ?? ''}
+            onEnvioChange={(shipmentId) =>
+              void navigate({
+                to: '/reporte',
+                search: { envio: shipmentId || undefined },
+              })
+            }
           />
-
-          {reportesAbiertos && datos && (
-            <ReportesModal
-              open
-              onClose={() => setReportesAbiertos(false)}
-              rango={rango}
-              porCustodio={datos.porCustodio}
-              porViaje={datos.porViaje}
-              custodioInicial={filtro.custodio}
-            />
-          )}
-
-          {consulta.isPending && <ReporteCargando />}
-
-          {consulta.isError && <ReporteError onReintentar={() => consulta.refetch()} />}
-
-          {consulta.isSuccess && sinDatos && (
-            <ReporteVacio onAmpliarRango={() => setPeriodo({ atajo: 'mes' })} />
-          )}
-
-          {consulta.isSuccess && !sinDatos && datos && estadisticas && (
-            <div className="reporte-imprimible space-y-8 px-4 py-4 sm:px-8 sm:py-6">
-              <ReporteFiltros
-                filtro={filtro}
-                onFiltroChange={setFiltro}
-                custodios={datos.porCustodio}
-                unidades={datos.porUnidad}
-              />
-              <AvisoCobertura cobertura={datos.cobertura} alcance="reporte" />
-              <TarjetasEstadistica estadisticas={estadisticas} />
-              {/* 01 — Custodios y unidades */}
-              <GraficasReporteSection
-                porCustodio={custodiosFiltrados}
-                porUnidad={porUnidadFiltrada(datos.porUnidad, viajesFiltrados, filtroActivo)}
-                filtro={filtro}
-                onFiltroChange={setFiltro}
-              />
-              {/* 02 — Estadísticas por custodio */}
-              <TablaCustodiosSection porCustodio={custodiosFiltrados} />
-              {/* 03 — Actividad del periodo */}
-              <ActividadReporteSection porViaje={viajesFiltrados} />
-              {/* 04 — Registro por viaje */}
-              <TablaViajesSection porViaje={viajesFiltrados} />
-            </div>
-          )}
-        </>
+          {/* Secciones del envío elegido, arriba del tablero del periodo. */}
+          {envio && <VistaEnvio shipmentId={envio} />}
+          <AvisoCobertura cobertura={datos.cobertura} alcance="reporte" />
+          <TarjetasEstadistica estadisticas={estadisticas} />
+          {/* 01 — Custodios y unidades */}
+          <GraficasReporteSection
+            porCustodio={custodiosFiltrados}
+            porUnidad={porUnidadFiltrada(datos.porUnidad, viajesFiltrados, filtroActivo)}
+            filtro={filtro}
+            onFiltroChange={setFiltro}
+          />
+          {/* 02 — Estadísticas por custodio */}
+          <TablaCustodiosSection porCustodio={custodiosFiltrados} />
+          {/* 03 — Actividad del periodo */}
+          <ActividadReporteSection porViaje={viajesFiltrados} />
+          {/* 04 — Registro por viaje */}
+          <TablaViajesSection porViaje={viajesFiltrados} />
+        </div>
       )}
     </div>
   );

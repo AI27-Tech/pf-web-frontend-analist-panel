@@ -1,7 +1,7 @@
 import { FilterBar } from '@ai27-tech/ui';
 import { useMemo } from 'react';
 
-import type { EstadisticaCustodio, EstadisticaUnidad } from '@/lib/datos/tipos';
+import type { Envio, EstadisticaCustodio, EstadisticaUnidad } from '@/lib/datos/tipos';
 
 import { FILTRO_VACIO, type FiltroReporte } from './filtros';
 
@@ -17,6 +17,11 @@ export interface ReporteFiltrosProps {
   onFiltroChange: (filtro: FiltroReporte) => void;
   custodios: EstadisticaCustodio[];
   unidades: EstadisticaUnidad[];
+  /** Envíos del rol para el dropdown «Envío», del más reciente al más antiguo. */
+  envios: Envio[];
+  /** Shipment ID elegido, o cadena vacía si ninguno. */
+  envioSeleccionado: string;
+  onEnvioChange: (shipmentId: string) => void;
 }
 
 export function ReporteFiltros({
@@ -24,6 +29,9 @@ export function ReporteFiltros({
   onFiltroChange,
   custodios,
   unidades,
+  envios,
+  envioSeleccionado,
+  onEnvioChange,
 }: ReporteFiltrosProps) {
   const opcionesCustodio = useMemo(
     () => custodios.map((c) => ({ value: c.uid, label: c.nombre })),
@@ -32,6 +40,10 @@ export function ReporteFiltros({
   const opcionesUnidad = useMemo(
     () => unidades.map((u) => ({ value: u.placas, label: u.placas })),
     [unidades],
+  );
+  const opcionesEnvio = useMemo(
+    () => envios.map((e) => ({ value: e.shipmentId, label: e.shipmentId })),
+    [envios],
   );
 
   return (
@@ -54,15 +66,30 @@ export function ReporteFiltros({
           variant: 'searchable',
           options: opcionesUnidad,
         },
+        {
+          key: 'envio',
+          label: 'Envío',
+          placeholder: 'Ninguno',
+          variant: 'searchable',
+          options: opcionesEnvio,
+        },
       ]}
       filterValues={{
         custodio: filtro.custodio ?? '',
         unidad: filtro.unidad ?? '',
+        envio: envioSeleccionado,
       }}
-      onFilterChange={(key, value) =>
-        onFiltroChange({ ...filtro, [key]: value === '' ? null : value })
-      }
-      onClear={() => onFiltroChange(FILTRO_VACIO)}
+      onFilterChange={(key, value) => {
+        if (key === 'envio') {
+          onEnvioChange(value);
+          return;
+        }
+        onFiltroChange({ ...filtro, [key]: value === '' ? null : value });
+      }}
+      onClear={() => {
+        onFiltroChange(FILTRO_VACIO);
+        onEnvioChange('');
+      }}
       collapsibleOnMobile
     />
   );

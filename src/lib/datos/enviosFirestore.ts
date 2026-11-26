@@ -74,6 +74,21 @@ export async function obtenerEnvioFirestore(shipmentId: string): Promise<Envio |
 }
 
 /**
+ * Envíos visibles para el rol, del más reciente al más antiguo. Alimenta el dropdown
+ * «Envío» de la barra de filtros del reporte. Sin `orderBy` en servidor a propósito: la
+ * consulta del Cliente (`clienteId` de igualdad) no debe depender de un índice compuesto
+ * más; el orden se resuelve en memoria.
+ */
+export async function listarEnviosFirestore(clienteId: string | null): Promise<Envio[]> {
+  const restricciones: QueryConstraint[] =
+    clienteId !== null ? [where('clienteId', '==', clienteId)] : [];
+  const resultado = await getDocs(query(collection(firestore, 'envios'), ...restricciones));
+  return resultado.docs
+    .map((documento) => aEnvio(documento.id, documento.data()))
+    .sort((a, b) => (b.createdAtServer?.getTime() ?? 0) - (a.createdAtServer?.getTime() ?? 0));
+}
+
+/**
  * Vista completa de un envío: cabecera, seguimientos y medios, con el tope de lectura.
  *
  * `null` cuando el envío no existe o, para el Cliente, cuando es de otra empresa: la

@@ -16,10 +16,17 @@ import type {
 } from './tipos';
 import {
   corregirVinculacionFirestore,
+  listarEnviosFirestore,
   obtenerEnvioFirestore,
   obtenerVistaEnvioFirestore,
 } from './enviosFirestore';
-import { corregirVinculacionMock, obtenerEnvioMock, obtenerVistaEnvioMock } from './enviosMock';
+import {
+  corregirVinculacionMock,
+  listarEnviosMock,
+  obtenerEnvioMock,
+  obtenerVistaEnvioMock,
+} from './enviosMock';
+import { alcanceLectura } from './accesoPanel';
 
 /** Tope de archivos que se leen de un solo envío. Acota las lecturas (y el costo) de una
  *  visita a un envío con mucha actividad. Un envío normal no lo alcanza. */
@@ -114,6 +121,13 @@ export function evaluarCorreccion({
 /** Cabecera del envío, o `null` si no existe o el Cliente no lo debe ver. */
 export function obtenerEnvio(shipmentId: string): Promise<Envio | null> {
   return datosMockActivos ? obtenerEnvioMock(shipmentId) : obtenerEnvioFirestore(shipmentId);
+}
+
+/** Envíos visibles para el rol (todos para el Analista, los de su empresa para el
+ *  Cliente), del más reciente al más antiguo. Alimenta el dropdown «Envío» del reporte. */
+export async function listarEnvios(): Promise<Envio[]> {
+  const clienteId = await alcanceLectura();
+  return datosMockActivos ? listarEnviosMock(clienteId) : listarEnviosFirestore(clienteId);
 }
 
 /** Vista completa del envío, o `null` si no existe o el Cliente no lo debe ver. */

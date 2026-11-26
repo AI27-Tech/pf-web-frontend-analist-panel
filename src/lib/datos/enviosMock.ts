@@ -145,6 +145,13 @@ export function obtenerEnvioMock(shipmentId: string): Promise<Envio | null> {
   return Promise.resolve(envio ?? null);
 }
 
+/** Envíos del rol: todos para el Analista (`null`), los de su empresa para el Cliente. */
+export function listarEnviosMock(clienteId: string | null): Envio[] {
+  return enviosEstaticos
+    .filter((envio) => clienteId === null || envio.clienteId === clienteId)
+    .sort((a, b) => (b.createdAtServer?.getTime() ?? 0) - (a.createdAtServer?.getTime() ?? 0));
+}
+
 export function obtenerVistaEnvioMock(shipmentId: string): Promise<VistaEnvio | null> {
   const envio = enviosEstaticos.find((e) => e.shipmentId === shipmentId);
   if (!envio) return Promise.resolve(null);

@@ -20,20 +20,18 @@ const CICLO: Record<CicloViaje, { etiqueta: string; variant: BadgeVariant }> = {
 };
 
 /**
- * Vista de un envío por Shipment ID: reemplaza el tablero de periodo mientras hay un
- * `envio` en la URL. Cabecera, totales (`N seguimientos · M validaciones`) y la lista de
- * seguimientos vinculados con sus medios. Los seguimientos enlazan a su expediente.
+ * Secciones de un envío por Shipment ID, insertadas arriba del tablero de periodo:
+ * cabecera, totales (`N seguimientos · M validaciones`) y la lista de seguimientos
+ * vinculados con sus medios. Los seguimientos enlazan a su expediente.
  *
  * Un envío inexistente y uno de otra empresa responden lo mismo, para no revelar que
  * existe. Sólo el Analista ve la corrección del vínculo.
  */
 export interface VistaEnvioProps {
   shipmentId: string;
-  /** Limpia el `envio` de la URL y vuelve al tablero de periodo. */
-  onVolver: () => void;
 }
 
-export function VistaEnvio({ shipmentId, onVolver }: VistaEnvioProps) {
+export function VistaEnvio({ shipmentId }: VistaEnvioProps) {
   const navigate = useNavigate();
   const [perfil, setPerfil] = useState<PerfilPanel | null>(null);
   const [corrigiendo, setCorrigiendo] = useState<EnvioSeguimiento | null>(null);
@@ -51,13 +49,10 @@ export function VistaEnvio({ shipmentId, onVolver }: VistaEnvioProps) {
   const vista = consulta.data;
   if (!vista) {
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-4 px-4 py-12 text-center">
+      <div className="border-border bg-surface flex min-h-32 flex-col items-center justify-center gap-2 rounded-lg border px-4 py-8 text-center">
         <p className="text-text-muted text-sm">
-          No encontramos el envío. Revisa el Shipment ID o vuelve al tablero.
+          No encontramos el envío. Elige otro Shipment ID en la barra de filtros.
         </p>
-        <Button variant="outline" onClick={onVolver}>
-          Volver al tablero
-        </Button>
       </div>
     );
   }
