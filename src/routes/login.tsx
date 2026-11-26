@@ -3,11 +3,14 @@ import { useState } from 'react';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { Button, Card, CardBody, FormField, Input } from '@ai27-tech/ui';
 
+import { RUTA_INICIAL, cargarPerfil } from '@/lib/datos/accesoPanel';
 import { esperarSesion, iniciarSesion } from '@/lib/datos/sesion';
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
-    if (await esperarSesion()) throw redirect({ to: '/viajes' });
+    if (!(await esperarSesion())) return;
+    const perfil = await cargarPerfil();
+    throw redirect({ to: perfil ? RUTA_INICIAL[perfil.rol] : '/sin-acceso' });
   },
   component: Login,
 });
@@ -26,7 +29,8 @@ function Login() {
     setError(null);
     const result = await iniciarSesion(email, password);
     setPending(false);
-    if (result.ok) navigate({ to: '/viajes' });
+    // `/` resuelve el destino inicial según el perfil del rol.
+    if (result.ok) navigate({ to: '/' });
     else setError(result.mensaje);
   }
 

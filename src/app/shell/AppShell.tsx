@@ -3,32 +3,49 @@ import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
 import {
   Images,
   User as UserIcon,
+  Package,
   Route,
   SquareText,
   SlidersHorizontal,
   Activity,
   Settings,
+  type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import type { PerfilPanel, RolPanel, SeccionPanel } from '@/lib/datos/accesoPanel';
 import { observarSesion, type UsuarioSesion } from '@/lib/datos/sesion';
 
-const nav = [
-  { to: '/viajes', label: 'Seguimientos', Icon: Route },
-  { to: '/galeria', label: 'Galería', Icon: Images },
-  { to: '/reporte', label: 'Reporte', Icon: SquareText },
-  { to: '/sistema', label: 'Sistema', Icon: Activity },
-  { to: '/administracion', label: 'Administración', Icon: Settings },
-  { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal },
-] as const;
+interface ItemNav {
+  to: SeccionPanel;
+  label: string;
+  Icon: LucideIcon;
+  roles: readonly RolPanel[];
+}
+
+/** Menú completo. La guarda de `_privado` usa la misma matriz para las rutas directas. */
+const nav: readonly ItemNav[] = [
+  { to: '/viajes', label: 'Seguimientos', Icon: Route, roles: ['analista', 'cliente'] },
+  { to: '/envios', label: 'Envíos', Icon: Package, roles: ['checklist'] },
+  { to: '/galeria', label: 'Galería', Icon: Images, roles: ['analista', 'cliente'] },
+  { to: '/reporte', label: 'Reporte', Icon: SquareText, roles: ['analista', 'cliente'] },
+  { to: '/sistema', label: 'Sistema', Icon: Activity, roles: ['analista'] },
+  {
+    to: '/administracion',
+    label: 'Administración',
+    Icon: Settings,
+    roles: ['analista'],
+  },
+  { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal, roles: ['analista', 'cliente'] },
+];
 
 /**
  * Layout de las pantallas autenticadas: barra lateral, barra superior y el contenido.
  *
- * Vive fuera del archivo de ruta a propósito: `_privado.tsx` sólo resuelve la guarda de
- * sesión y monta este shell, así el layout queda reutilizable y aislado del enrutamiento.
+ * Vive fuera del archivo de ruta a propósito: `_privado.tsx` sólo resuelve la guarda y
+ * monta este shell, así el layout queda reutilizable y aislado del enrutamiento.
  */
-export function AppShell() {
+export function AppShell({ perfil }: { perfil: PerfilPanel }) {
   // La Sidebar de la librería es `height:100%`, así que el contenedor tiene que dar
   // la altura completa de la ventana para que ocupe todo el alto disponible.
   const matchRoute = useMatchRoute();
@@ -60,28 +77,30 @@ export function AppShell() {
         collapsed={colapsada}
         onToggleCollapse={() => setColapsada((previa) => !previa)}
       >
-        {nav.map(({ to, label, Icon }) => (
-          <SidebarItem
-            key={to}
-            as="a"
-            href={to}
-            label={label}
-            icon={<Icon size={18} strokeWidth={1.75} />}
-            // `fuzzy` marca activo el item tambien en las subrutas: sin el, `matchRoute`
-            // hace match EXACTO y "Viajes" se apaga al entrar al detalle `/viajes/$id`.
-            // Es seguro porque ningun item del nav es prefijo de otro (solo `/viajes`
-            // tiene hijos), asi que no se activan dos pestanas a la vez.
-            active={Boolean(matchRoute({ to, fuzzy: true }))}
-            onClick={(event) => {
-              // Renderiza como `<a>` real (accesible, clic-derecho), pero navega con
-              // el router para no recargar la SPA en el clic normal.
-              event.preventDefault();
-              void navigate({ to });
-            }}
-          >
-            {label}
-          </SidebarItem>
-        ))}
+        {nav
+          .filter((item) => item.roles.includes(perfil.rol))
+          .map(({ to, label, Icon }) => (
+            <SidebarItem
+              key={to}
+              as="a"
+              href={to}
+              label={label}
+              icon={<Icon size={18} strokeWidth={1.75} />}
+              // `fuzzy` marca activo el item tambien en las subrutas: sin el, `matchRoute`
+              // hace match EXACTO y "Viajes" se apaga al entrar al detalle `/viajes/$id`.
+              // Es seguro porque ningun item del nav es prefijo de otro (solo `/viajes`
+              // tiene hijos), asi que no se activan dos pestanas a la vez.
+              active={Boolean(matchRoute({ to, fuzzy: true }))}
+              onClick={(event) => {
+                // Renderiza como `<a>` real (accesible, clic-derecho), pero navega con
+                // el router para no recargar la SPA en el clic normal.
+                event.preventDefault();
+                void navigate({ to });
+              }}
+            >
+              {label}
+            </SidebarItem>
+          ))}
       </Sidebar>
 
       {/* Columna de contenido: barra superior fija y, debajo, la vista con scroll. */}

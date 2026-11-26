@@ -19,6 +19,8 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('firebase/storage', () => ({ getDownloadURL: vi.fn(), ref: vi.fn() }));
 vi.mock('@/lib/firebase/cliente', () => ({ firestore: {}, storage: {} }));
+// El alcance de lectura lo resuelve la guarda; aquí el Analista lee sin filtro.
+vi.mock('./accesoPanel', () => ({ alcanceLectura: vi.fn(async () => null) }));
 // El directorio de custodios lee `usuarios/{uid}`.
 vi.mock('./custodios', () => ({
   enriquecerMediosConNombres: vi.fn((medios: unknown[]) => Promise.resolve([...medios])),

@@ -2,6 +2,32 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:26 12:40 — Acceso por rol y consultas del panel acotadas por empresa (rama `feat/acceso-y-consultas-panel`)
+
+**Resumen:** el panel resuelve el perfil de la cuenta al restaurar la sesión y usa una sola matriz de secciones para el destino inicial, las rutas directas y el menú. El Cliente ve Seguimientos, Galería, Reporte y Ajustes, y sus consultas a `reportes` y `medios` se acotan a su empresa. Checklist entra sólo a Envíos. El Analista conserva las seis secciones. Una cuenta sin perfil válido va a `/sin-acceso`.
+
+**Cambios:**
+
+- **Perfil y matriz** (`lib/datos/accesoPanel.ts`). Escucha `acceso_panel/{correo}` con `onSnapshot`, con `rol`, `clienteId` y `activo`; expone `cargarPerfil`, `observarPerfil`, `alcanceLectura`, `seccionesDe`, `puedeAcceder` y `RUTA_INICIAL`. Sin perfil, con `activo: false` o con un rol desconocido no hay acceso. `alcanceLectura` devuelve `null` para Analista, el `clienteId` para Cliente y lanza para Checklist.
+- **Baja a media sesión** (`routes/_privado.tsx`). Como el perfil se escucha, un `activo: false` saca la sesión a `/sin-acceso` sin esperar a que falle una consulta.
+- **Guarda de ruta** (`routes/_privado.tsx`). Exige sesión y perfil válido; si la ruta no pertenece al rol, redirige a su sección inicial. El perfil viaja como contexto de la ruta hacia `AppShell`.
+- **Destino inicial** (`routes/index.tsx`, `routes/login.tsx`). `/` y el login resuelven la sección inicial del rol; el login navega a `/`.
+- **Sin perfil** (`routes/sin-acceso.tsx`). Pantalla con cierre de sesión; no hay rol por omisión.
+- **Menú** (`app/shell/AppShell.tsx`). Cada ítem declara sus roles y la barra filtra por el perfil recibido.
+- **Envíos** (`routes/_privado/envios.tsx`). Ruta montada para Checklist; el formulario llega con el ticket 06.
+- **Consultas acotadas.** `viajesFirestore.ts` (listado, placas, unidades y detalle), `medios.ts` (galería, detalle y reporte de unidad) y `metricasFirestore.ts` (reportes y medios) agregan `where('clienteId', '==', clienteId)` cuando el rol es Cliente. `obtenerViajeFirestore` además descarta un documento de otra empresa como defensa en profundidad.
+- **Directorio de custodios** (`custodios.ts`). El Cliente no lee `usuarios`; el nombre visible cae al correo del reporte o al uid. `obtenerNombresCustodios` acepta un respaldo por uid.
+
+**Consecuencias:**
+
+- El contrato con 01 es `acceso_panel/{correo}` con `rol` (`analista` | `cliente` | `checklist`), `clienteId` y `activo`; sin ese documento, o con `activo: false`, ninguna cuenta entra al panel.
+- Revocar el acceso no borra el perfil: basta con `activo: false`, y el panel lo aplica durante la sesión.
+- Las consultas del Cliente necesitan los índices compuestos de la tabla publicada en `.scratch/echo-roles-envios/issues/05-acceso-y-consultas-panel.md`. Sin ellos Firestore rechaza la consulta completa.
+- En Galería y en el Reporte, un Cliente ve el uid o el correo del custodio, no su nombre: el directorio global queda fuera de su alcance.
+- El menú y la guarda son UX; el aislamiento real depende de las reglas de 01 en Firestore y Storage.
+
+**Verificación:** `tsc --build`, `eslint .`, `prettier --check .` y `vitest` (187 pruebas en 22 archivos) en verde. No se probó contra reglas reales ni en el emulador con dos empresas: eso queda para la integración con 01. No se revisó en el navegador.
+
 ## 2026:11:06 18:08 — Select buscable en número económico y unidad (Galería, Seguimientos y Reportes), librería `@ai27-tech/ui` 0.2.0-beta.8 (rama `feature/select-buscador`)
 
 **Resumen:** la librería `@ai27-tech/ui` pasó a `0.2.0-beta.8`, que trae la variante `searchable` en `Select` y en `FilterBar`. Los filtros de número económico y unidad de Galería, Seguimientos y Reportes ahora permiten escribir para filtrar las opciones. En Seguimientos también se quitaron los filtros de Etiqueta y Novedad.

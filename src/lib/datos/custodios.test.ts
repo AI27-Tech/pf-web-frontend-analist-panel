@@ -12,7 +12,10 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 vi.mock('@/lib/firebase/cliente', () => ({ firestore: {} }));
+// El alcance de lectura lo resuelve la guarda; aquí el Analista lee sin filtro.
+vi.mock('./accesoPanel', () => ({ alcanceLectura: vi.fn(async () => null) }));
 
+import { alcanceLectura } from './accesoPanel';
 import { enriquecerConNombres, obtenerCustodios } from './custodios';
 import type { Viaje } from './tipos';
 
@@ -75,6 +78,15 @@ describe('obtenerCustodios', () => {
 
     expect(mapa.has('malo')).toBe(false);
     expect(mapa.get('bueno')?.nombre).toBe('Ok');
+  });
+
+  it('un Cliente no lee el directorio global de custodios', async () => {
+    vi.mocked(alcanceLectura).mockResolvedValueOnce('Colgate');
+
+    const mapa = await obtenerCustodios(['u1']);
+
+    expect(mapa.size).toBe(0);
+    expect(getDocMock).not.toHaveBeenCalled();
   });
 });
 
