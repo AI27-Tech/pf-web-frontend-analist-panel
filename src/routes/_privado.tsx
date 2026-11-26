@@ -1,7 +1,8 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { useEffect } from 'react';
 
 import { AppShell } from '@/app/shell/AppShell';
-import { RUTA_INICIAL, cargarPerfil, puedeAcceder } from '@/lib/datos/accesoPanel';
+import { RUTA_INICIAL, cargarPerfil, observarPerfil, puedeAcceder } from '@/lib/datos/accesoPanel';
 import { esperarSesion } from '@/lib/datos/sesion';
 
 /**
@@ -33,5 +34,17 @@ export const Route = createFileRoute('/_privado')({
 
 function Privado() {
   const { perfil } = Route.useRouteContext();
+  const navegar = useNavigate();
+
+  // Una baja de perfil a media sesión saca de inmediato. Las reglas ya negarían cada
+  // lectura, pero el usuario debe ver el motivo y no un error de datos.
+  useEffect(
+    () =>
+      observarPerfil((nuevo) => {
+        if (!nuevo) navegar({ to: '/sin-acceso' });
+      }),
+    [navegar],
+  );
+
   return <AppShell perfil={perfil} />;
 }

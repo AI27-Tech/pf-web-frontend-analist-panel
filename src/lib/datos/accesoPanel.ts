@@ -1,27 +1,30 @@
 /**
  * Perfil de acceso del panel y matriz de secciones por rol.
  *
- * CONTRATO CON 01 (roles-y-perfiles): el perfil vive en `perfiles/{correo}`, con el
- * correo normalizado a minúsculas, y trae `rol` y `clienteId`. `clienteId` es
- * obligatorio para CLIENTE e ignorado para ANALISTA y CHECKLIST. La autorización real
- * vive en las reglas de Firestore y Storage; esta matriz sólo decide qué se pinta, a
- * dónde se puede navegar y qué consultas se acotan.
+ * CONTRATO CON 01 (roles-y-perfiles): el perfil vive en `acceso_panel/{correo}`, con el
+ * correo en minúsculas como id del documento, y trae `rol` (`analista` | `cliente` |
+ * `checklist`), `clienteId` y `activo`. `clienteId` es obligatorio para `cliente` y
+ * `checklist`; `activo` es obligatorio y `false` revoca el acceso sin borrar el perfil.
+ * La autorización real vive en las reglas de Firestore y Storage; esta matriz sólo decide
+ * qué se pinta, a dónde se puede navegar y qué consultas se acotan.
+ *
+ * El perfil se escucha con `onSnapshot` para que una baja surta efecto durante la sesión.
  *
  * Este módulo es parte de la frontera `lib/datos/`: es de los pocos lugares del repo
  * que importan el SDK de Firebase (lo impone la regla de ESLint).
  */
 
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 import { firestore } from '@/lib/firebase/cliente';
 
 import { esperarSesion } from './sesion';
 
-export type RolPanel = 'ANALISTA' | 'CLIENTE' | 'CHECKLIST';
+export type RolPanel = 'analista' | 'cliente' | 'checklist';
 
 export interface PerfilPanel {
   rol: RolPanel;
-  /** Empresa cuyos datos puede leer el Cliente. `null` para los roles internos. */
+  /** Empresa cuyos datos puede leer la cuenta. `null` sólo para el Analista. */
   clienteId: string | null;
 }
 
@@ -32,16 +35,16 @@ export type SeccionPanel =
 /** Matriz de secciones por rol. Es la misma que usan la guarda, el menú y el destino
  *  inicial: una sola fuente para que no se desincronicen. */
 const SECCIONES: Record<RolPanel, readonly SeccionPanel[]> = {
-  ANALISTA: ['/viajes', '/galeria', '/reporte', '/sistema', '/administracion', '/ajustes'],
-  CLIENTE: ['/viajes', '/galeria', '/reporte', '/ajustes'],
-  CHECKLIST: ['/envios'],
+  analista: ['/viajes', '/galeria', '/reporte', '/sistema', '/administracion', '/ajustes'],
+  cliente: ['/viajes', '/galeria', '/reporte', '/ajustes'],
+  checklist: ['/envios'],
 };
 
 /** Primera sección que ve cada rol al iniciar sesión. */
 export const RUTA_INICIAL: Record<RolPanel, SeccionPanel> = {
-  ANALISTA: '/viajes',
-  CLIENTE: '/viajes',
-  CHECKLIST: '/envios',
+  analista: '/viajes',
+  cliente: '/viajes',
+  checklist: '/envios',
 };
 
 export function seccionesDe(perfil: PerfilPanel): readonly SeccionPanel[] {
@@ -56,47 +59,101 @@ export function puedeAcceder(perfil: PerfilPanel, ruta: string): boolean {
 }
 
 /**
- * Traduce el documento de perfil a la vista del panel. Un rol desconocido o un Cliente
- * sin empresa no son un perfil válido: no se cae a un rol por omisión.
+ * Traduce el documento de perfil a la vista del panel. Un rol desconocido, un perfil sin
+ * `activo: true` o un rol con empresa que no la declara no son un perfil válido: no se
+ * cae a un rol por omisión.
+ *
+ * `clienteId` se usa tal cual, sin normalizar: es el mismo texto que trae
+ * `reportes.clienteId`. Sólo se rechaza el valor vacío.
  */
 export function perfilDesdeDocumento(
   datos: Record<string, unknown> | undefined,
 ): PerfilPanel | null {
   if (!datos) return null;
+  if (datos.activo !== true) return null;
   const rol = datos.rol;
-  if (rol !== 'ANALISTA' && rol !== 'CLIENTE' && rol !== 'CHECKLIST') return null;
-  if (rol === 'CLIENTE') {
-    const clienteId = typeof datos.clienteId === 'string' ? datos.clienteId.trim() : '';
-    return clienteId ? { rol, clienteId } : null;
-  }
-  return { rol, clienteId: null };
+  if (rol !== 'analista' && rol !== 'cliente' && rol !== 'checklist') return null;
+  if (rol === 'analista') return { rol, clienteId: null };
+  const clienteId = typeof datos.clienteId === 'string' ? datos.clienteId : '';
+  return clienteId.trim() ? { rol, clienteId } : null;
 }
+
+const COLECCION = 'acceso_panel';
+
+interface EstadoPerfil {
+  uid: string;
+  perfil: PerfilPanel | null;
+  listo: Promise<PerfilPanel | null>;
+  observadores: Set<(perfil: PerfilPanel | null) => void>;
+  desuscribir: () => void;
+}
+
+let estado: EstadoPerfil | null = null;
 
 /** El perfil de la sesión actual, o `null` si la cuenta no tiene uno válido. */
 export function cargarPerfil(): Promise<PerfilPanel | null> {
   return esperarSesion().then((usuario) => {
-    if (!usuario) return null;
-    // El perfil no cambia durante una sesión; se cachea por uid para no repetir la
-    // lectura en cada consulta. Un usuario distinto vuelve a leer.
-    if (cache?.uid === usuario.uid) return cache.perfil;
-    const perfil = leerPerfil(usuario.email);
-    cache = { uid: usuario.uid, perfil };
-    return perfil;
+    if (!usuario) {
+      cerrarPerfil();
+      return null;
+    }
+    if (estado?.uid === usuario.uid) return estado.listo;
+    cerrarPerfil();
+    estado = escucharPerfil(usuario.uid, usuario.email);
+    return estado.listo;
   });
 }
 
-let cache: { uid: string; perfil: Promise<PerfilPanel | null> } | null = null;
+/**
+ * Observa el perfil mientras dure la sesión. Invoca de inmediato con el valor actual y en
+ * cada cambio; `null` significa que la cuenta perdió el acceso. Devuelve la baja.
+ *
+ * Se llama después de la guarda, así que el primer valor ya está resuelto.
+ */
+export function observarPerfil(escucha: (perfil: PerfilPanel | null) => void): () => void {
+  const actual = estado;
+  if (!actual) return () => {};
+  actual.observadores.add(escucha);
+  escucha(actual.perfil);
+  return () => {
+    actual.observadores.delete(escucha);
+  };
+}
 
-async function leerPerfil(correo: string | null): Promise<PerfilPanel | null> {
-  if (!correo) return null;
-  try {
-    const documento = await getDoc(doc(firestore, 'perfiles', correo.trim().toLowerCase()));
-    return documento.exists() ? perfilDesdeDocumento(documento.data()) : null;
-  } catch {
+function escucharPerfil(uid: string, correo: string | null): EstadoPerfil {
+  let resolver: (perfil: PerfilPanel | null) => void = () => {};
+  const listo = new Promise<PerfilPanel | null>((resolverPromesa) => {
+    resolver = resolverPromesa;
+  });
+  const nuevo: EstadoPerfil = {
+    uid,
+    perfil: null,
+    listo,
+    observadores: new Set(),
+    desuscribir: () => {},
+  };
+  if (!correo) {
+    resolver(null);
+    return nuevo;
+  }
+  const emitir = (perfil: PerfilPanel | null) => {
+    nuevo.perfil = perfil;
+    resolver(perfil);
+    for (const escucha of nuevo.observadores) escucha(perfil);
+  };
+  nuevo.desuscribir = onSnapshot(
+    doc(firestore, COLECCION, correo.trim().toLowerCase()),
+    (documento) => emitir(documento.exists() ? perfilDesdeDocumento(documento.data()) : null),
     // Sin perfil legible no hay acceso. Un fallo de red tampoco abre la puerta: las
     // reglas vuelven a negar cada lectura.
-    return null;
-  }
+    () => emitir(null),
+  );
+  return nuevo;
+}
+
+function cerrarPerfil() {
+  estado?.desuscribir();
+  estado = null;
 }
 
 /**
@@ -105,8 +162,11 @@ async function leerPerfil(correo: string | null): Promise<PerfilPanel | null> {
  * haber pasado antes por la guarda de `_privado`.
  */
 export async function alcanceLectura(): Promise<string | null> {
-  const perfil = await cargarPerfil();
+  await cargarPerfil();
+  // Se lee el estado vivo, no la promesa: una baja a media sesión debe cerrar también
+  // las consultas siguientes.
+  const perfil = estado?.perfil ?? null;
   if (!perfil) throw new Error('La cuenta no tiene un perfil de panel válido.');
-  if (perfil.rol === 'CHECKLIST') throw new Error('El rol Checklist no lee datos del panel.');
+  if (perfil.rol === 'checklist') throw new Error('El rol Checklist no lee datos del panel.');
   return perfil.clienteId;
 }

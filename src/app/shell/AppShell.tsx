@@ -25,18 +25,18 @@ interface ItemNav {
 
 /** Menú completo. La guarda de `_privado` usa la misma matriz para las rutas directas. */
 const nav: readonly ItemNav[] = [
-  { to: '/viajes', label: 'Seguimientos', Icon: Route, roles: ['ANALISTA', 'CLIENTE'] },
-  { to: '/envios', label: 'Envíos', Icon: Package, roles: ['CHECKLIST'] },
-  { to: '/galeria', label: 'Galería', Icon: Images, roles: ['ANALISTA', 'CLIENTE'] },
-  { to: '/reporte', label: 'Reporte', Icon: SquareText, roles: ['ANALISTA', 'CLIENTE'] },
-  { to: '/sistema', label: 'Sistema', Icon: Activity, roles: ['ANALISTA'] },
+  { to: '/viajes', label: 'Seguimientos', Icon: Route, roles: ['analista', 'cliente'] },
+  { to: '/envios', label: 'Envíos', Icon: Package, roles: ['checklist'] },
+  { to: '/galeria', label: 'Galería', Icon: Images, roles: ['analista', 'cliente'] },
+  { to: '/reporte', label: 'Reporte', Icon: SquareText, roles: ['analista', 'cliente'] },
+  { to: '/sistema', label: 'Sistema', Icon: Activity, roles: ['analista'] },
   {
     to: '/administracion',
     label: 'Administración',
     Icon: Settings,
-    roles: ['ANALISTA'],
+    roles: ['analista'],
   },
-  { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal, roles: ['ANALISTA', 'CLIENTE'] },
+  { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal, roles: ['analista', 'cliente'] },
 ];
 
 /**
