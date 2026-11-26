@@ -71,6 +71,16 @@ vi.mock('firebase/firestore', () => {
 });
 
 /**
+ * Mockear módulos de Firebase Functions
+ */
+vi.mock('firebase/functions', () => {
+  return {
+    getFunctions: vi.fn(() => ({ type: 'functions-mock' })),
+    connectFunctionsEmulator: vi.fn(),
+    httpsCallable: vi.fn(() => vi.fn()),
+  };
+});
+/**
  * Mockear módulos de Firebase Storage
  */
 vi.mock('firebase/storage', () => {
