@@ -68,11 +68,13 @@ function medio(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** Encola las dos respuestas de documentos en el orden que las pide
- *  `obtenerMetricasFirestore`: reportes del periodo y medios del periodo. */
-function encolar(rA: unknown[], mA: unknown[]) {
+/** Encola las respuestas de documentos en el orden que las pide
+ *  `obtenerMetricasFirestore`: reportes del periodo, métricas diarias del rango cerrado
+ *  (vacías por omisión: caída a la lectura directa) y medios del periodo o del día. */
+function encolar(rA: unknown[], mA: unknown[], agDiarias: unknown[] = []) {
   getDocsMock
     .mockResolvedValueOnce(snap(rA as Record<string, unknown>[]))
+    .mockResolvedValueOnce(snap(agDiarias as Record<string, unknown>[]))
     .mockResolvedValueOnce(snap(mA as Record<string, unknown>[]));
 }
 
@@ -134,23 +136,26 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
     expect(m.estadisticas.evidenciasFotograficas.delta).toBeCloseTo(1); // (4-2)/2
   });
 
-  it('no descarga el periodo anterior: una lectura de documentos y seis conteos del servidor', async () => {
+  it('no descarga el periodo anterior: reportes, agregados vacíos y medios, más seis conteos', async () => {
     encolar([], []);
 
     await obtenerMetricasFirestore(periodo);
 
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(getDocsMock).toHaveBeenCalledTimes(3);
     expect(getAggregateMock).toHaveBeenCalledTimes(6);
   });
 
   it('con `conMedios: false` no lee los medios y deja sus gráficas vacías', async () => {
-    // Sólo la lectura de reportes; si pidiera una segunda, el mock devolvería undefined.
-    getDocsMock.mockResolvedValueOnce(snap([reporte({ resumenMedios: { fotos: 2, audios: 0 } })]));
+    // Sólo la lectura de reportes y la de agregados (vacía): el fallback directo no pide
+    // medios cuando la pantalla no los usa.
+    getDocsMock
+      .mockResolvedValueOnce(snap([reporte({ resumenMedios: { fotos: 2, audios: 0 } })]))
+      .mockResolvedValueOnce(snap([]));
     encolarConteos({ fotosA: 2 });
 
     const m = await obtenerMetricasFirestore(periodo, { conMedios: false });
 
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(getDocsMock).toHaveBeenCalledTimes(2);
     expect(m.cobertura.mediosRecortados).toBe(false);
     expect(m.graficas.capturasPorHora.every((p) => p.valor === 0)).toBe(true);
     expect(m.graficas.gbAcumulados).toEqual([]);
@@ -348,5 +353,100 @@ describe('obtenerMetricasFirestore (tope de lectura)', () => {
     const m = await obtenerMetricasFirestore(periodo);
 
     expect(m.cobertura).toEqual({ reportesRecortados: false, mediosRecortados: false });
+  });
+});
+
+describe('obtenerMetricasFirestore (métricas preagregadas, P2)', () => {
+  function agregadoDiario(fecha: string, extra: Record<string, unknown> = {}) {
+    return {
+      fecha,
+      clienteId: 'Colgate',
+      totales: { bytes: 0 },
+      porCustodio: {},
+      porUnidad: {},
+      porEnvio: {},
+      descartesPorMotivo: {},
+      capturasPorHora: {},
+      ...extra,
+    };
+  }
+
+  it('deriva rankings y gráficas de los agregados sin leer los documentos del periodo', async () => {
+    encolar(
+      [],
+      [],
+      [
+        agregadoDiario('2026-09-01', {
+          totales: { bytes: 1024 * 1024 * 1024 },
+          porCustodio: { c1: { reportes: 2, fotos: 3, audios: 1 } },
+          porUnidad: { 'ABC-123': { reportes: 2 } },
+          descartesPorMotivo: { 'Ruta modificada': { reportes: 2 } },
+          capturasPorHora: { 9: 5 },
+        }),
+        agregadoDiario('2026-09-02', {
+          totales: { bytes: 1024 * 1024 * 1024 },
+        }),
+      ],
+    );
+
+    const m = await obtenerMetricasFirestore(periodo);
+
+    // Sin reportes del periodo y sin día actual en el rango: solo dos lecturas.
+    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(m.porCustodio).toEqual([
+      { uid: 'c1', nombre: 'Custodio c1', viajes: 2, fotos: 3, audios: 1 },
+    ]);
+    expect(m.porUnidad).toEqual([{ placas: 'ABC-123', viajes: 2 }]);
+    expect(m.graficas.descartesPorMotivo).toEqual([{ categoria: 'Ruta modificada', valor: 2 }]);
+    expect(m.graficas.capturasPorHora.find((p) => p.etiqueta === '09h')?.valor).toBe(5);
+    expect(m.graficas.gbAcumulados).toEqual([
+      { etiqueta: '09-01', valor: 1 },
+      { etiqueta: '09-02', valor: 2 },
+    ]);
+    expect(m.cobertura).toEqual({ reportesRecortados: false, mediosRecortados: false });
+  });
+
+  it('suma el día actual a los agregados cuando el rango incluye hoy', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-02T18:00:00Z')); // hoy en México: 2026-09-02
+    const rangoConHoy = { desde: '2026-09-01', hasta: '2026-09-02' };
+
+    getDocsMock
+      .mockResolvedValueOnce(
+        snap([
+          reporte({
+            __id: 'hoy',
+            custodioUid: 'c-hoy',
+            fechaLocal: '2026-09-02',
+            resumenMedios: { fotos: 2, audios: 0 },
+          }),
+        ]),
+      )
+      .mockResolvedValueOnce(
+        snap([
+          agregadoDiario('2026-09-01', {
+            porCustodio: { 'c-viejo': { reportes: 1, fotos: 1, audios: 0 } },
+            capturasPorHora: { 9: 3 },
+          }),
+        ]),
+      )
+      .mockResolvedValueOnce(
+        snap([
+          medio({
+            tipo: 'FOTO',
+            sizeBytes: 1024,
+            createdAtDevice: { toDate: () => new Date('2026-09-02T15:30:00Z') },
+          }),
+        ]),
+      );
+
+    const m = await obtenerMetricasFirestore(rangoConHoy);
+    vi.useRealTimers();
+
+    expect(m.porCustodio.map((c) => c.uid).sort()).toEqual(['c-hoy', 'c-viejo']);
+    // 3 capturas del agregado + 1 del día actual, en la misma hora 09.
+    expect(m.graficas.capturasPorHora.find((p) => p.etiqueta === '09h')?.valor).toBe(4);
+    // El día actual aporta su reporte al registro por seguimiento.
+    expect(m.porViaje).toHaveLength(1);
   });
 });
