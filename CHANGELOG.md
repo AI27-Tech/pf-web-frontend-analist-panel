@@ -45,6 +45,7 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 - `src/lib/firebase/cliente.ts`
 - `src/pruebas/firebase.mock.ts`
 - `src/routes/_privado/envios.tsx`
+
 ## 2026:11:26 15:30 — Capa de datos del reporte por Shipment ID (rama `feat/reporte-por-shipment-id`, apilada sobre `feat/acceso-y-consultas-panel`)
 
 **Resumen:** el reporte por Shipment ID (Echo 04) queda implementado de punta a punta en el panel: dropdown «Envío» en la barra de filtros global del reporte, con los Shipment IDs visibles para el rol; al elegir uno, las secciones del envío se insertan arriba del tablero del periodo (cabecera, totales sin descartados y lista de seguimientos con sus medios). La URL `?envio=S-100` sigue funcionando como acceso directo. La corrección del vínculo es del Analista, con auditoría. La lectura y la escritura reales van contra Firestore; en desarrollo hay un mock con el ejemplo común del handoff (`S-100/042`, `S-101/037`, `S-103/042`).
