@@ -58,6 +58,14 @@ La lectura del custodio es **sólo del dueño**, y el analista no es dueño de n
 
 Detalle en `docs/PLAN.md` §6. Se prueba con el **Emulator Suite** (`pf-infra-firebase/test/reglas.test.js`). Mientras tanto, se trabaja contra el emulador con `VITE_USAR_EMULADORES=true` o contra datos estáticos con `VITE_DATOS_MOCK=true`.
 
+### Envíos de Checklist (alta de envíos)
+
+El formulario de Envíos llama a dos Cloud Functions de `pf-infra-firebase` (`registrarEnvio` y `listarNumerosEconomicos`). La cuenta debe tener un perfil `acceso_panel/{correo}` con rol `checklist` y `activo: true`.
+
+- **Sin backend:** `VITE_DATOS_MOCK=true` simula las dos respuestas (el segundo intento con el mismo Shipment ID responde duplicado; sin red responde error de conexión).
+- **Contra las funciones reales en local:** levantar los emuladores de Auth, Firestore y Functions desde `pf-infra-firebase` y poner `VITE_USAR_EMULADORES=true`. El panel se conecta a Functions en el puerto 5001. `pnpm dev:firebase` de este repo no incluye Functions, así que sirve para el resto del panel pero no para Envíos.
+- **Producción:** desplegar primero índices y funciones (`pf-infra-firebase/functions/DESPLIEGUE.md`) y después este panel; sin las funciones, el formulario muestra «No se pudo confirmar el registro».
+
 ### 2. `@ai27-tech/ui` requiere acceso a GitHub Packages
 
 La librería de componentes de AI27 **no está en el registro público de npm**: se publica en GitHub Packages y necesita un token con `read:packages`. Por eso no está en `package.json` todavía.
