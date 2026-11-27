@@ -269,37 +269,41 @@ describe('CSV de envíos del periodo', () => {
     },
   ];
 
-  it('arma una fila por envío con las cuatro columnas pedidas', () => {
+  it('arma una fila por envío con las cinco columnas, con la hora de inicio resuelta', () => {
+    const conHora: Envio = {
+      ...envios[0]!,
+      createdAtServer: new Date('2026-11-26T17:55:00-06:00'),
+    };
     const filas = filasCsvDeEnvios(
       [
         { shipmentId: 'S-100', seguimientos: 2, validaciones: 4 },
         { shipmentId: SIN_ENVIO, seguimientos: 1, validaciones: 3 },
       ],
-      envios,
+      [conHora],
     );
 
     expect(lineas(enviosPeriodoACsv(filas))).toEqual([
-      'Envio ID,Numero economico,Cantidad de seguimientos,Total de validaciones',
-      'S-100,042,2,4',
-      'Sin envío,,1,3',
+      'Envio ID,Hora de inicio,Numero economico,Cantidad de seguimientos,Total de validaciones',
+      'S-100,2026-11-26 17:55,042,2,4',
+      'Sin envío,,,1,3',
     ]);
   });
 
-  it('un envío sin documento queda con el económico vacío', () => {
+  it('un envío sin documento queda con hora y económico vacíos', () => {
     const filas = filasCsvDeEnvios(
       [{ shipmentId: 'S-999', seguimientos: 1, validaciones: 0 }],
       envios,
     );
 
     expect(lineas(enviosPeriodoACsv(filas))).toEqual([
-      'Envio ID,Numero economico,Cantidad de seguimientos,Total de validaciones',
-      'S-999,,1,0',
+      'Envio ID,Hora de inicio,Numero economico,Cantidad de seguimientos,Total de validaciones',
+      'S-999,,,1,0',
     ]);
   });
 
   it('lista vacía devuelve sólo los encabezados', () => {
     expect(lineas(enviosPeriodoACsv([]))).toEqual([
-      'Envio ID,Numero economico,Cantidad de seguimientos,Total de validaciones',
+      'Envio ID,Hora de inicio,Numero economico,Cantidad de seguimientos,Total de validaciones',
     ]);
   });
 });
