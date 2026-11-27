@@ -218,6 +218,7 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
         audios: 1,
         ciclo: 'CERRADO',
         hayNovedad: true,
+        shipmentId: null,
       },
     ]);
   });
