@@ -5,8 +5,9 @@
  * Esa separación es lo que permite cambiar de fuente de datos —de Firebase a un BFF
  * en Go, cuando la identidad de la plataforma esté lista— sin tocar una sola pantalla.
  *
- * El contrato de origen lo define pf-app-custodio/docs/PLAN.md §5.1. Este panel es
- * SÓLO LECTURA: no escribe ni un documento.
+ * El contrato de origen lo define pf-app-custodio/docs/PLAN.md §5.1. El panel era sólo
+ * lectura hasta Echo 04: la corrección del vínculo es su primera escritura (cinco campos
+ * de auditoría en `reportes`, ver `enviosFirestore.ts`), autorizada por la regla de 01.
  */
 
 export type CicloViaje = 'ACTIVO' | 'CERRADO' | 'DESCARTADO';
@@ -130,6 +131,8 @@ export interface FilaViaje {
   /** `true` si el viaje tiene novedad (incidencia). Permite recalcular la tarjeta de
    *  incidencias cuando el reporte se filtra. */
   hayNovedad: boolean;
+  /** Envío al que el seguimiento quedó vinculado (Echo 03/04). `null` cuando no tiene. */
+  shipmentId: string | null;
 }
 
 /** Estadísticas de una unidad (placa) en el periodo, para la gráfica «viajes por unidad».
@@ -137,6 +140,15 @@ export interface FilaViaje {
 export interface EstadisticaUnidad {
   placas: string;
   viajes: number;
+}
+
+/** Estadísticas de un envío en el periodo, para la gráfica «envíos del periodo». Una
+ *  entrada por Shipment ID (o «Sin envío» para los reportes sin vínculo); los
+ *  descartados no cuentan y las validaciones son fotos más audios de sus seguimientos. */
+export interface EstadisticaEnvio {
+  shipmentId: string;
+  seguimientos: number;
+  validaciones: number;
 }
 
 /** Categoría de una etiqueta del catálogo (pf-app-custodio §5.1). */
@@ -192,3 +204,43 @@ export interface FiltrosMedio {
   custodioUid?: string;
   limite?: number;
 }
+
+/** Un envío registrado por Checklist: `envios/{shipmentId}` en Firestore. */
+export interface Envio {
+  shipmentId: string;
+  clienteId: string;
+  numeroEconomico: string;
+  lineaTransportista: string;
+  bitacoraLegacyId: string;
+  createdAtServer: Date | null;
+  vigente: boolean;
+}
+
+/** Un seguimiento vinculado a un envío, sin sus medios: la forma cruda que produce la
+ *  consulta de `reportes`. */
+export interface ReporteVinculado {
+  id: string;
+  clienteId: string;
+  ciclo: CicloViaje;
+  fechaLocal: string;
+  placas: string;
+  custodioCorreo: string;
+  abiertoEn: Date;
+}
+
+/** Un seguimiento del envío con sus medios ya agrupados. */
+export interface EnvioSeguimiento extends ReporteVinculado {
+  medios: Medio[];
+}
+
+/** Vista completa de un envío para el reporte por Shipment ID. */
+export interface VistaEnvio {
+  envio: Envio;
+  seguimientos: EnvioSeguimiento[];
+  /** `true` si la lectura de medios rebasó el tope: faltan archivos del envío. */
+  recortado: boolean;
+}
+
+/** Resultado de corregir el vínculo de un seguimiento: `cambio: false` significa que el
+ *  valor ya era ese y no hubo escritura. */
+export type ResultadoCorreccion = { ok: true; cambio: boolean } | { ok: false; mensaje: string };

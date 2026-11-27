@@ -12,9 +12,17 @@
  * porque un ranking sobre una selección filtrada no tiene sentido.
  */
 
-import type { EstadisticaCustodio, FilaViaje, Medio, TipoMedio } from '@/lib/datos/tipos';
+import type {
+  Envio,
+  EstadisticaCustodio,
+  EstadisticaEnvio,
+  FilaViaje,
+  Medio,
+  TipoMedio,
+} from '@/lib/datos/tipos';
 import type { RangoFechas } from '@/lib/formato/fechas';
 
+import { SIN_ENVIO } from './agregadosEnvios';
 import { sanearParaArchivo, tablaACsv, type CeldaCsv } from './exportarCsv';
 
 const MS_POR_DIA = 86_400_000;
@@ -340,4 +348,80 @@ export function actividadPorUnidadACsv(
     ]);
 
   return tablaACsv(ENCABEZADOS_ACTIVIDAD_UNIDAD, filas);
+}
+
+// ---------------------------------------------------------------------------
+// Envíos del periodo: una fila por Shipment ID
+// ---------------------------------------------------------------------------
+
+const ENCABEZADOS_ENVIOS = [
+  'Envio ID',
+  'Hora de inicio',
+  'Numero economico',
+  'Cantidad de seguimientos',
+  'Total de validaciones',
+] as const;
+
+/** Fila del CSV de envíos, con el número económico y la hora de inicio ya resueltos. */
+export interface FilaCsvEnvio {
+  envioId: string;
+  /** Hora del alta del envío en zona de México, `YYYY-MM-DD HH:mm`, o vacía si no hay. */
+  horaInicio: string;
+  numeroEconomico: string;
+  seguimientos: number;
+  validaciones: number;
+}
+
+/** Hora de inicio del envío en zona de México: `YYYY-MM-DD HH:mm`. Vacía sin fecha. */
+function formatoHoraInicio(fecha: Date | null): string {
+  if (!fecha) return '';
+  const formato = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return formato.format(fecha).replace(',', '');
+}
+
+/**
+ * Cruza las estadísticas de envíos del periodo con los documentos de `envios` para
+ * resolver el número económico y la hora de inicio. La fila «Sin envío» lleva el
+ * económico y la hora vacíos: no es un envío. Un envío sin documento (borrado después
+ * del periodo) queda con ambos vacíos.
+ */
+export function filasCsvDeEnvios(
+  estadisticas: EstadisticaEnvio[],
+  envios: Envio[],
+): FilaCsvEnvio[] {
+  const porId = new Map(
+    envios.map((envio) => [
+      envio.shipmentId,
+      {
+        numeroEconomico: envio.numeroEconomico,
+        horaInicio: formatoHoraInicio(envio.createdAtServer),
+      },
+    ]),
+  );
+  return estadisticas.map((e) => {
+    const doc = e.shipmentId === SIN_ENVIO ? undefined : porId.get(e.shipmentId);
+    return {
+      envioId: e.shipmentId,
+      horaInicio: doc?.horaInicio ?? '',
+      numeroEconomico: doc?.numeroEconomico ?? '',
+      seguimientos: e.seguimientos,
+      validaciones: e.validaciones,
+    };
+  });
+}
+
+/** CSV de envíos: una fila por envío, en el orden recibido. */
+export function enviosPeriodoACsv(filas: FilaCsvEnvio[]): string {
+  return tablaACsv(
+    ENCABEZADOS_ENVIOS,
+    filas.map((f) => [f.envioId, f.horaInicio, f.numeroEconomico, f.seguimientos, f.validaciones]),
+  );
 }

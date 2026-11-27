@@ -17,6 +17,8 @@ vi.mock('firebase/firestore', () => ({
   where: vi.fn((campo: string, op: string, valor: unknown) => ({ campo, op, valor })),
 }));
 vi.mock('@/lib/firebase/cliente', () => ({ firestore: {} }));
+// El alcance de lectura lo resuelve la guarda; aquí el Analista lee sin filtro.
+vi.mock('./accesoPanel', () => ({ alcanceLectura: vi.fn(async () => null) }));
 
 // `obtenerMetricasFirestore` resuelve nombres de custodio con `obtenerNombresCustodios`,
 // que lee `usuarios/{uid}` de Firestore. Se stubea el módulo para devolver un nombre
@@ -216,6 +218,7 @@ describe('obtenerMetricasFirestore (lectura acotada + agregación en cliente)', 
         audios: 1,
         ciclo: 'CERRADO',
         hayNovedad: true,
+        shipmentId: null,
       },
     ]);
   });

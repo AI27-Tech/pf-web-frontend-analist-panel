@@ -1,6 +1,7 @@
-import type { EstadisticaCustodio, EstadisticaUnidad } from '@/lib/datos/tipos';
+import type { EstadisticaCustodio, EstadisticaUnidad, FilaViaje } from '@/lib/datos/tipos';
 
 import type { FiltroReporte } from './filtros';
+import { GraficaEnvios } from './graficas/GraficasEnvio';
 import {
   GraficaFotosAudiosCustodio,
   GraficaViajesPorUnidad,
@@ -9,20 +10,28 @@ import {
 /**
  * Banda de gráficas del eje custodio/unidad. Ambas son INTERACTIVAS: un clic en una barra
  * fija el custodio o la unidad en el filtro global, y todo lo demás se recalcula. Reciben
- * datos ya filtrados.
+ * datos ya filtrados. La gráfica de envíos abre la vista por Shipment ID del envío elegido.
  */
 export interface GraficasReporteSectionProps {
   porCustodio: EstadisticaCustodio[];
   porUnidad: EstadisticaUnidad[];
+  porViaje: FilaViaje[];
   filtro: FiltroReporte;
   onFiltroChange: (filtro: FiltroReporte) => void;
+  /** Shipment ID del envío abierto en la URL, o `null`. */
+  envioSeleccionado: string | null;
+  /** Clic en una barra de envíos: abre el envío; `null` (o «Sin envío») limpia. */
+  onSeleccionarEnvio: (shipmentId: string | null) => void;
 }
 
 export function GraficasReporteSection({
   porCustodio,
   porUnidad,
+  porViaje,
   filtro,
   onFiltroChange,
+  envioSeleccionado,
+  onSeleccionarEnvio,
 }: GraficasReporteSectionProps) {
   function alternarCustodio(uid: string): void {
     onFiltroChange({ ...filtro, custodio: filtro.custodio === uid ? null : uid });
@@ -59,6 +68,11 @@ export function GraficasReporteSection({
           datos={porUnidad}
           seleccion={filtro.unidad}
           onSeleccionar={alternarUnidad}
+        />
+        <GraficaEnvios
+          porViaje={porViaje}
+          seleccion={envioSeleccionado}
+          onSeleccionar={onSeleccionarEnvio}
         />
       </div>
     </section>

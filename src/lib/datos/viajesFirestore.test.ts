@@ -15,6 +15,8 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('@/lib/firebase/cliente', () => ({ firestore: {} }));
 vi.mock('./custodios', () => ({ enriquecerConNombres: vi.fn() }));
+// El alcance de lectura lo resuelve la guarda; aquí el Analista lee sin filtro.
+vi.mock('./accesoPanel', () => ({ alcanceLectura: vi.fn(async () => null) }));
 
 import { getDocs } from 'firebase/firestore';
 import { conteoDeMedios, listarPlacasFirestore } from './viajesFirestore';

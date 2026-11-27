@@ -131,6 +131,13 @@ function porCustodio(periodo: RangoFechas): EstadisticaCustodio[] {
 }
 
 /** Registro por viaje sobre el arreglo estático: una fila por viaje del periodo. */
+/** Envíos sembrados para la gráfica «envíos del periodo» del mock: placa → Shipment ID. */
+const ENVIOS_MOCK: Record<string, string> = {
+  'YZ-498-LK': 'S-100',
+  'AB-123-CD': 'S-101',
+  'CD-778-MN': 'S-103',
+};
+
 function porViaje(periodo: RangoFechas): FilaViaje[] {
   return viajesDelPeriodo(periodo).map((viaje) => ({
     id: viaje.id,
@@ -141,6 +148,7 @@ function porViaje(periodo: RangoFechas): FilaViaje[] {
     audios: viaje.audios,
     ciclo: viaje.ciclo,
     hayNovedad: viaje.isUpdated,
+    shipmentId: ENVIOS_MOCK[viaje.placas] ?? null,
   }));
 }
 

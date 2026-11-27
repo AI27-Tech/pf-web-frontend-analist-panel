@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
+import { listarEnvios } from '@/lib/datos/envios';
 import { folioDePeriodo, obtenerMetricas } from '@/lib/datos/metricas';
 import { resolverPeriodo, type SeleccionPeriodo } from '@/lib/formato/fechas';
 
@@ -13,6 +15,7 @@ import { ReportesModal } from './ReportesModal';
 import { TablaCustodiosSection } from './TablaCustodiosSection';
 import { TablaViajesSection } from './TablaViajesSection';
 import { TarjetasEstadistica } from './TarjetasEstadistica';
+import { VistaEnvio } from './VistaEnvio';
 import { ReporteCargando, ReporteError, ReporteVacio } from './estados';
 import { descargarCsv, nombreArchivoCsv, viajesACsv } from './exportarCsv';
 import {
@@ -31,8 +34,17 @@ import {
  *
  * Por defecto (sin filtro) todo muestra el panorama global del periodo. Cuando hay un
  * filtro activo, las tarjetas se recalculan sobre la selección y ocultan su delta.
+ *
+ * Con un `envio` en la URL, el dashboard se reemplaza por la vista del envío por Shipment
+ * ID (Echo 04); el buscador sigue visible arriba para cambiar de envío o volver.
  */
-export function ReporteSection() {
+export interface ReporteSectionProps {
+  /** Shipment ID en la URL; monta la vista de envío en lugar del tablero. */
+  envio?: string | undefined;
+}
+
+export function ReporteSection({ envio }: ReporteSectionProps) {
+  const navigate = useNavigate();
   const [periodo, setPeriodo] = useState<SeleccionPeriodo>({ atajo: 'mes' });
   const [filtro, setFiltro] = useState<FiltroReporte>(FILTRO_VACIO);
   const [reportesAbiertos, setReportesAbiertos] = useState(false);
@@ -43,6 +55,14 @@ export function ReporteSection() {
     // Sin `medios`: esta pantalla no muestra las gráficas por hora ni de GB.
     queryKey: ['metricas', rango, 'sin-medios'],
     queryFn: () => obtenerMetricas(rango, { conMedios: false }),
+  });
+
+  // Envíos del rol para el dropdown «Envío». Sin reglas de 02 desplegadas la consulta
+  // falla en producción; el dropdown queda vacío y la página sigue funcionando.
+  const envios = useQuery({
+    queryKey: ['envios'],
+    queryFn: () => listarEnvios(),
+    retry: false,
   });
 
   const folio = consulta.data?.folio ?? folioDePeriodo(rango);
@@ -101,6 +121,7 @@ export function ReporteSection() {
           rango={rango}
           porCustodio={datos.porCustodio}
           porViaje={datos.porViaje}
+          envios={envios.data ?? []}
           custodioInicial={filtro.custodio}
         />
       )}
@@ -120,15 +141,34 @@ export function ReporteSection() {
             onFiltroChange={setFiltro}
             custodios={datos.porCustodio}
             unidades={datos.porUnidad}
+            envios={envios.data ?? []}
+            envioSeleccionado={envio ?? ''}
+            onEnvioChange={(shipmentId) =>
+              void navigate({
+                to: '/reporte',
+                search: { envio: shipmentId || undefined },
+              })
+            }
           />
+          {/* Secciones del envío elegido, arriba del tablero del periodo. */}
+          {envio && <VistaEnvio shipmentId={envio} />}
           <AvisoCobertura cobertura={datos.cobertura} alcance="reporte" />
           <TarjetasEstadistica estadisticas={estadisticas} />
           {/* 01 — Custodios y unidades */}
           <GraficasReporteSection
             porCustodio={custodiosFiltrados}
             porUnidad={porUnidadFiltrada(datos.porUnidad, viajesFiltrados, filtroActivo)}
+            porViaje={viajesFiltrados}
             filtro={filtro}
             onFiltroChange={setFiltro}
+            envioSeleccionado={envio ?? null}
+            onSeleccionarEnvio={(shipmentId) =>
+              void navigate({
+                to: '/reporte',
+                // Alterna como las otras gráficas: el mismo envío o «Sin envío» cierra.
+                search: { envio: shipmentId && shipmentId !== envio ? shipmentId : undefined },
+              })
+            }
           />
           {/* 02 — Estadísticas por custodio */}
           <TablaCustodiosSection porCustodio={custodiosFiltrados} />

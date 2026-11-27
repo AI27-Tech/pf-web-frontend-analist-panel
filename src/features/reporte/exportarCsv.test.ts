@@ -15,6 +15,7 @@ function viaje(parcial: Partial<FilaViaje> = {}): FilaViaje {
     audios: 1,
     ciclo: 'CERRADO',
     hayNovedad: false,
+    shipmentId: null,
     ...parcial,
   };
 }
