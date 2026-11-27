@@ -2,6 +2,17 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:27 — Tablero con métricas preagregadas (P2 de rendimiento)
+
+**Resumen:** el tablero deriva rankings, gráficas y tablas de `metricas_diarias` para los días consolidados y solo lee directo el día actual (aún sin consolidar) y el registro por seguimiento. Sin agregados disponibles, cae a la lectura directa de siempre con su aviso de recorte. La lectura grande de medios del periodo desaparece de Sistema.
+
+**Cambios:**
+
+- `lib/datos/metricasFirestore.ts`: lectura de `metricas_diarias` del rango cerrado, derivación de `porCustodio`, `porUnidad`, descartes, capturas por hora y GB acumulados desde los agregados más el día actual, con los mismos criterios que la lectura directa. Fallback completo ante lectura fallida o colección vacía. `obtenerMetricasFirestore` mantiene la lectura de reportes para el registro por seguimiento (decisión de Producto) y los conteos de tarjetas de P0.
+- `lib/datos/metricasFirestore.test.ts`: arnés con `metricas_diarias` encolables y dos casos nuevos de la rama agregada, incluido el día actual con reloj falso.
+- Requiere `metricas_diarias` con la función de consolidación y las reglas de lectura de `pf-infra-firebase` (PRs #19 y #20), más el índice `(clienteId, fecha)`.
+- **Verificación:** 262 pruebas en 28 archivos, 0 fallos; tsc, ESLint, Prettier y build verdes.
+
 ## 2026:11:27 — Tarjetas del tablero con conteos del servidor (P0 de rendimiento)
 
 **Resumen:** las tarjetas de la cabecera y sus deltas pasan de derivarse de los documentos descargados a conteos del servidor con `getAggregateFromServer` + `count()`. Se elimina la descarga del periodo anterior (hasta 5,000 reportes menos por visita al tablero) y las tarjetas quedan exactas aunque el periodo rebase el tope de lectura. «Evidencias fotográficas» ahora cuenta documentos de `medios` con `tipo == 'FOTO'`, decisión de Producto.
