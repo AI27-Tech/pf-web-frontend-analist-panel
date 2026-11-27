@@ -2,6 +2,18 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:27 — Tarjetas del tablero con conteos del servidor (P0 de rendimiento)
+
+**Resumen:** las tarjetas de la cabecera y sus deltas pasan de derivarse de los documentos descargados a conteos del servidor con `getAggregateFromServer` + `count()`. Se elimina la descarga del periodo anterior (hasta 5,000 reportes menos por visita al tablero) y las tarjetas quedan exactas aunque el periodo rebase el tope de lectura. «Evidencias fotográficas» ahora cuenta documentos de `medios` con `tipo == 'FOTO'`, decisión de Producto.
+
+**Cambios:**
+
+- `lib/datos/metricasFirestore.ts`: `conteosDeTarjetas` hace seis conteos del servidor (seguimientos, incidencias y fotos, actual y anterior); `obtenerMetricasFirestore` ya no lee el periodo anterior y arma las tarjetas con `estadisticasDeConteos`. Los rankings, tablas y gráficas siguen leyendo el periodo actual.
+- `features/reporte/AvisoCobertura.tsx`: el aviso de recorte aclara que las tarjetas son exactas y que solo tablas y rankings se recortan.
+- `lib/datos/metricasFirestore.test.ts`: arnés nuevo con `getAggregateFromServer` y conteos encolables; se conserva la derivación en cliente para rankings, tablas y gráficas.
+- Requiere el índice `medios (clienteId, tipo, fechaLocal)` para el Cliente, entregado en `pf-infra-firebase` (PR #16).
+- **Verificación:** 257 pruebas en 28 archivos, 0 fallos; tsc, ESLint, Prettier y build verdes.
+
 ## 2026:11:27 — CSV de envíos del periodo
 
 **Resumen:** el modal «Reportes» gana el reporte descargable de envíos: una fila por envío del periodo con Envío ID, número económico, cantidad de seguimientos y total de validaciones. Los reportes sin vínculo se agrupan en una fila «Sin envío» con el económico vacío. Cubre todo el periodo, sin los filtros de la página, igual que los demás reportes del modal.

@@ -21,6 +21,8 @@
  */
 import {
   collection,
+  count,
+  getAggregateFromServer,
   getDocs,
   limit,
   orderBy,
@@ -195,30 +197,73 @@ function horaDelDia(instante: Date): number {
   );
 }
 
-function estadisticas(reportesA: ReporteLite[], reportesP: ReporteLite[]): EstadisticasReporte {
-  const auditadosA = reportesA.length;
-  const auditadosP = reportesP.length;
+/**
+ * Conteos del servidor para las tarjetas: actual y anterior. Se calculan con
+ * `getAggregateFromServer` + `count()` y no descargan documentos: la lectura del periodo
+ * anterior deja de existir y las tarjetas son exactas aunque el periodo rebase el tope de
+ * lectura de los rankings. Las fotos cuentan documentos de `medios` con `tipo == 'FOTO'`.
+ */
+interface ConteosTarjetas {
+  viajesA: number;
+  viajesP: number;
+  incidenciasA: number;
+  incidenciasP: number;
+  fotosA: number;
+  fotosP: number;
+}
 
-  const incidenciasA = reportesA.filter((r) => r.hayNovedad).length;
-  const incidenciasP = reportesP.filter((r) => r.hayNovedad).length;
+async function conteosDeTarjetas(
+  periodo: RangoFechas,
+  previo: RangoFechas,
+  clienteId: string | null,
+): Promise<ConteosTarjetas> {
+  const contar = async (q: Query): Promise<number> => {
+    const resultado = await getAggregateFromServer(q, { total: count() });
+    return resultado.data().total;
+  };
+  const reportes = (p: RangoFechas, conNovedad: boolean): Query =>
+    query(
+      collection(firestore, 'reportes'),
+      ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
+      where('fechaLocal', '>=', p.desde),
+      where('fechaLocal', '<=', p.hasta),
+      ...(conNovedad ? [where('hayNovedad', '==', true)] : []),
+    );
+  const mediosFotos = (p: RangoFechas): Query =>
+    query(
+      collection(firestore, 'medios'),
+      ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
+      where('fechaLocal', '>=', p.desde),
+      where('fechaLocal', '<=', p.hasta),
+      where('tipo', '==', 'FOTO'),
+    );
+  const [viajesA, viajesP, incidenciasA, incidenciasP, fotosA, fotosP] = await Promise.all([
+    contar(reportes(periodo, false)),
+    contar(reportes(previo, false)),
+    contar(reportes(periodo, true)),
+    contar(reportes(previo, true)),
+    contar(mediosFotos(periodo)),
+    contar(mediosFotos(previo)),
+  ]);
+  return { viajesA, viajesP, incidenciasA, incidenciasP, fotosA, fotosP };
+}
 
-  const fotosA = reportesA.reduce((suma, r) => suma + r.fotos, 0);
-  const fotosP = reportesP.reduce((suma, r) => suma + r.fotos, 0);
-
+/** Tarjetas de la cabecera a partir de los conteos del servidor. Mismo formato que antes. */
+function estadisticasDeConteos(c: ConteosTarjetas): EstadisticasReporte {
   return {
     viajesAuditados: {
-      valor: enteros.format(auditadosA),
-      delta: delta(auditadosA, auditadosP),
+      valor: enteros.format(c.viajesA),
+      delta: delta(c.viajesA, c.viajesP),
       contexto: 'vs. periodo anterior',
     },
     incidenciasRegistradas: {
-      valor: enteros.format(incidenciasA),
-      delta: delta(incidenciasA, incidenciasP),
+      valor: enteros.format(c.incidenciasA),
+      delta: delta(c.incidenciasA, c.incidenciasP),
       contexto: 'eventos con novedad',
     },
     evidenciasFotograficas: {
-      valor: enteros.format(fotosA),
-      delta: delta(fotosA, fotosP),
+      valor: enteros.format(c.fotosA),
+      delta: delta(c.fotosA, c.fotosP),
       contexto: 'archivos capturados en ruta',
     },
   };
@@ -342,15 +387,14 @@ export async function obtenerMetricasFirestore(
 ): Promise<Metricas> {
   const clienteId = await alcanceLectura();
   const previo = periodoAnterior(periodo);
-  // Hasta tres lecturas por rango de `fechaLocal`. Para el Analista usan el índice de
-  // campo único automático; para el Cliente agregan `clienteId` y requieren el índice
-  // compuesto `clienteId` ↑, `fechaLocal` ↓. Las tarjetas, tablas y rankings salen sólo
-  // de los `reportes` (actual y anterior).
+  // Los documentos del periodo actual alimentan los rankings, las tablas y las gráficas
+  // (lectura acotada por `TOPE`). Las tarjetas y sus deltas salen de conteos del servidor,
+  // así que el periodo anterior ya no se descarga.
   const sinMedios: Lectura<MedioLite> = { datos: [], recortado: false };
-  const [reportesA, reportesP, mediosA] = await Promise.all([
+  const [reportesA, mediosA, conteos] = await Promise.all([
     traerReportes(periodo, clienteId),
-    traerReportes(previo, clienteId),
     conMedios ? traerMedios(periodo, clienteId) : Promise.resolve(sinMedios),
+    conteosDeTarjetas(periodo, previo, clienteId),
   ]);
 
   // Nombres de custodio resueltos UNA sola vez sobre los dueños de los reportes del
@@ -370,7 +414,7 @@ export async function obtenerMetricasFirestore(
       reportesRecortados: reportesA.recortado,
       mediosRecortados: mediosA.recortado,
     },
-    estadisticas: estadisticas(reportesA.datos, reportesP.datos),
+    estadisticas: estadisticasDeConteos(conteos),
     graficas: graficas(reportesA.datos, mediosA.datos),
     porCustodio: agruparPorCustodio(reportesA.datos, nombres),
     porViaje: agruparPorViaje(reportesA.datos, nombres),
