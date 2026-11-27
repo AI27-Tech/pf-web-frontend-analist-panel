@@ -131,6 +131,8 @@ export interface FilaViaje {
   /** `true` si el viaje tiene novedad (incidencia). Permite recalcular la tarjeta de
    *  incidencias cuando el reporte se filtra. */
   hayNovedad: boolean;
+  /** Envío al que el seguimiento quedó vinculado (Echo 03/04). `null` cuando no tiene. */
+  shipmentId: string | null;
 }
 
 /** Estadísticas de una unidad (placa) en el periodo, para la gráfica «viajes por unidad».
@@ -138,6 +140,15 @@ export interface FilaViaje {
 export interface EstadisticaUnidad {
   placas: string;
   viajes: number;
+}
+
+/** Estadísticas de un envío en el periodo, para la gráfica «envíos del periodo». Una
+ *  entrada por Shipment ID (o «Sin envío» para los reportes sin vínculo); los
+ *  descartados no cuentan y las validaciones son fotos más audios de sus seguimientos. */
+export interface EstadisticaEnvio {
+  shipmentId: string;
+  seguimientos: number;
+  validaciones: number;
 }
 
 /** Categoría de una etiqueta del catálogo (pf-app-custodio §5.1). */

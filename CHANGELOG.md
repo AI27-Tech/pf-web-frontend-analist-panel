@@ -2,6 +2,21 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:27 — Gráfica «Envíos del periodo»
+
+**Resumen:** la banda de gráficas del reporte gana una comparativa por Shipment ID: seguimientos y validaciones por envío, top 10, en barras apiladas horizontales. Un clic en una barra abre la vista del envío; «Sin envío» agrupa los reportes sin vínculo y no navega. Los descartados no cuentan.
+
+**Cambios:**
+
+- `lib/datos/tipos.ts`: `FilaViaje` lleva `shipmentId`; nuevo `EstadisticaEnvio`.
+- `lib/datos/metricasFirestore.ts`: la lectura de reportes incluye `shipmentId` (viene de 03) y lo pasa a `porViaje`. Sin consultas nuevas: usa los datos que el tablero ya lee.
+- `lib/datos/metricasMock.ts`: envíos sembrados para el mock.
+- `features/reporte/agregadosEnvios.ts`: agregado puro (agrupa por envío, descartados fuera, «Sin envío» y orden por validaciones).
+- `features/reporte/graficas/GraficasEnvio.tsx`: la gráfica, mismo patrón y tema que custodio y unidad.
+- `features/reporte/GraficasReporteSection.tsx`, `ReporteSection.tsx`: la gráfica se integra en la banda 01; el clic navega a `?envio=`.
+- Fixtures de pruebas con `shipmentId`.
+- **Verificación:** 254 pruebas en 28 archivos, 0 fallos; tsc, ESLint y Prettier verdes.
+
 ## 2026:11:26 17:10 — Sección Envíos de Checklist: formulario de alta (Echo 06, rama `feat/checklist-frontend`)
 
 **Resumen:** Checklist registra envíos desde su única sección. El formulario pide Shipment ID, línea transportista, número económico e ID de bitácora; la empresa no se pide, la asigna la función de alta desde el perfil. El número económico se elige de la lista de la empresa o se escribe a mano. La rama parte de `feat/acceso-y-consultas-panel` (PR #64), que aporta la ruta `/envios` y el rol.

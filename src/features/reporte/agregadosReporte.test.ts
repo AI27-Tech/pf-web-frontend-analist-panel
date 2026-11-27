@@ -14,6 +14,7 @@ const viajes: FilaViaje[] = [
     audios: 1,
     ciclo: 'CERRADO',
     hayNovedad: false,
+    shipmentId: null,
   },
   {
     id: 'v2',
@@ -24,6 +25,7 @@ const viajes: FilaViaje[] = [
     audios: 0,
     ciclo: 'ACTIVO',
     hayNovedad: true,
+    shipmentId: null,
   },
   {
     id: 'v3',
@@ -34,6 +36,7 @@ const viajes: FilaViaje[] = [
     audios: 1,
     ciclo: 'ACTIVO',
     hayNovedad: false,
+    shipmentId: null,
   },
 ];
 
@@ -57,6 +60,7 @@ describe('viajesPorDia', () => {
         audios: 0,
         ciclo: 'ACTIVO',
         hayNovedad: false,
+        shipmentId: null,
       },
     ];
     expect(viajesPorDia(conVacio)).toHaveLength(2);

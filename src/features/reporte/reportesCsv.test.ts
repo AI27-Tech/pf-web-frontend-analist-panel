@@ -47,6 +47,7 @@ function viaje(parcial: Partial<FilaViaje>): FilaViaje {
     audios: 0,
     ciclo: 'CERRADO',
     hayNovedad: false,
+    shipmentId: null,
     ...parcial,
   };
 }

@@ -66,6 +66,8 @@ interface ReporteLite {
   custodioCorreo: string;
   placas: string;
   fechaLocal: string;
+  /** Envío al que quedó vinculado (Echo 03), o `null` cuando no tiene. */
+  shipmentId: string | null;
   /** Conteo de fotos y audios del viaje, desde el propio reporte (ver `conteoDeMedios`). */
   fotos: number;
   audios: number;
@@ -135,6 +137,7 @@ function aReporteLite(id: string, d: DocumentData): ReporteLite {
     custodioCorreo: typeof d.custodioCorreo === 'string' ? d.custodioCorreo : '',
     placas: typeof d.placas === 'string' ? d.placas : '',
     fechaLocal: typeof d.fechaLocal === 'string' ? d.fechaLocal : '',
+    shipmentId: typeof d.shipmentId === 'string' && d.shipmentId !== '' ? d.shipmentId : null,
     fotos,
     audios,
   };
@@ -269,6 +272,7 @@ function agruparPorViaje(reportes: ReporteLite[], nombres: Map<string, string>):
     audios: r.audios,
     ciclo: r.ciclo === 'CERRADO' || r.ciclo === 'DESCARTADO' ? r.ciclo : 'ACTIVO',
     hayNovedad: r.hayNovedad,
+    shipmentId: r.shipmentId,
   }));
 }
 

@@ -157,8 +157,13 @@ export function ReporteSection({ envio }: ReporteSectionProps) {
           <GraficasReporteSection
             porCustodio={custodiosFiltrados}
             porUnidad={porUnidadFiltrada(datos.porUnidad, viajesFiltrados, filtroActivo)}
+            porViaje={viajesFiltrados}
             filtro={filtro}
             onFiltroChange={setFiltro}
+            envioSeleccionado={envio ?? null}
+            onSeleccionarEnvio={(shipmentId) =>
+              void navigate({ to: '/reporte', search: { envio: shipmentId } })
+            }
           />
           {/* 02 — Estadísticas por custodio */}
           <TablaCustodiosSection porCustodio={custodiosFiltrados} />
