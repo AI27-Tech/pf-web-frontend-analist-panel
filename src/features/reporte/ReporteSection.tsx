@@ -121,6 +121,7 @@ export function ReporteSection({ envio }: ReporteSectionProps) {
           rango={rango}
           porCustodio={datos.porCustodio}
           porViaje={datos.porViaje}
+          envios={envios.data ?? []}
           custodioInicial={filtro.custodio}
         />
       )}

@@ -12,9 +12,17 @@
  * porque un ranking sobre una selección filtrada no tiene sentido.
  */
 
-import type { EstadisticaCustodio, FilaViaje, Medio, TipoMedio } from '@/lib/datos/tipos';
+import type {
+  Envio,
+  EstadisticaCustodio,
+  EstadisticaEnvio,
+  FilaViaje,
+  Medio,
+  TipoMedio,
+} from '@/lib/datos/tipos';
 import type { RangoFechas } from '@/lib/formato/fechas';
 
+import { SIN_ENVIO } from './agregadosEnvios';
 import { sanearParaArchivo, tablaACsv, type CeldaCsv } from './exportarCsv';
 
 const MS_POR_DIA = 86_400_000;
@@ -340,4 +348,49 @@ export function actividadPorUnidadACsv(
     ]);
 
   return tablaACsv(ENCABEZADOS_ACTIVIDAD_UNIDAD, filas);
+}
+
+// ---------------------------------------------------------------------------
+// Envíos del periodo: una fila por Shipment ID
+// ---------------------------------------------------------------------------
+
+const ENCABEZADOS_ENVIOS = [
+  'Envio ID',
+  'Numero economico',
+  'Cantidad de seguimientos',
+  'Total de validaciones',
+] as const;
+
+/** Fila del CSV de envíos, con el número económico ya resuelto desde la colección `envios`. */
+export interface FilaCsvEnvio {
+  envioId: string;
+  numeroEconomico: string;
+  seguimientos: number;
+  validaciones: number;
+}
+
+/**
+ * Cruza las estadísticas de envíos del periodo con los documentos de `envios` para
+ * resolver el número económico. La fila «Sin envío» lleva el económico vacío: no es un
+ * envío. Un envío sin documento (borrado después del periodo) queda con económico vacío.
+ */
+export function filasCsvDeEnvios(
+  estadisticas: EstadisticaEnvio[],
+  envios: Envio[],
+): FilaCsvEnvio[] {
+  const porId = new Map(envios.map((envio) => [envio.shipmentId, envio.numeroEconomico]));
+  return estadisticas.map((e) => ({
+    envioId: e.shipmentId,
+    numeroEconomico: e.shipmentId === SIN_ENVIO ? '' : (porId.get(e.shipmentId) ?? ''),
+    seguimientos: e.seguimientos,
+    validaciones: e.validaciones,
+  }));
+}
+
+/** CSV de envíos: una fila por envío, en el orden recibido. */
+export function enviosPeriodoACsv(filas: FilaCsvEnvio[]): string {
+  return tablaACsv(
+    ENCABEZADOS_ENVIOS,
+    filas.map((f) => [f.envioId, f.numeroEconomico, f.seguimientos, f.validaciones]),
+  );
 }

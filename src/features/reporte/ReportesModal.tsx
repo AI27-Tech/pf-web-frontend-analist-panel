@@ -4,13 +4,20 @@ import { Download, Info, Search } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 
 import { listarMediosDeCustodioEnPeriodo } from '@/lib/datos/medios';
-import type { EstadisticaCustodio, FilaViaje } from '@/lib/datos/tipos';
+import type { Envio, EstadisticaCustodio, FilaViaje } from '@/lib/datos/tipos';
 import type { RangoFechas } from '@/lib/formato/fechas';
 
+import { estadisticasDeEnvios } from './agregadosEnvios';
 import { buscarUnidades } from './buscarUnidades';
 import { descargarCsv } from './exportarCsv';
 import { GraficaArchivosPorDia, GraficaViajesPorDia } from './graficas/GraficasReportes';
-import { actividadPorDiaACsv, nombreArchivoReporte, reporteUnidadACsv } from './reportesCsv';
+import {
+  actividadPorDiaACsv,
+  enviosPeriodoACsv,
+  filasCsvDeEnvios,
+  nombreArchivoReporte,
+  reporteUnidadACsv,
+} from './reportesCsv';
 import { archivosPorDia, viajesPorDia } from './seriesReporte';
 
 /**
@@ -28,6 +35,8 @@ export interface ReportesModalProps {
   rango: RangoFechas;
   porCustodio: EstadisticaCustodio[];
   porViaje: FilaViaje[];
+  /** Envíos del rol, para resolver el número económico del CSV de envíos. */
+  envios: Envio[];
   /** `uid` del custodio filtrado en la página; preselecciona la unidad del reporte. */
   custodioInicial: string | null;
 }
@@ -74,6 +83,7 @@ export function ReportesModal({
   rango,
   porCustodio,
   porViaje,
+  envios,
   custodioInicial,
 }: ReportesModalProps) {
   // Unidad elegida (`uid`) y texto del buscador.
@@ -284,6 +294,26 @@ export function ReportesModal({
             startIcon={<Download size={16} strokeWidth={1.75} />}
           >
             Descargar actividad por día
+          </Button>
+        </div>
+      </ItemReporte>
+
+      <ItemReporte
+        titulo="Envíos del periodo"
+        descripcion="Una fila por envío: Shipment ID, número económico, cantidad de seguimientos y total de validaciones. Los reportes sin envío se agrupan en una fila «Sin envío»."
+      >
+        <div>
+          <Button
+            variant="outline"
+            onClick={() =>
+              descargar(
+                'envios_periodo',
+                enviosPeriodoACsv(filasCsvDeEnvios(estadisticasDeEnvios(porViaje), envios)),
+              )
+            }
+            startIcon={<Download size={16} strokeWidth={1.75} />}
+          >
+            Descargar envíos del periodo
           </Button>
         </div>
       </ItemReporte>
