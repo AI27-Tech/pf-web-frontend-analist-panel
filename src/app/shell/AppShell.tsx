@@ -36,7 +36,12 @@ const nav: readonly ItemNav[] = [
     Icon: Settings,
     roles: ['analista'],
   },
-  { to: '/ajustes', label: 'Ajustes', Icon: SlidersHorizontal, roles: ['analista', 'cliente'] },
+  {
+    to: '/ajustes',
+    label: 'Ajustes',
+    Icon: SlidersHorizontal,
+    roles: ['analista', 'cliente', 'checklist'],
+  },
 ];
 
 /**

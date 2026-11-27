@@ -46,6 +46,17 @@ Registro de cambios del proyecto Panel del analista. Las entradas más recientes
 - `src/pruebas/firebase.mock.ts`
 - `src/routes/_privado/envios.tsx`
 
+## 2026:11:27 — Ajustes para Checklist
+
+**Resumen:** el rol Checklist gana la sección Ajustes, que contiene el cierre de sesión. Sin ella, un Checklist no podía salir de su cuenta. La matriz de secciones, el menú y la guarda se actualizan en una sola fuente (`accesoPanel.ts`).
+
+**Cambios:**
+
+- `lib/datos/accesoPanel.ts`: `checklist: ['/envios', '/ajustes']`.
+- `app/shell/AppShell.tsx`: el ítem Ajustes incluye el rol `checklist`.
+- `lib/datos/accesoPanel.test.ts`: la matriz espera las dos secciones.
+- **Verificación:** suite completa verde; ver `CHANGELOG.md`.
+
 ## 2026:11:26 15:30 — Capa de datos del reporte por Shipment ID (rama `feat/reporte-por-shipment-id`, apilada sobre `feat/acceso-y-consultas-panel`)
 
 **Resumen:** el reporte por Shipment ID (Echo 04) queda implementado de punta a punta en el panel: dropdown «Envío» en la barra de filtros global del reporte, con los Shipment IDs visibles para el rol; al elegir uno, las secciones del envío se insertan arriba del tablero del periodo (cabecera, totales sin descartados y lista de seguimientos con sus medios). La URL `?envio=S-100` sigue funcionando como acceso directo. La corrección del vínculo es del Analista, con auditoría. La lectura y la escritura reales van contra Firestore; en desarrollo hay un mock con el ejemplo común del handoff (`S-100/042`, `S-101/037`, `S-103/042`).
