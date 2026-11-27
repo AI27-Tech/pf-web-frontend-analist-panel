@@ -61,7 +61,7 @@ export function VistaEnvio({ shipmentId }: VistaEnvioProps) {
   const esAnalista = perfil?.rol === 'analista';
 
   return (
-    <div className="space-y-6 px-4 py-4 sm:px-8 sm:py-6">
+    <div className="space-y-8">
       {/* Cabecera del envío */}
       <section className="border-border bg-surface rounded-lg border p-4">
         <h2 className="text-text font-mono text-lg font-semibold">{vista.envio.shipmentId}</h2>
