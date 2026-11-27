@@ -35,7 +35,7 @@ describe('matriz de secciones por rol', () => {
   });
 
   it('Checklist sólo ve Envíos', () => {
-    expect(seccionesDe(checklist)).toEqual(['/envios']);
+    expect(seccionesDe(checklist)).toEqual(['/envios', '/ajustes']);
   });
 
   it('cada rol inicia en su primera sección', () => {

@@ -37,7 +37,7 @@ export type SeccionPanel =
 const SECCIONES: Record<RolPanel, readonly SeccionPanel[]> = {
   analista: ['/viajes', '/galeria', '/reporte', '/sistema', '/administracion', '/ajustes'],
   cliente: ['/viajes', '/galeria', '/reporte', '/ajustes'],
-  checklist: ['/envios'],
+  checklist: ['/envios', '/ajustes'],
 };
 
 /** Primera sección que ve cada rol al iniciar sesión. */
