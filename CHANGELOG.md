@@ -2,6 +2,135 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:27 — CSV de envíos del periodo
+
+**Resumen:** el modal «Reportes» gana el reporte descargable de envíos: una fila por envío del periodo con Envío ID, número económico, cantidad de seguimientos y total de validaciones. Los reportes sin vínculo se agrupan en una fila «Sin envío» con el económico vacío. Cubre todo el periodo, sin los filtros de la página, igual que los demás reportes del modal.
+
+**Cambios:**
+
+- `features/reporte/reportesCsv.ts`: `filasCsvDeEnvios` (cruza las estadísticas de envíos con la colección `envios` para resolver el número económico) y `enviosPeriodoACsv`.
+- `features/reporte/ReportesModal.tsx`: item «Envíos del periodo» con su descarga; recibe la prop `envios`.
+- `features/reporte/ReporteSection.tsx`: pasa la lista de envíos al modal.
+- Pruebas de las tres columnas de datos, el caso «Sin envío» y la lista vacía.
+- **Verificación:** 257 pruebas en 28 archivos, 0 fallos; tsc, ESLint, Prettier y build verdes.
+
+## 2026:11:27 — Gráfica «Envíos del periodo»
+
+**Resumen:** la banda de gráficas del reporte gana una comparativa por Shipment ID: seguimientos y validaciones por envío, top 10, en barras apiladas horizontales. Un clic en una barra abre la vista del envío; «Sin envío» agrupa los reportes sin vínculo y no navega. Los descartados no cuentan.
+
+**Cambios:**
+
+- `lib/datos/tipos.ts`: `FilaViaje` lleva `shipmentId`; nuevo `EstadisticaEnvio`.
+- `lib/datos/metricasFirestore.ts`: la lectura de reportes incluye `shipmentId` (viene de 03) y lo pasa a `porViaje`. Sin consultas nuevas: usa los datos que el tablero ya lee.
+- `lib/datos/metricasMock.ts`: envíos sembrados para el mock.
+- `features/reporte/agregadosEnvios.ts`: agregado puro (agrupa por envío, descartados fuera, «Sin envío» y orden por validaciones).
+- `features/reporte/graficas/GraficasEnvio.tsx`: la gráfica, mismo patrón y tema que custodio y unidad.
+- `features/reporte/GraficasReporteSection.tsx`, `ReporteSection.tsx`: la gráfica se integra en la banda 01; el clic navega a `?envio=`.
+- Fixtures de pruebas con `shipmentId`.
+- **Verificación:** 254 pruebas en 28 archivos, 0 fallos; tsc, ESLint y Prettier verdes.
+
+## 2026:11:26 17:10 — Sección Envíos de Checklist: formulario de alta (Echo 06, rama `feat/checklist-frontend`)
+
+**Resumen:** Checklist registra envíos desde su única sección. El formulario pide Shipment ID, línea transportista, número económico e ID de bitácora; la empresa no se pide, la asigna la función de alta desde el perfil. El número económico se elige de la lista de la empresa o se escribe a mano. La rama parte de `feat/acceso-y-consultas-panel` (PR #64), que aporta la ruta `/envios` y el rol.
+
+**Cambios:**
+
+- **Formulario** (`features/envios/FormularioEnvio.tsx`). Shipment ID: 10 dígitos. Bitácora: `AB` + 7 dígitos, en mayúsculas. Línea transportista: texto obligatorio. El botón se habilita con los cuatro datos válidos y los errores salen al salir de cada campo. La confirmación se muestra solo cuando la función confirma el alta; un duplicado y un error de conexión tienen mensajes distintos y, en ambos casos, la captura se conserva. Si un reintento sale duplicado después de un corte de conexión, el aviso dice que el envío pudo haber quedado registrado. Un segundo envío mientras se espera la respuesta se ignora.
+- **Número económico** (`features/envios/NumeroEconomicoCombobox.tsx`). Combobox propio (patrón ARIA con lista): filtra mientras se escribe y ofrece «Usar lo escrito» cuando el valor no está en la lista. El texto se normaliza como `normalizarPlaca` de Echo (mayúsculas, solo letras y dígitos) y se envía como texto: `042` conserva el cero. No se usó el `Select` buscable de la librería porque solo emite valores de su lista. Si la lista no carga, el campo sigue admitiendo texto libre.
+- **Registros recientes** (`features/envios/RegistrosRecientes.tsx`, `EnviosSection.tsx`). Lista de los envíos que esta sesión registró y la función confirmó (máximo 10). No lee `envios`: la interfaz del perfil (§5.5) dice que Checklist no lista registros. Se vacía al recargar.
+- **Capa de datos** (`lib/datos/registroEnvios.ts`, `registroEnviosFirebase.ts`, `registroEnviosMock.ts`, `reglasEnvio.ts`). Conmutador real o simulado con `VITE_DATOS_MOCK=true`. `registrarEnvio` nunca lanza: devuelve `ok` o una causa (`duplicado`, `sin-conexion`, `economico-desconocido`, `datos-invalidos`, `sin-permiso`, `desconocida`). Solo cuenta como alta una respuesta cuyo `shipmentId` coincide con el enviado. La simulación responde duplicado a un Shipment ID repetido sin modificar el original y `sin-conexion` si el navegador está sin red.
+- **Cliente de Firebase** (`lib/firebase/cliente.ts`). Se agrega `funciones` (Cloud Functions, primer callable del panel) y su conexión al emulador en el puerto 5001.
+- **Ruta** (`routes/_privado/envios.tsx`). Sustituye el marcador «por construir» de 05 por `EnviosSection`.
+- **Integración con las funciones reales.** Con el SDK web contra los emuladores de Auth, Firestore y Functions de `pf-infra-firebase`: el alta, el relevo, el duplicado, el económico sin reportes, el formato inválido y el rechazo a un Analista devuelven los códigos que el panel ya traduce. El mensaje de «sin conexión» ahora también cubre un servidor ocupado (`unavailable`). `README.md` documenta cómo probar Envíos en local.
+- **Pruebas.** `reglasEnvio.test.ts`, `registroEnviosFirebase.test.ts` y `FormularioEnvio.test.tsx`; `pruebas/firebase.mock.ts` simula `firebase/functions`.
+
+**Consecuencias:**
+
+- **Contrato con 02, ya implementado en `pf-infra-firebase` (rama `feat/alta-de-envios`).** `listarNumerosEconomicos()` → `{ numerosEconomicos: string[] }`; `registrarEnvio({ shipmentId, lineaTransportista, numeroEconomico, bitacoraLegacyId })` → `{ ok: true, shipmentId, numeroEconomico }` y errores `already-exists` (duplicado), `failed-precondition` (económico sin reportes), `invalid-argument`, `permission-denied`, `unauthenticated` y `unavailable` (contención). La tabla vive en `CAUSA_POR_CODIGO` de `registroEnviosFirebase.ts`: si 02 elige otros códigos, es lo único que cambia.
+- **Formato del Shipment ID.** Las capturas de Producto fijan 10 dígitos; los ejemplos de la issue (`S-100`) no cumplen. La función de alta debe validar lo mismo.
+- El SDK reporta como `internal` tanto un `fetch` fallido como un 500 del servidor; ambos se tratan como «sin conexión».
+- Un número económico sin reportes en la empresa lo rechaza la función; el panel muestra el motivo y conserva la captura.
+
+**Verificación:** `tsc --build`, `eslint .`, `prettier --check .` y `vitest` (236 pruebas en 25 archivos) en verde. Revisión visual en el navegador con datos simulados (formulario vacío, lista abierta, texto libre y error de campo). No se probó contra la función real ni el emulador: 02 aún no la publica.
+
+**Archivos modificados:**
+
+- `CHANGELOG.md`
+- `README.md`
+- `src/features/envios/EnviosSection.tsx`
+- `src/features/envios/FormularioEnvio.tsx`
+- `src/features/envios/FormularioEnvio.test.tsx`
+- `src/features/envios/NumeroEconomicoCombobox.tsx`
+- `src/features/envios/RegistrosRecientes.tsx`
+- `src/features/envios/index.ts`
+- `src/lib/datos/reglasEnvio.ts`
+- `src/lib/datos/reglasEnvio.test.ts`
+- `src/lib/datos/registroEnvios.ts`
+- `src/lib/datos/registroEnviosFirebase.ts`
+- `src/lib/datos/registroEnviosFirebase.test.ts`
+- `src/lib/datos/registroEnviosMock.ts`
+- `src/lib/firebase/cliente.ts`
+- `src/pruebas/firebase.mock.ts`
+- `src/routes/_privado/envios.tsx`
+
+## 2026:11:27 — Ajustes para Checklist
+
+**Resumen:** el rol Checklist gana la sección Ajustes, que contiene el cierre de sesión. Sin ella, un Checklist no podía salir de su cuenta. La matriz de secciones, el menú y la guarda se actualizan en una sola fuente (`accesoPanel.ts`).
+
+**Cambios:**
+
+- `lib/datos/accesoPanel.ts`: `checklist: ['/envios', '/ajustes']`.
+- `app/shell/AppShell.tsx`: el ítem Ajustes incluye el rol `checklist`.
+- `lib/datos/accesoPanel.test.ts`: la matriz espera las dos secciones.
+- **Verificación:** suite completa verde; ver `CHANGELOG.md`.
+
+## 2026:11:26 15:30 — Capa de datos del reporte por Shipment ID (rama `feat/reporte-por-shipment-id`, apilada sobre `feat/acceso-y-consultas-panel`)
+
+**Resumen:** el reporte por Shipment ID (Echo 04) queda implementado de punta a punta en el panel: dropdown «Envío» en la barra de filtros global del reporte, con los Shipment IDs visibles para el rol; al elegir uno, las secciones del envío se insertan arriba del tablero del periodo (cabecera, totales sin descartados y lista de seguimientos con sus medios). La URL `?envio=S-100` sigue funcionando como acceso directo. La corrección del vínculo es del Analista, con auditoría. La lectura y la escritura reales van contra Firestore; en desarrollo hay un mock con el ejemplo común del handoff (`S-100/042`, `S-101/037`, `S-103/042`).
+
+**Cambios:**
+
+- **Tipos** (`lib/datos/tipos.ts`). `Envio`, `ReporteVinculado`, `EnvioSeguimiento`, `VistaEnvio` y `ResultadoCorreccion`.
+- **Dominio puro** (`lib/datos/envios.ts`). `construirVistaEnvio` (agrupa medios por seguimiento y ordena), `totalesDeEnvio` (los descartados no cuentan), `evaluarCorreccion` (destino inexistente o ajeno rechazado; al mismo valor no se escribe) y el conmutador de fuente con `TOPE_ENVIO`.
+- **Lectura y escritura** (`lib/datos/enviosFirestore.ts`). `obtenerVistaEnvioFirestore` lee `envios/{shipmentId}`, sus `reportes` por igualdad y los `medios` en lotes de `reporteId in [...]` de 30 con tope. Un envío ajeno responde `null` igual que uno inexistente. `corregirVinculacionFirestore` escribe los cinco campos de auditoría y nada más; la autorización real es la regla de 01 (pendiente).
+- **Mock de desarrollo** (`lib/datos/enviosMock.ts`). Los tres envíos del ejemplo más una empresa ajena, con un seguimiento descartado con medios que no debe contar.
+- **Medios** (`lib/datos/medios.ts`). `aMedio` pasa a ser exportado para reusarlo en la lectura de envíos.
+- **Vista** (`features/reporte/VistaEnvio.tsx`, `ReporteFiltros.tsx`). El dropdown «Envío» de la barra de filtros global lista los envíos del rol (`listarEnvios`, sin `orderBy` en servidor para no sumar índices); al elegir uno, las secciones del envío se insertan arriba del tablero del periodo, que sigue visible debajo. La lista de seguimientos enlaza al expediente y muestra miniaturas (omitidas en mock). Un envío inexistente y uno ajeno responden lo mismo: «No encontramos el envío».
+- **Corrección del vínculo** (`features/reporte/CorregirVinculoModal.tsx`). Sólo el Analista la ve. Elige destino por Shipment ID o «Sin envío», valida que exista y sea de la misma empresa antes de guardar y advierte que los totales cambian. Escribe los cinco campos de auditoría y nada más; al mismo valor no escribe. La autorización real es la regla de 01 (pendiente).
+- **Ruta** (`routes/_privado/reporte.tsx`, `features/reporte/ReporteSection.tsx`). `validateSearch` acepta `envio`; con el parámetro presente la vista de envío reemplaza el dashboard y el buscador sigue visible.
+- **Tipos** (`lib/datos/tipos.ts`). El panel deja de ser «sólo lectura»: la corrección del vínculo es su primera escritura.
+- **Pruebas.** 10 casos de dominio (`envios.test.ts`), 4 del mock (`enviosMock.test.ts`, incluye el orden de la lista) y las de regresión del resto del panel.
+
+**Verificación:** `tsc --build --force`, ESLint, Prettier, `vitest run` con 202 pruebas en 25 archivos y `vite build` verdes.
+
+**Pendientes de otras issues:** la regla de 01 que permite al Analista escribir esos cinco campos (sin ella la corrección falla en producción), los índices del Cliente (`reportes` y `medios` por `clienteId`) y la función de 03 que no sobrescriba un vínculo manual.
+
+## 2026:11:26 12:40 — Acceso por rol y consultas del panel acotadas por empresa (rama `feat/acceso-y-consultas-panel`)
+
+**Resumen:** el panel resuelve el perfil de la cuenta al restaurar la sesión y usa una sola matriz de secciones para el destino inicial, las rutas directas y el menú. El Cliente ve Seguimientos, Galería, Reporte y Ajustes, y sus consultas a `reportes` y `medios` se acotan a su empresa. Checklist entra sólo a Envíos. El Analista conserva las seis secciones. Una cuenta sin perfil válido va a `/sin-acceso`.
+
+**Cambios:**
+
+- **Perfil y matriz** (`lib/datos/accesoPanel.ts`). Escucha `acceso_panel/{correo}` con `onSnapshot`, con `rol`, `clienteId` y `activo`; expone `cargarPerfil`, `observarPerfil`, `alcanceLectura`, `seccionesDe`, `puedeAcceder` y `RUTA_INICIAL`. Sin perfil, con `activo: false` o con un rol desconocido no hay acceso. `alcanceLectura` devuelve `null` para Analista, el `clienteId` para Cliente y lanza para Checklist.
+- **Baja a media sesión** (`routes/_privado.tsx`). Como el perfil se escucha, un `activo: false` saca la sesión a `/sin-acceso` sin esperar a que falle una consulta.
+- **Guarda de ruta** (`routes/_privado.tsx`). Exige sesión y perfil válido; si la ruta no pertenece al rol, redirige a su sección inicial. El perfil viaja como contexto de la ruta hacia `AppShell`.
+- **Destino inicial** (`routes/index.tsx`, `routes/login.tsx`). `/` y el login resuelven la sección inicial del rol; el login navega a `/`.
+- **Sin perfil** (`routes/sin-acceso.tsx`). Pantalla con cierre de sesión; no hay rol por omisión.
+- **Menú** (`app/shell/AppShell.tsx`). Cada ítem declara sus roles y la barra filtra por el perfil recibido.
+- **Envíos** (`routes/_privado/envios.tsx`). Ruta montada para Checklist; el formulario llega con el ticket 06.
+- **Consultas acotadas.** `viajesFirestore.ts` (listado, placas, unidades y detalle), `medios.ts` (galería, detalle y reporte de unidad) y `metricasFirestore.ts` (reportes y medios) agregan `where('clienteId', '==', clienteId)` cuando el rol es Cliente. `obtenerViajeFirestore` además descarta un documento de otra empresa como defensa en profundidad.
+- **Directorio de custodios** (`custodios.ts`). El Cliente no lee `usuarios`; el nombre visible cae al correo del reporte o al uid. `obtenerNombresCustodios` acepta un respaldo por uid.
+
+**Consecuencias:**
+
+- El contrato con 01 es `acceso_panel/{correo}` con `rol` (`analista` | `cliente` | `checklist`), `clienteId` y `activo`; sin ese documento, o con `activo: false`, ninguna cuenta entra al panel.
+- Revocar el acceso no borra el perfil: basta con `activo: false`, y el panel lo aplica durante la sesión.
+- Las consultas del Cliente necesitan los índices compuestos de la tabla publicada en `.scratch/echo-roles-envios/issues/05-acceso-y-consultas-panel.md`. Sin ellos Firestore rechaza la consulta completa.
+- En Galería y en el Reporte, un Cliente ve el uid o el correo del custodio, no su nombre: el directorio global queda fuera de su alcance.
+- El menú y la guarda son UX; el aislamiento real depende de las reglas de 01 en Firestore y Storage.
+
+**Verificación:** `tsc --build`, `eslint .`, `prettier --check .` y `vitest` (187 pruebas en 22 archivos) en verde. No se probó contra reglas reales ni en el emulador con dos empresas: eso queda para la integración con 01. No se revisó en el navegador.
+
 ## 2026:11:06 18:08 — Select buscable en número económico y unidad (Galería, Seguimientos y Reportes), librería `@ai27-tech/ui` 0.2.0-beta.8 (rama `feature/select-buscador`)
 
 **Resumen:** la librería `@ai27-tech/ui` pasó a `0.2.0-beta.8`, que trae la variante `searchable` en `Select` y en `FilterBar`. Los filtros de número económico y unidad de Galería, Seguimientos y Reportes ahora permiten escribir para filtrar las opciones. En Seguimientos también se quitaron los filtros de Etiqueta y Novedad.

@@ -1,6 +1,7 @@
 import { getApps, initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, type Unsubscribe, type User } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
 /**
@@ -25,11 +26,15 @@ const app = getApps()[0] ?? initializeApp(configuracion);
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
 export const storage = getStorage(app);
+// Cloud Functions callables (alta de envíos). Sin región explícita: las funciones de
+// `pf-infra-firebase` se despliegan en la región por omisión, igual que este cliente.
+export const funciones = getFunctions(app);
 
 if (import.meta.env.VITE_USAR_EMULADORES === 'true') {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
   connectStorageEmulator(storage, '127.0.0.1', 9199);
+  connectFunctionsEmulator(funciones, '127.0.0.1', 5001);
 }
 
 /**

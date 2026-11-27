@@ -15,6 +15,7 @@ import { doc, getDoc, type DocumentData } from 'firebase/firestore';
 
 import { firestore } from '@/lib/firebase/cliente';
 
+import { alcanceLectura } from './accesoPanel';
 import type { Viaje, Medio } from './tipos';
 
 /** Vista mínima de un custodio que el panel necesita del directorio `usuarios`. */
@@ -50,6 +51,10 @@ function aCustodio(uid: string, d: DocumentData): Custodio {
  * el caller cae al teléfono. Un `uid` vacío se ignora.
  */
 export async function obtenerCustodios(uids: readonly string[]): Promise<Map<string, Custodio>> {
+  // El Cliente no lee el directorio global de custodios: las reglas se lo niegan y el
+  // nombre visible cae al correo que ya trae el reporte. Sólo el Analista resuelve
+  // nombres desde `usuarios`.
+  if ((await alcanceLectura()) !== null) return new Map();
   const unicos = [...new Set(uids.filter((uid) => uid.length > 0))];
   const resultados = await Promise.all(
     unicos.map(async (uid) => {
@@ -81,12 +86,14 @@ export async function obtenerCustodios(uids: readonly string[]): Promise<Map<str
  */
 export async function obtenerNombresCustodios(
   uids: readonly string[],
+  /** Texto alternativo por uid cuando el directorio no se puede leer (Cliente). */
+  respaldo?: ReadonlyMap<string, string>,
 ): Promise<Map<string, string>> {
   const custodios = await obtenerCustodios(uids);
   const mapa = new Map<string, string>();
   for (const uid of new Set(uids.filter((u) => u.length > 0))) {
     const c = custodios.get(uid);
-    mapa.set(uid, c?.nombre ?? c?.telefono ?? uid);
+    mapa.set(uid, c?.nombre ?? c?.telefono ?? respaldo?.get(uid) ?? uid);
   }
   return mapa;
 }

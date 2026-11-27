@@ -32,6 +32,7 @@ import {
 
 import { firestore } from '@/lib/firebase/cliente';
 
+import { alcanceLectura } from './accesoPanel';
 import { obtenerNombresCustodios } from './custodios';
 import { TOPE_LECTURA_METRICAS, folioDePeriodo } from './metricas';
 import type {
@@ -62,8 +63,11 @@ interface ReporteLite {
   hayNovedad: boolean;
   motivoDescarte: string | null;
   custodioUid: string;
+  custodioCorreo: string;
   placas: string;
   fechaLocal: string;
+  /** Envío al que quedó vinculado (Echo 03), o `null` cuando no tiene. */
+  shipmentId: string | null;
   /** Conteo de fotos y audios del viaje, desde el propio reporte (ver `conteoDeMedios`). */
   fotos: number;
   audios: number;
@@ -109,9 +113,12 @@ function periodoAnterior(periodo: RangoFechas): RangoFechas {
  * Las funciones llamadoras descartan el +1 si existe y devuelven los documentos en
  * orden ascendente, que es el que espera el resto del cálculo.
  */
-function rango(coleccion: string, periodo: RangoFechas): Query {
+function rango(coleccion: string, periodo: RangoFechas, clienteId: string | null): Query {
   return query(
     collection(firestore, coleccion),
+    // El Cliente sólo consulta su empresa; sin esta igualdad las reglas rechazan la
+    // consulta completa.
+    ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
     where('fechaLocal', '>=', periodo.desde),
     where('fechaLocal', '<=', periodo.hasta),
     orderBy('fechaLocal', 'desc'),
@@ -127,8 +134,10 @@ function aReporteLite(id: string, d: DocumentData): ReporteLite {
     hayNovedad: d.hayNovedad === true,
     motivoDescarte: typeof d.motivoDescarte === 'string' ? d.motivoDescarte : null,
     custodioUid: typeof d.custodioUid === 'string' ? d.custodioUid : '',
+    custodioCorreo: typeof d.custodioCorreo === 'string' ? d.custodioCorreo : '',
     placas: typeof d.placas === 'string' ? d.placas : '',
     fechaLocal: typeof d.fechaLocal === 'string' ? d.fechaLocal : '',
+    shipmentId: typeof d.shipmentId === 'string' && d.shipmentId !== '' ? d.shipmentId : null,
     fotos,
     audios,
   };
@@ -143,8 +152,11 @@ function aMedioLite(d: DocumentData): MedioLite {
   };
 }
 
-async function traerReportes(periodo: RangoFechas): Promise<Lectura<ReporteLite>> {
-  const snap = await getDocs(rango('reportes', periodo));
+async function traerReportes(
+  periodo: RangoFechas,
+  clienteId: string | null,
+): Promise<Lectura<ReporteLite>> {
+  const snap = await getDocs(rango('reportes', periodo, clienteId));
   const recortado = snap.docs.length > TOPE;
   // Descarta el +1 (el más antiguo) y vuelve al orden ascendente por fecha.
   const docs = snap.docs.slice(0, TOPE).reverse();
@@ -156,8 +168,11 @@ async function traerReportes(periodo: RangoFechas): Promise<Lectura<ReporteLite>
   return { datos: docs.map((doc) => aReporteLite(doc.id, doc.data())), recortado };
 }
 
-async function traerMedios(periodo: RangoFechas): Promise<Lectura<MedioLite>> {
-  const snap = await getDocs(rango('medios', periodo));
+async function traerMedios(
+  periodo: RangoFechas,
+  clienteId: string | null,
+): Promise<Lectura<MedioLite>> {
+  const snap = await getDocs(rango('medios', periodo, clienteId));
   const recortado = snap.docs.length > TOPE;
   // Descarta el +1 (el más antiguo) y vuelve al orden ascendente por fecha.
   const docs = snap.docs.slice(0, TOPE).reverse();
@@ -257,6 +272,7 @@ function agruparPorViaje(reportes: ReporteLite[], nombres: Map<string, string>):
     audios: r.audios,
     ciclo: r.ciclo === 'CERRADO' || r.ciclo === 'DESCARTADO' ? r.ciclo : 'ACTIVO',
     hayNovedad: r.hayNovedad,
+    shipmentId: r.shipmentId,
   }));
 }
 
@@ -324,21 +340,28 @@ export async function obtenerMetricasFirestore(
   periodo: RangoFechas,
   { conMedios = true }: OpcionesMetricas = {},
 ): Promise<Metricas> {
+  const clienteId = await alcanceLectura();
   const previo = periodoAnterior(periodo);
-  // Hasta tres lecturas por rango de `fechaLocal`, todas con el índice de campo único
-  // automático. Las tarjetas, tablas y rankings salen sólo de los `reportes` (actual y
-  // anterior).
+  // Hasta tres lecturas por rango de `fechaLocal`. Para el Analista usan el índice de
+  // campo único automático; para el Cliente agregan `clienteId` y requieren el índice
+  // compuesto `clienteId` ↑, `fechaLocal` ↓. Las tarjetas, tablas y rankings salen sólo
+  // de los `reportes` (actual y anterior).
   const sinMedios: Lectura<MedioLite> = { datos: [], recortado: false };
   const [reportesA, reportesP, mediosA] = await Promise.all([
-    traerReportes(periodo),
-    traerReportes(previo),
-    conMedios ? traerMedios(periodo) : Promise.resolve(sinMedios),
+    traerReportes(periodo, clienteId),
+    traerReportes(previo, clienteId),
+    conMedios ? traerMedios(periodo, clienteId) : Promise.resolve(sinMedios),
   ]);
 
   // Nombres de custodio resueltos UNA sola vez sobre los dueños de los reportes del
   // periodo. `obtenerNombresCustodios` deduplica y siempre devuelve una cadena
-  // (nombre → teléfono → uid), así que ninguna tabla queda con celda vacía.
-  const nombres = await obtenerNombresCustodios(reportesA.datos.map((r) => r.custodioUid));
+  // (nombre → teléfono → correo del reporte → uid), así que ninguna tabla queda con
+  // celda vacía. El correo es el respaldo del Cliente, que no lee `usuarios`.
+  const respaldo = new Map(reportesA.datos.map((r) => [r.custodioUid, r.custodioCorreo]));
+  const nombres = await obtenerNombresCustodios(
+    reportesA.datos.map((r) => r.custodioUid),
+    respaldo,
+  );
 
   return {
     folio: folioDePeriodo(periodo),

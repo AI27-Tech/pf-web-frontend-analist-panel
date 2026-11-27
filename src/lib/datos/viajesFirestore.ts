@@ -12,6 +12,7 @@ import {
 
 import { firestore } from '@/lib/firebase/cliente';
 
+import { alcanceLectura } from './accesoPanel';
 import { enriquecerConNombres } from './custodios';
 import type { FiltrosViaje, Viaje, ViajesPage } from './tipos';
 import { queryViajes } from './viajesQuery';
@@ -94,7 +95,11 @@ function aViaje(id: string, d: DocumentData): Viaje {
  * periodo).
  */
 export async function listarViajesFirestore(filtros: FiltrosViaje): Promise<ViajesPage> {
+  const clienteId = await alcanceLectura();
   const restricciones: QueryConstraint[] = [
+    // El Cliente sólo puede consultar su empresa. Sin esta igualdad, las reglas
+    // rechazan la consulta completa (Firestore exige que el filtro sea demostrable).
+    ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
     where('fechaLocal', '>=', filtros.desde),
     where('fechaLocal', '<=', filtros.hasta),
     orderBy('fechaLocal', 'desc'),
@@ -122,7 +127,9 @@ export async function listarPlacasFirestore(rango: {
   desde: string;
   hasta: string;
 }): Promise<string[]> {
+  const clienteId = await alcanceLectura();
   const restricciones: QueryConstraint[] = [];
+  if (clienteId !== null) restricciones.push(where('clienteId', '==', clienteId));
   if (rango.desde) restricciones.push(where('fechaLocal', '>=', rango.desde));
   if (rango.hasta) restricciones.push(where('fechaLocal', '<=', rango.hasta));
   restricciones.push(orderBy('fechaLocal', 'desc'));
@@ -147,7 +154,9 @@ export async function listarUnidadesFirestore(rango: {
   desde: string;
   hasta: string;
 }): Promise<string[]> {
+  const clienteId = await alcanceLectura();
   const restricciones: QueryConstraint[] = [];
+  if (clienteId !== null) restricciones.push(where('clienteId', '==', clienteId));
   if (rango.desde) restricciones.push(where('fechaLocal', '>=', rango.desde));
   if (rango.hasta) restricciones.push(where('fechaLocal', '<=', rango.hasta));
   restricciones.push(orderBy('fechaLocal', 'desc'));
@@ -167,7 +176,12 @@ export async function listarUnidadesFirestore(rango: {
 export async function obtenerViajeFirestore(id: string): Promise<Viaje | null> {
   const documento = await getDoc(doc(firestore, 'reportes', id));
   if (!documento.exists()) return null;
-  const viaje = aViaje(documento.id, documento.data());
+  const datos = documento.data();
+  const clienteId = await alcanceLectura();
+  // Defensa en profundidad: las reglas ya niegan el documento ajeno, pero un entorno
+  // sin reglas (emulador abierto) no debe pintar datos de otra empresa.
+  if (clienteId !== null && datos.clienteId !== clienteId) return null;
+  const viaje = aViaje(documento.id, datos);
   const [enriquecido] = await enriquecerConNombres([viaje]);
   return enriquecido ?? viaje;
 }
