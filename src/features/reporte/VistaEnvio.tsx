@@ -61,9 +61,9 @@ export function VistaEnvio({ shipmentId }: VistaEnvioProps) {
   const esAnalista = perfil?.rol === 'analista';
 
   return (
-    <div className="space-y-6 px-4 py-4 sm:px-8 sm:py-6">
+    <div className="space-y-8">
       {/* Cabecera del envío */}
-      <section className="border-border bg-surface rounded-lg border p-4">
+      <section className="border-border bg-surface rounded-lg border p-5">
         <h2 className="text-text font-mono text-lg font-semibold">{vista.envio.shipmentId}</h2>
         <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
           <div className="flex justify-between gap-4">
@@ -112,8 +112,15 @@ export function VistaEnvio({ shipmentId }: VistaEnvioProps) {
       </section>
 
       {/* Seguimientos */}
-      <section className="space-y-4">
-        <h3 className="text-text text-sm font-medium">Seguimientos vinculados</h3>
+      <section aria-labelledby="seguimientos-vinculados-titulo" className="space-y-4">
+        <div className="flex-1">
+          <h2 id="seguimientos-vinculados-titulo" className="text-text text-sm font-semibold">
+            Seguimientos vinculados
+          </h2>
+          <p className="text-text-muted text-xs">
+            Un renglón por seguimiento del envío. «Ver expediente» abre su evidencia.
+          </p>
+        </div>
         {vista.seguimientos.length === 0 ? (
           <p className="text-text-muted border-border bg-surface rounded-lg border p-6 text-center text-sm">
             0 seguimientos · 0 validaciones
@@ -122,7 +129,7 @@ export function VistaEnvio({ shipmentId }: VistaEnvioProps) {
           vista.seguimientos.map((seguimiento) => (
             <article
               key={seguimiento.id}
-              className="border-border bg-surface rounded-lg border p-4"
+              className="border-border bg-surface rounded-lg border p-5"
             >
               <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <Badge variant={CICLO[seguimiento.ciclo].variant}>

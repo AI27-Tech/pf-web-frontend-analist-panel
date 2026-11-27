@@ -121,6 +121,7 @@ export function ReporteSection({ envio }: ReporteSectionProps) {
           rango={rango}
           porCustodio={datos.porCustodio}
           porViaje={datos.porViaje}
+          envios={envios.data ?? []}
           custodioInicial={filtro.custodio}
         />
       )}
@@ -162,7 +163,11 @@ export function ReporteSection({ envio }: ReporteSectionProps) {
             onFiltroChange={setFiltro}
             envioSeleccionado={envio ?? null}
             onSeleccionarEnvio={(shipmentId) =>
-              void navigate({ to: '/reporte', search: { envio: shipmentId } })
+              void navigate({
+                to: '/reporte',
+                // Alterna como las otras gráficas: el mismo envío o «Sin envío» cierra.
+                search: { envio: shipmentId && shipmentId !== envio ? shipmentId : undefined },
+              })
             }
           />
           {/* 02 — Estadísticas por custodio */}

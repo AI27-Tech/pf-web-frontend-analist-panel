@@ -2,6 +2,18 @@
 
 Registro de cambios del proyecto Panel del analista. Las entradas más recientes van primero.
 
+## 2026:11:27 — CSV de envíos del periodo
+
+**Resumen:** el modal «Reportes» gana el reporte descargable de envíos: una fila por envío del periodo con Envío ID, número económico, cantidad de seguimientos y total de validaciones. Los reportes sin vínculo se agrupan en una fila «Sin envío» con el económico vacío. Cubre todo el periodo, sin los filtros de la página, igual que los demás reportes del modal.
+
+**Cambios:**
+
+- `features/reporte/reportesCsv.ts`: `filasCsvDeEnvios` (cruza las estadísticas de envíos con la colección `envios` para resolver el número económico) y `enviosPeriodoACsv`.
+- `features/reporte/ReportesModal.tsx`: item «Envíos del periodo» con su descarga; recibe la prop `envios`.
+- `features/reporte/ReporteSection.tsx`: pasa la lista de envíos al modal.
+- Pruebas de las tres columnas de datos, el caso «Sin envío» y la lista vacía.
+- **Verificación:** 257 pruebas en 28 archivos, 0 fallos; tsc, ESLint, Prettier y build verdes.
+
 ## 2026:11:27 — Gráfica «Envíos del periodo»
 
 **Resumen:** la banda de gráficas del reporte gana una comparativa por Shipment ID: seguimientos y validaciones por envío, top 10, en barras apiladas horizontales. Un clic en una barra abre la vista del envío; «Sin envío» agrupa los reportes sin vínculo y no navega. Los descartados no cuentan.

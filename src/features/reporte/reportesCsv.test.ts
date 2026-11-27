@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { EstadisticaCustodio, FilaViaje, Medio } from '@/lib/datos/tipos';
+import type { Envio, EstadisticaCustodio, FilaViaje, Medio } from '@/lib/datos/tipos';
 
+import { SIN_ENVIO } from './agregadosEnvios';
 import {
   actividadPorDiaACsv,
   actividadPorUnidadACsv,
+  enviosPeriodoACsv,
+  filasCsvDeEnvios,
   nombreArchivoReporte,
   rankingNumerosEconomicosACsv,
   rankingUnidadesACsv,
@@ -250,5 +253,57 @@ describe('actividadPorUnidadACsv', () => {
 
   it('lista vacía devuelve sólo los encabezados', () => {
     expect(lineas(actividadPorUnidadACsv([], viajes, rango))).toHaveLength(1);
+  });
+});
+
+describe('CSV de envíos del periodo', () => {
+  const envios: Envio[] = [
+    {
+      shipmentId: 'S-100',
+      clienteId: 'Colgate',
+      numeroEconomico: '042',
+      lineaTransportista: 'LT',
+      bitacoraLegacyId: 'AB0000001',
+      createdAtServer: null,
+      vigente: false,
+    },
+  ];
+
+  it('arma una fila por envío con las cinco columnas, con la hora de inicio resuelta', () => {
+    const conHora: Envio = {
+      ...envios[0]!,
+      createdAtServer: new Date('2026-11-26T17:55:00-06:00'),
+    };
+    const filas = filasCsvDeEnvios(
+      [
+        { shipmentId: 'S-100', seguimientos: 2, validaciones: 4 },
+        { shipmentId: SIN_ENVIO, seguimientos: 1, validaciones: 3 },
+      ],
+      [conHora],
+    );
+
+    expect(lineas(enviosPeriodoACsv(filas))).toEqual([
+      'Envio ID,Hora de inicio,Numero economico,Cantidad de seguimientos,Total de validaciones',
+      'S-100,2026-11-26 17:55,042,2,4',
+      'Sin envío,,,1,3',
+    ]);
+  });
+
+  it('un envío sin documento queda con hora y económico vacíos', () => {
+    const filas = filasCsvDeEnvios(
+      [{ shipmentId: 'S-999', seguimientos: 1, validaciones: 0 }],
+      envios,
+    );
+
+    expect(lineas(enviosPeriodoACsv(filas))).toEqual([
+      'Envio ID,Hora de inicio,Numero economico,Cantidad de seguimientos,Total de validaciones',
+      'S-999,,,1,0',
+    ]);
+  });
+
+  it('lista vacía devuelve sólo los encabezados', () => {
+    expect(lineas(enviosPeriodoACsv([]))).toEqual([
+      'Envio ID,Hora de inicio,Numero economico,Cantidad de seguimientos,Total de validaciones',
+    ]);
   });
 });

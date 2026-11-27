@@ -1,4 +1,6 @@
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -138,8 +140,8 @@ export interface GraficaUnidadProps {
 }
 
 /**
- * Viajes por unidad (placa), en barras horizontales. Top 10 por número de viajes. Clic
- * en una barra alterna la selección de la placa.
+ * Viajes por unidad (placa), en área. Top 10 por número de viajes. Clic en un punto
+ * alterna la selección de la placa.
  */
 export function GraficaViajesPorUnidad({ datos, seleccion, onSeleccionar }: GraficaUnidadProps) {
   const top = datos.slice(0, TOP);
@@ -154,34 +156,43 @@ export function GraficaViajesPorUnidad({ datos, seleccion, onSeleccionar }: Graf
         <GraficaVacia mensaje="No hay números económicos con seguimientos en el periodo." />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={top} layout="vertical" margin={{ left: 8, right: 16 }}>
-            <CartesianGrid horizontal={false} stroke={COLORES.borde} />
-            <XAxis type="number" allowDecimals={false} {...ejeComun} />
-            <YAxis
-              type="category"
+          <AreaChart
+            data={top}
+            margin={{ top: 8, right: 16, bottom: 8, left: 8 }}
+            onClick={(estado) => {
+              const crudo = estado?.activeTooltipIndex;
+              const indice = crudo === undefined || crudo === null ? NaN : Number(crudo);
+              const dato = Number.isInteger(indice) && indice >= 0 ? top[indice] : undefined;
+              if (dato) onSeleccionar(dato.placas);
+            }}
+          >
+            <CartesianGrid stroke={COLORES.borde} />
+            <XAxis
               dataKey="placas"
-              width={110}
               {...ejeComun}
-              tick={{ fontSize: 11, fill: 'var(--color-text)' }}
+              interval={0}
+              angle={-30}
+              textAnchor="end"
+              height={56}
+              tick={{ fontSize: 10, fill: 'var(--color-text)' }}
             />
-            <Tooltip contentStyle={ESTILO_TOOLTIP} cursor={{ fill: 'var(--color-surface-high)' }} />
-            <Bar
+            <YAxis allowDecimals={false} {...ejeComun} width={36} />
+            <Tooltip
+              contentStyle={ESTILO_TOOLTIP}
+              cursor={{ stroke: COLORES.muted, strokeDasharray: '3 3' }}
+            />
+            <Area
+              type="monotone"
               dataKey="viajes"
               name="Seguimientos"
+              stroke={COLORES.accent}
+              strokeWidth={2}
               fill={COLORES.accent}
-              radius={[0, 4, 4, 0]}
-              maxBarSize={22}
-              onClick={(_, i) => onSeleccionar(top[i]!.placas)}
+              fillOpacity={haySeleccion ? 0.12 : 0.35}
+              activeDot={{ r: 4 }}
               className="cursor-pointer"
-            >
-              {top.map((u) => (
-                <Cell
-                  key={u.placas}
-                  fillOpacity={opacidadBarra(u.placas === seleccion, haySeleccion)}
-                />
-              ))}
-            </Bar>
-          </BarChart>
+            />
+          </AreaChart>
         </ResponsiveContainer>
       )}
     </PanelGrafica>
