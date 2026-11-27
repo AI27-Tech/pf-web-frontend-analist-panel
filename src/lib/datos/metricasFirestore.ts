@@ -21,6 +21,8 @@
  */
 import {
   collection,
+  count,
+  getAggregateFromServer,
   getDocs,
   limit,
   orderBy,
@@ -195,30 +197,73 @@ function horaDelDia(instante: Date): number {
   );
 }
 
-function estadisticas(reportesA: ReporteLite[], reportesP: ReporteLite[]): EstadisticasReporte {
-  const auditadosA = reportesA.length;
-  const auditadosP = reportesP.length;
+/**
+ * Conteos del servidor para las tarjetas: actual y anterior. Se calculan con
+ * `getAggregateFromServer` + `count()` y no descargan documentos: la lectura del periodo
+ * anterior deja de existir y las tarjetas son exactas aunque el periodo rebase el tope de
+ * lectura de los rankings. Las fotos cuentan documentos de `medios` con `tipo == 'FOTO'`.
+ */
+interface ConteosTarjetas {
+  viajesA: number;
+  viajesP: number;
+  incidenciasA: number;
+  incidenciasP: number;
+  fotosA: number;
+  fotosP: number;
+}
 
-  const incidenciasA = reportesA.filter((r) => r.hayNovedad).length;
-  const incidenciasP = reportesP.filter((r) => r.hayNovedad).length;
+async function conteosDeTarjetas(
+  periodo: RangoFechas,
+  previo: RangoFechas,
+  clienteId: string | null,
+): Promise<ConteosTarjetas> {
+  const contar = async (q: Query): Promise<number> => {
+    const resultado = await getAggregateFromServer(q, { total: count() });
+    return resultado.data().total;
+  };
+  const reportes = (p: RangoFechas, conNovedad: boolean): Query =>
+    query(
+      collection(firestore, 'reportes'),
+      ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
+      where('fechaLocal', '>=', p.desde),
+      where('fechaLocal', '<=', p.hasta),
+      ...(conNovedad ? [where('hayNovedad', '==', true)] : []),
+    );
+  const mediosFotos = (p: RangoFechas): Query =>
+    query(
+      collection(firestore, 'medios'),
+      ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
+      where('fechaLocal', '>=', p.desde),
+      where('fechaLocal', '<=', p.hasta),
+      where('tipo', '==', 'FOTO'),
+    );
+  const [viajesA, viajesP, incidenciasA, incidenciasP, fotosA, fotosP] = await Promise.all([
+    contar(reportes(periodo, false)),
+    contar(reportes(previo, false)),
+    contar(reportes(periodo, true)),
+    contar(reportes(previo, true)),
+    contar(mediosFotos(periodo)),
+    contar(mediosFotos(previo)),
+  ]);
+  return { viajesA, viajesP, incidenciasA, incidenciasP, fotosA, fotosP };
+}
 
-  const fotosA = reportesA.reduce((suma, r) => suma + r.fotos, 0);
-  const fotosP = reportesP.reduce((suma, r) => suma + r.fotos, 0);
-
+/** Tarjetas de la cabecera a partir de los conteos del servidor. Mismo formato que antes. */
+function estadisticasDeConteos(c: ConteosTarjetas): EstadisticasReporte {
   return {
     viajesAuditados: {
-      valor: enteros.format(auditadosA),
-      delta: delta(auditadosA, auditadosP),
+      valor: enteros.format(c.viajesA),
+      delta: delta(c.viajesA, c.viajesP),
       contexto: 'vs. periodo anterior',
     },
     incidenciasRegistradas: {
-      valor: enteros.format(incidenciasA),
-      delta: delta(incidenciasA, incidenciasP),
+      valor: enteros.format(c.incidenciasA),
+      delta: delta(c.incidenciasA, c.incidenciasP),
       contexto: 'eventos con novedad',
     },
     evidenciasFotograficas: {
-      valor: enteros.format(fotosA),
-      delta: delta(fotosA, fotosP),
+      valor: enteros.format(c.fotosA),
+      delta: delta(c.fotosA, c.fotosP),
       contexto: 'archivos capturados en ruta',
     },
   };
@@ -336,44 +381,277 @@ function graficas(reportesA: ReporteLite[], mediosA: MedioLite[]): GraficasRepor
   };
 }
 
+// ---------------------------------------------------------------------------
+// Métricas preagregadas (P2): el tablero deriva rankings y gráficas de
+// `metricas_diarias`, y solo el día actual (aún sin consolidar) se lee directo.
+// ---------------------------------------------------------------------------
+
+/** Fecha local de México en el formato `YYYY-MM-DD` de `fechaLocal`. */
+function fechaLocalMX(instante: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(instante);
+}
+
+/** El día anterior al instante dado, en zona de México. */
+function diaAnteriorMX(ahora: Date = new Date()): string {
+  return fechaLocalMX(new Date(ahora.getTime() - 86_400_000));
+}
+
+/** Forma de un documento de `metricas_diarias`, con los mapas como diccionarios. */
+interface DocMetricaDiaria {
+  fecha: string;
+  totales: { bytes: number };
+  porCustodio: Record<string, { reportes: number; fotos: number; audios: number }>;
+  porUnidad: Record<string, { reportes: number }>;
+  porEnvio: Record<string, { reportes: number; validaciones: number }>;
+  descartesPorMotivo: Record<string, { reportes: number }>;
+  capturasPorHora: Record<string, number>;
+}
+
+/** Traduce un documento crudo a `DocMetricaDiaria`, con defaults defensivos. */
+function aDocMetricaDiaria(d: DocumentData): DocMetricaDiaria {
+  const mapa = (clave: string): Record<string, Record<string, number>> =>
+    d[clave] && typeof d[clave] === 'object' ? d[clave] : {};
+  const numeros = (clave: string): Record<string, number> =>
+    d[clave] && typeof d[clave] === 'object' ? d[clave] : {};
+  const totales = d.totales && typeof d.totales === 'object' ? d.totales : {};
+  return {
+    fecha: typeof d.fecha === 'string' ? d.fecha : '',
+    totales: { bytes: typeof totales.bytes === 'number' ? totales.bytes : 0 },
+    porCustodio: mapa('porCustodio') as DocMetricaDiaria['porCustodio'],
+    porUnidad: mapa('porUnidad') as DocMetricaDiaria['porUnidad'],
+    porEnvio: mapa('porEnvio') as DocMetricaDiaria['porEnvio'],
+    descartesPorMotivo: mapa('descartesPorMotivo') as DocMetricaDiaria['descartesPorMotivo'],
+    capturasPorHora: numeros('capturasPorHora'),
+  };
+}
+
+/** Agregados del rango cerrado (días ya consolidados), sin el día actual. */
+async function traerMetricasDiarias(
+  desde: string,
+  hasta: string,
+  clienteId: string | null,
+): Promise<DocMetricaDiaria[]> {
+  const resultado = await getDocs(
+    query(
+      collection(firestore, 'metricas_diarias'),
+      ...(clienteId !== null ? [where('clienteId', '==', clienteId)] : []),
+      where('fecha', '>=', desde),
+      where('fecha', '<=', hasta),
+    ),
+  );
+  return resultado.docs.map((doc) => aDocMetricaDiaria(doc.data()));
+}
+
+/** Suma de los mapas por custodio de los agregados más el día actual, con nombres. */
+function porCustodioDeAgregados(
+  agregados: DocMetricaDiaria[],
+  reportesHoy: ReporteLite[],
+  nombres: Map<string, string>,
+): EstadisticaCustodio[] {
+  const porUid = new Map<string, EstadisticaCustodio>();
+  const acumular = (uid: string, c: { reportes: number; fotos: number; audios: number }) => {
+    const entrada = porUid.get(uid) ?? {
+      uid,
+      nombre: nombres.get(uid) ?? uid,
+      viajes: 0,
+      fotos: 0,
+      audios: 0,
+    };
+    entrada.viajes += c.reportes;
+    entrada.fotos += c.fotos;
+    entrada.audios += c.audios;
+    porUid.set(uid, entrada);
+  };
+  for (const a of agregados) {
+    for (const [uid, c] of Object.entries(a.porCustodio)) acumular(uid, c);
+  }
+  for (const r of reportesHoy) {
+    if (r.custodioUid === '') continue;
+    const { fotos, audios } = conteoDeMedios(r);
+    acumular(r.custodioUid, { reportes: 1, fotos, audios });
+  }
+  return [...porUid.values()].sort((a, b) => b.fotos + b.audios - (a.fotos + a.audios));
+}
+
+/** Viajes por unidad desde los agregados más el día actual, ordenado descendente. */
+function porUnidadDeAgregados(
+  agregados: DocMetricaDiaria[],
+  reportesHoy: ReporteLite[],
+): EstadisticaUnidad[] {
+  const porPlaca = new Map<string, number>();
+  for (const a of agregados) {
+    for (const [placas, u] of Object.entries(a.porUnidad)) {
+      porPlaca.set(placas, (porPlaca.get(placas) ?? 0) + u.reportes);
+    }
+  }
+  for (const r of reportesHoy) {
+    if (r.placas === '') continue;
+    porPlaca.set(r.placas, (porPlaca.get(r.placas) ?? 0) + 1);
+  }
+  return [...porPlaca.entries()]
+    .map(([placas, viajes]) => ({ placas, viajes }))
+    .sort((a, b) => b.viajes - a.viajes);
+}
+
+/** Descartes por motivo desde los agregados más el día actual. */
+function descartesDeAgregados(
+  agregados: DocMetricaDiaria[],
+  reportesHoy: ReporteLite[],
+): PuntoCategoria[] {
+  const porMotivo = new Map<string, number>();
+  for (const a of agregados) {
+    for (const [motivo, m] of Object.entries(a.descartesPorMotivo)) {
+      porMotivo.set(motivo, (porMotivo.get(motivo) ?? 0) + m.reportes);
+    }
+  }
+  for (const r of reportesHoy) {
+    if (r.ciclo !== 'DESCARTADO') continue;
+    const motivo = r.motivoDescarte ?? 'Sin motivo registrado';
+    porMotivo.set(motivo, (porMotivo.get(motivo) ?? 0) + 1);
+  }
+  return [...porMotivo.entries()].map(([categoria, valor]) => ({ categoria, valor }));
+}
+
+/** Capturas por hora (solo fotos) desde los agregados más el día actual: 24 entradas. */
+function capturasPorHoraDeAgregados(
+  agregados: DocMetricaDiaria[],
+  mediosHoy: MedioLite[],
+): PuntoSerie[] {
+  const porHora = new Array<number>(24).fill(0);
+  for (const a of agregados) {
+    for (const [hora, valor] of Object.entries(a.capturasPorHora)) {
+      const h = Number(hora);
+      if (Number.isInteger(h) && h >= 0 && h < 24) porHora[h] = (porHora[h] ?? 0) + valor;
+    }
+  }
+  for (const m of mediosHoy) {
+    if (m.tipo !== 'FOTO' || m.capturadoEn === null) continue;
+    const hora = horaDelDia(m.capturadoEn);
+    porHora[hora] = (porHora[hora] ?? 0) + 1;
+  }
+  return porHora.map((valor, hora) => ({
+    etiqueta: `${String(hora).padStart(2, '0')}h`,
+    valor,
+  }));
+}
+
+/** GB acumulados por día desde los agregados más el día actual. */
+function gbAcumuladosDeAgregados(
+  agregados: DocMetricaDiaria[],
+  mediosHoy: MedioLite[],
+): PuntoSerie[] {
+  const bytesPorDia = new Map<string, number>();
+  for (const a of agregados) {
+    bytesPorDia.set(a.fecha, (bytesPorDia.get(a.fecha) ?? 0) + a.totales.bytes);
+  }
+  for (const m of mediosHoy) {
+    if (m.fechaLocal === '') continue;
+    bytesPorDia.set(m.fechaLocal, (bytesPorDia.get(m.fechaLocal) ?? 0) + m.sizeBytes);
+  }
+  const dias = [...bytesPorDia.entries()]
+    .filter(([, bytes]) => bytes > 0)
+    .map(([dia]) => dia)
+    .sort();
+  let acumulado = 0;
+  return dias.map((dia) => {
+    acumulado += bytesPorDia.get(dia) ?? 0;
+    return { etiqueta: dia.slice(5), valor: Number((acumulado / (1024 * 1024 * 1024)).toFixed(2)) };
+  });
+}
+
 export async function obtenerMetricasFirestore(
   periodo: RangoFechas,
   { conMedios = true }: OpcionesMetricas = {},
 ): Promise<Metricas> {
   const clienteId = await alcanceLectura();
   const previo = periodoAnterior(periodo);
-  // Hasta tres lecturas por rango de `fechaLocal`. Para el Analista usan el índice de
-  // campo único automático; para el Cliente agregan `clienteId` y requieren el índice
-  // compuesto `clienteId` ↑, `fechaLocal` ↓. Las tarjetas, tablas y rankings salen sólo
-  // de los `reportes` (actual y anterior).
-  const sinMedios: Lectura<MedioLite> = { datos: [], recortado: false };
-  const [reportesA, reportesP, mediosA] = await Promise.all([
+  const hoy = fechaLocalMX(new Date());
+  const ayer = diaAnteriorMX();
+  const hastaAgregados = periodo.hasta <= ayer ? periodo.hasta : ayer;
+  const hayDiasAgregados = hastaAgregados >= periodo.desde;
+
+  // Los reportes del periodo alimentan SIEMPRE el registro por seguimiento (decisión de
+  // Producto: lectura directa acotada) y el día actual de las demás secciones. Las
+  // tarjetas salen de conteos del servidor, como en P0.
+  const [reportesA, conteos] = await Promise.all([
     traerReportes(periodo, clienteId),
-    traerReportes(previo, clienteId),
-    conMedios ? traerMedios(periodo, clienteId) : Promise.resolve(sinMedios),
+    conteosDeTarjetas(periodo, previo, clienteId),
   ]);
 
-  // Nombres de custodio resueltos UNA sola vez sobre los dueños de los reportes del
-  // periodo. `obtenerNombresCustodios` deduplica y siempre devuelve una cadena
-  // (nombre → teléfono → correo del reporte → uid), así que ninguna tabla queda con
-  // celda vacía. El correo es el respaldo del Cliente, que no lee `usuarios`.
+  // Agregados diarios para el rango cerrado (sin el día actual). Un fallo de lectura
+  // (índice sin desplegar, colección ausente) cae a la lectura directa de siempre.
+  let agregados: DocMetricaDiaria[] = [];
+  if (hayDiasAgregados) {
+    try {
+      agregados = await traerMetricasDiarias(periodo.desde, hastaAgregados, clienteId);
+    } catch (error) {
+      console.warn(
+        '[Métricas] No se pudieron leer las métricas diarias; se usa la lectura directa.',
+        error,
+      );
+      agregados = [];
+    }
+  }
+  const usarAgregados = agregados.length > 0;
+  const hoyEnRango = hoy >= periodo.desde && hoy <= periodo.hasta;
+
   const respaldo = new Map(reportesA.datos.map((r) => [r.custodioUid, r.custodioCorreo]));
-  const nombres = await obtenerNombresCustodios(
-    reportesA.datos.map((r) => r.custodioUid),
-    respaldo,
-  );
+  const uids = usarAgregados
+    ? [
+        ...new Set([
+          ...agregados.flatMap((a) => Object.keys(a.porCustodio)),
+          ...reportesA.datos.map((r) => r.custodioUid),
+        ]),
+      ].filter((u) => u !== '')
+    : reportesA.datos.map((r) => r.custodioUid);
+  const nombres = await obtenerNombresCustodios(uids, respaldo);
+
+  const reportesHoy =
+    usarAgregados && hoyEnRango ? reportesA.datos.filter((r) => r.fechaLocal === hoy) : [];
+  const mediosHoy =
+    usarAgregados && hoyEnRango && conMedios
+      ? (await traerMedios({ desde: hoy, hasta: hoy }, clienteId)).datos
+      : [];
+
+  let graficasDelPeriodo: GraficasReporte;
+  let porCustodio: EstadisticaCustodio[];
+  let porUnidad: EstadisticaUnidad[];
+  let mediosRecortados = false;
+
+  if (usarAgregados) {
+    graficasDelPeriodo = {
+      descartesPorMotivo: descartesDeAgregados(agregados, reportesHoy),
+      capturasPorHora: capturasPorHoraDeAgregados(agregados, mediosHoy),
+      gbAcumulados: gbAcumuladosDeAgregados(agregados, mediosHoy),
+    };
+    porCustodio = porCustodioDeAgregados(agregados, reportesHoy, nombres);
+    porUnidad = porUnidadDeAgregados(agregados, reportesHoy);
+  } else {
+    const mediosA = conMedios
+      ? await traerMedios(periodo, clienteId)
+      : ({ datos: [], recortado: false } as Lectura<MedioLite>);
+    mediosRecortados = mediosA.recortado;
+    graficasDelPeriodo = graficas(reportesA.datos, mediosA.datos);
+    porCustodio = agruparPorCustodio(reportesA.datos, nombres);
+    porUnidad = agruparPorUnidad(reportesA.datos);
+  }
 
   return {
     folio: folioDePeriodo(periodo),
     periodo,
     cobertura: {
       reportesRecortados: reportesA.recortado,
-      mediosRecortados: mediosA.recortado,
+      mediosRecortados,
     },
-    estadisticas: estadisticas(reportesA.datos, reportesP.datos),
-    graficas: graficas(reportesA.datos, mediosA.datos),
-    porCustodio: agruparPorCustodio(reportesA.datos, nombres),
+    estadisticas: estadisticasDeConteos(conteos),
+    graficas: graficasDelPeriodo,
+    porCustodio,
     porViaje: agruparPorViaje(reportesA.datos, nombres),
-    porUnidad: agruparPorUnidad(reportesA.datos),
+    porUnidad,
   };
 }

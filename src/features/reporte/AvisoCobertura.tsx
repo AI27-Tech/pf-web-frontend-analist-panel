@@ -27,7 +27,7 @@ export function AvisoCobertura({ cobertura, alcance }: AvisoCoberturaProps) {
   if (cobertura.reportesRecortados) {
     mensajes.push(
       alcance === 'reporte'
-        ? `El periodo tiene más seguimientos de los que se pueden leer de una vez (límite de ${tope}). Las tarjetas, tablas y rankings cubren los más recientes y pueden estar incompletos. Prueba con un periodo más corto.`
+        ? `El registro por seguimiento tiene más seguimientos de los que se pueden leer de una vez (límite de ${tope}): la tabla cubre los más recientes y puede estar incompleta. Las tarjetas, los rankings y las gráficas son exactos porque salen de conteos del servidor y de las métricas diarias. Prueba con un periodo más corto.`
         : `El periodo tiene más seguimientos de los que se pueden leer de una vez (límite de ${tope}). La gráfica de descartes cubre los más recientes y puede estar incompleta.`,
     );
   }
