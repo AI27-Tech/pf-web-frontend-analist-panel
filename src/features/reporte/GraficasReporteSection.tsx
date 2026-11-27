@@ -20,7 +20,8 @@ export interface GraficasReporteSectionProps {
   onFiltroChange: (filtro: FiltroReporte) => void;
   /** Shipment ID del envío abierto en la URL, o `null`. */
   envioSeleccionado: string | null;
-  onSeleccionarEnvio: (shipmentId: string) => void;
+  /** Clic en una barra de envíos: abre el envío; `null` (o «Sin envío») limpia. */
+  onSeleccionarEnvio: (shipmentId: string | null) => void;
 }
 
 export function GraficasReporteSection({

@@ -51,22 +51,27 @@ export interface GraficaEnviosProps {
   porViaje: FilaViaje[];
   /** Shipment ID del envío abierto en la URL, o `null`. */
   seleccion: string | null;
-  /** Abre el envío (clic en su barra). No se invoca para «Sin envío». */
-  onSeleccionar: (shipmentId: string) => void;
+  /** Clic en una barra: abre el envío; clic de nuevo lo cierra; «Sin envío» limpia. */
+  onSeleccionar: (shipmentId: string | null) => void;
 }
 
 /**
  * Seguimientos vs. validaciones por envío, en barras apiladas horizontales. Top 10 por
- * validaciones. Clic en una barra abre la vista del envío por Shipment ID.
+ * validaciones. Un clic abre el envío por Shipment ID; otro clic en la misma barra lo
+ * cierra; «Sin envío» agrupa los reportes sin vínculo y su clic limpia la selección.
  */
 export function GraficaEnvios({ porViaje, seleccion, onSeleccionar }: GraficaEnviosProps) {
   const top = estadisticasDeEnvios(porViaje).slice(0, TOP);
   const haySeleccion = seleccion !== null;
 
+  function alternar(shipmentId: string): void {
+    onSeleccionar(shipmentId === SIN_ENVIO ? null : shipmentId);
+  }
+
   return (
     <PanelGrafica
       titulo="Envíos del periodo"
-      subtitulo="Seguimientos y validaciones por Shipment ID, top 10. Haz clic para abrir el envío."
+      subtitulo="Seguimientos y validaciones por Shipment ID, top 10. Haz clic para abrir el envío; «Sin envío» agrupa los reportes sin vínculo."
     >
       {top.length === 0 ? (
         <GraficaVacia mensaje="No hay envíos con seguimientos en el periodo." />
@@ -90,10 +95,7 @@ export function GraficaEnvios({ porViaje, seleccion, onSeleccionar }: GraficaEnv
               stackId="envio"
               fill={COLORES.accent}
               maxBarSize={22}
-              onClick={(_, i) => {
-                const envio = top[i]!;
-                if (envio.shipmentId !== SIN_ENVIO) onSeleccionar(envio.shipmentId);
-              }}
+              onClick={(_, i) => alternar(top[i]!.shipmentId)}
               className="cursor-pointer"
             >
               {top.map((e) => (
@@ -110,10 +112,7 @@ export function GraficaEnvios({ porViaje, seleccion, onSeleccionar }: GraficaEnv
               fill={COLORES.warning}
               radius={[0, 4, 4, 0]}
               maxBarSize={22}
-              onClick={(_, i) => {
-                const envio = top[i]!;
-                if (envio.shipmentId !== SIN_ENVIO) onSeleccionar(envio.shipmentId);
-              }}
+              onClick={(_, i) => alternar(top[i]!.shipmentId)}
               className="cursor-pointer"
             >
               {top.map((e) => (
